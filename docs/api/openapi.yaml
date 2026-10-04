@@ -10,9 +10,10 @@ info:
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
     tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
     login/me, role context, status akun, expiry/logout, rate limit, provisioning
-    warung, pengelolaan user tenant, dan katalog memiliki acceptance test parsial.
-    GET/PATCH admin warung, profil, D06 untuk transaksi atas menu nonaktif,
-    acceptance penuh, serta OpenAPI runtime conformance menyeluruh belum diverifikasi.
+    admin warung/user tenant, katalog, dan transaksi/laporan memiliki acceptance
+    test parsial. Profil `/warung`, D06 untuk transaksi atas menu nonaktif,
+    acceptance lintas seluruh operasi serta OpenAPI runtime conformance menyeluruh
+    belum diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -200,7 +201,7 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'DRAFT: implementasi awal tersedia; GET daftar warung belum diuji dengan HTTP acceptance. ADMIN-API-ACCEPTANCE-001 mencakup POST provisioning saja. OpenAPI runtime conformance belum diuji.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning dan ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET list: pencarian, filter aktif, sort, pagination, metadata, dan role boundary. Exact subset D13 diperiksa manual; OpenAPI runtime conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -354,7 +355,7 @@ paths:
       tags:
       - Admin
       summary: Detail warung untuk superadmin
-      description: 'DRAFT: implementasi awal tersedia, tetapi GET detail warung belum diuji dengan HTTP acceptance atau contract test.'
+      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET detail, exact resource field set, ID tidak ada, dan role boundary. Exact subset D13 diperiksa manual; OpenAPI runtime conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -407,7 +408,7 @@ paths:
       tags:
       - Admin
       summary: Ubah identitas/status/masa aktif warung
-      description: 'DRAFT: implementasi awal tersedia, tetapi PATCH warung belum diuji dengan HTTP acceptance atau contract test.'
+      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji PATCH metadata/status, validasi input, tanggal terbalik, update kosong, row tetap utuh pada error, dan role boundary. Exact subset D13 diperiksa manual; OpenAPI runtime conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
