@@ -226,11 +226,20 @@ class PembelianApiTest extends TestCase
 
         $list = $this->withToken($token)->getJson('/api/v1/pembelians')->assertForbidden();
         $this->assertOperationResponseMatchesOpenApi($list, '/pembelians', 'get');
-        $create = $this->withToken($token)->postJson('/api/v1/pembelians', [], [
-            'Idempotency-Key' => 'purchase-cashier-denied',
-        ])->assertForbidden();
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-cashier-denied'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $create = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
         $this->assertOperationResponseMatchesOpenApi($create, '/pembelians', 'post');
-        $this->assertSame(0, Pembelian::query()->count());
+
+        $this->assertDatabaseCount('pembelians', 0);
+        $this->assertDatabaseCount('pembelian_rincis', 0);
     }
 
     public function test_superadmin_cannot_create_a_purchase_for_a_tenant(): void

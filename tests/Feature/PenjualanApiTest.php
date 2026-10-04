@@ -208,14 +208,24 @@ class PenjualanApiTest extends TestCase
     {
         $warung = Warung::factory()->create();
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id]);
         $token = $manager->createToken('feature-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'bayar' => '15000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-manager-denied'];
 
-        $response = $this->withToken($token)->postJson('/api/v1/penjualans', [], [
-            'Idempotency-Key' => 'sale-manager-denied',
-        ])->assertForbidden();
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
 
-        $this->assertSame(0, Penjualan::query()->count());
+        $this->assertDatabaseCount('penjualans', 0);
+        $this->assertDatabaseCount('penjualan_rincis', 0);
     }
 
     public function test_superadmin_cannot_create_a_sale_for_a_tenant(): void
