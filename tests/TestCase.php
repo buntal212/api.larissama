@@ -94,6 +94,83 @@ abstract class TestCase extends BaseTestCase
         }
     }
 
+    /**
+     * @param  array<string, string>  $query
+     */
+    protected function assertOperationQueryMatchesOpenApi(array $query, string $path, string $method): void
+    {
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path][strtolower($method)] ?? null;
+        $this->assertIsArray($operation, "OpenAPI operation {$method} {$path} must exist.");
+
+        $queryParameters = [];
+        foreach ($operation['parameters'] ?? [] as $parameter) {
+            if (isset($parameter['$ref'])) {
+                $parameter = $this->resolveOpenApiReference($document, $parameter['$ref']);
+            }
+
+            if (($parameter['in'] ?? null) === 'query') {
+                $queryParameters[$parameter['name']] = $parameter;
+            }
+        }
+
+        foreach ($query as $name => $value) {
+            $this->assertArrayHasKey($name, $queryParameters, "Query parameter {$name} must be declared for {$method} {$path}.");
+            $schema = $queryParameters[$name]['schema'] ?? null;
+            $this->assertIsArray($schema, "OpenAPI query parameter {$name} must define a schema.");
+
+            $typedValue = $this->parseOpenApiQueryValue($value, $schema, "query.{$name}", $document);
+            $errors = $this->collectOpenApiSchemaErrors($typedValue, $schema, $document, "query.{$name}");
+            $this->assertSame([], $errors, implode("\n", $errors));
+        }
+
+        foreach ($queryParameters as $name => $parameter) {
+            if ($parameter['required'] ?? false) {
+                $this->assertArrayHasKey($name, $query, "Required OpenAPI query parameter {$name} must be supplied for {$method} {$path}.");
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, mixed>  $document
+     */
+    private function parseOpenApiQueryValue(string $value, array $schema, string $path, array $document): mixed
+    {
+        if (isset($schema['$ref'])) {
+            $schema = $this->resolveOpenApiReference($document, $schema['$ref']);
+        }
+
+        $type = $schema['type'] ?? null;
+        if ($type === 'integer') {
+            $integer = filter_var($value, FILTER_VALIDATE_INT);
+            $this->assertNotFalse($integer, "{$path} must serialize as an integer query value.");
+
+            return $integer;
+        }
+
+        if ($type === 'number') {
+            $number = filter_var($value, FILTER_VALIDATE_FLOAT);
+            $this->assertNotFalse($number, "{$path} must serialize as a numeric query value.");
+
+            return $number;
+        }
+
+        if ($type === 'boolean') {
+            $this->assertContains($value, ['true', 'false'], "{$path} must serialize as true or false.");
+
+            return $value === 'true';
+        }
+
+        if ($type === 'string') {
+            return $value;
+        }
+
+        $this->fail("{$path} uses unsupported OpenAPI query parameter type.");
+
+        return $value;
+    }
+
     /** @return array<string, mixed> */
     protected function openApiDocument(): array
     {

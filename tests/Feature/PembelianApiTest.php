@@ -193,14 +193,18 @@ class PembelianApiTest extends TestCase
             ->assertJsonPath('data.jumlah_transaksi', 2)
             ->assertJsonPath('data.total_pembelian', '12000000000000.00');
 
-        $firstPage = $this->withToken($token)->getJson('/api/v1/pembelians?page=1&per_page=1')
+        $firstPageQuery = ['page' => '1', 'per_page' => '1', 'sort' => '-tanggal'];
+        $this->assertOperationQueryMatchesOpenApi($firstPageQuery, '/pembelians', 'get');
+        $firstPage = $this->withToken($token)->getJson('/api/v1/pembelians?'.http_build_query($firstPageQuery))
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('meta.page', 1)
             ->assertJsonPath('meta.per_page', 1)
             ->assertJsonPath('meta.total', 2);
         $this->assertOperationResponseMatchesOpenApi($firstPage, '/pembelians', 'get');
-        $secondPage = $this->withToken($token)->getJson('/api/v1/pembelians?page=2&per_page=1')
+        $secondPageQuery = ['page' => '2', 'per_page' => '1', 'sort' => '-tanggal'];
+        $this->assertOperationQueryMatchesOpenApi($secondPageQuery, '/pembelians', 'get');
+        $secondPage = $this->withToken($token)->getJson('/api/v1/pembelians?'.http_build_query($secondPageQuery))
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('meta.page', 2)

@@ -36,7 +36,9 @@ class LaporanApiTest extends TestCase
             ]);
         }
 
-        $response = $this->withToken($token)->getJson('/api/v1/laporan/penjualan?date_from=2026-03-08&date_to=2026-03-08')
+        $query = ['date_from' => '2026-03-08', 'date_to' => '2026-03-08'];
+        $this->assertOperationQueryMatchesOpenApi($query, '/laporan/penjualan', 'get');
+        $response = $this->withToken($token)->getJson('/api/v1/laporan/penjualan?'.http_build_query($query))
             ->assertOk()
             ->assertJsonPath('data.jumlah_transaksi', 2)
             ->assertJsonPath('data.total_pendapatan', '5000.00')
@@ -66,7 +68,9 @@ class LaporanApiTest extends TestCase
             ]);
         }
 
-        $response = $this->withToken($token)->getJson('/api/v1/laporan/pembelian?date_from=2026-03-08&date_to=2026-03-08')
+        $query = ['date_from' => '2026-03-08', 'date_to' => '2026-03-08'];
+        $this->assertOperationQueryMatchesOpenApi($query, '/laporan/pembelian', 'get');
+        $response = $this->withToken($token)->getJson('/api/v1/laporan/pembelian?'.http_build_query($query))
             ->assertOk()
             ->assertJsonPath('data.jumlah_transaksi', 2)
             ->assertJsonPath('data.total_pembelian', '5000.00')

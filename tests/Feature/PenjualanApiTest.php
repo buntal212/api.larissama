@@ -130,8 +130,10 @@ class PenjualanApiTest extends TestCase
         $saleA = Penjualan::factory()->create(['warung_id' => $warungA->id, 'user_id' => $cashierA->id]);
         Penjualan::factory()->create(['warung_id' => $warungB->id, 'user_id' => $cashierB->id]);
         $token = $managerA->createToken('feature-test')->plainTextToken;
+        $query = ['page' => '1', 'per_page' => '1', 'sort' => '-tanggal', 'status' => 'selesai'];
 
-        $response = $this->withToken($token)->getJson('/api/v1/penjualans')
+        $this->assertOperationQueryMatchesOpenApi($query, '/penjualans', 'get');
+        $response = $this->withToken($token)->getJson('/api/v1/penjualans?'.http_build_query($query))
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', (string) $saleA->id);
