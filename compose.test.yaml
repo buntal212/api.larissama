@@ -1,0 +1,46 @@
+name: larissama-backend-test
+
+services:
+  test-db:
+    image: mysql:8.0.40
+    command: ["--log-bin-trust-function-creators=1"]
+    environment:
+      MYSQL_DATABASE: larissama_test
+      MYSQL_USER: larissama_test
+      MYSQL_PASSWORD: larissama-test-only
+      MYSQL_ROOT_PASSWORD: larissama-test-root-only
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping --protocol=tcp -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    user: "${LARISSAMA_UID:-1000}:${LARISSAMA_GID:-1000}"
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: base64:bGFyaXNzYW1hLWxvY2FsLXRlc3Qta2V5LTEyMzQ1Njc=
+      DB_CONNECTION: mysql
+      DB_HOST: test-db
+      DB_PORT: "3306"
+      DB_DATABASE: larissama_test
+      DB_USERNAME: larissama_test
+      DB_PASSWORD: larissama-test-only
+      DB_URL: ""
+      COMPOSER_HOME: /tmp/composer
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    depends_on:
+      test-db:
+        condition: service_healthy

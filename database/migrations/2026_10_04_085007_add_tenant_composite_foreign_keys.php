@@ -49,6 +49,7 @@ return new class extends Migration
         });
 
         Schema::table('users', function (Blueprint $table) {
+            $table->index('warung_id', 'users_warung_id_index');
             $table->dropUnique('users_warung_id_id_unique');
         });
     }

@@ -1,6 +1,6 @@
 # Rancangan Test dan Kriteria Lulus
 
-Status awal: seluruh test aplikasi di bawah **NOT_RUN** dan belum diimplementasikan. Dokumen ini adalah spesifikasi test, bukan laporan hasil lulus. PHP/Composer belum tersedia dalam shell pemeriksaan 2026-10-04; test bawaan repository hanya contoh. Validasi dokumen/OpenAPI tidak menggantikan test Laravel/DB/API.
+Status awal dokumen ini: seluruh test aplikasi **NOT_RUN** dan belum diimplementasikan. Update pelaksanaan dicatat pada [tracker](../../IMPLEMENTATION_PROGRESS.md); test transaksi kini mulai tersedia, tetapi milestone dan handoff API belum dianggap lulus dari satu slice.
 
 Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung Dxx adalah kandidat: finalkan keputusan dan sesuaikan test sebelum test tersebut menjadi gate.
 
@@ -16,7 +16,7 @@ Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant IN
 
 M0 memilih validator OpenAPI 3.1 yang sesuai lalu mencatat versi/command di tracker. Jangan mengunci package hanya karena dipakai App POS. PHPUnit sudah ada di composer.json; struktur folder baru belum dibuat pada tahap rancangan.
 
-Sebelum test DB, pastikan APP_ENV=testing, koneksi dan nama database adalah target test terisolasi, serta bukan data bersama/produksi. Jangan menjalankan refresh/wipe pada koneksi yang belum diketahui. phpunit.xml saat ini menggunakan SQLite memory; itu dapat dipakai untuk test yang sesuai, tetapi gate FK/concurrency/migration memerlukan engine target D01. Fake clock, dua tenant, dan koneksi terpisah membuat skenario dapat diulang.
+Sebelum test DB, pastikan APP_ENV=testing, koneksi dan nama database adalah target test terisolasi, serta bukan data bersama/produksi. Jangan menjalankan refresh/wipe pada koneksi yang belum diketahui. `phpunit.xml` memakai SQLite memory sebagai default, tetapi gate FK/concurrency/migration memerlukan engine target D01. `compose.test.yaml` menyediakan project tersendiri dengan MySQL 8.0.40, DB `larissama_test`, tanpa port host dan tanpa volume data persisten; jangan mengganti host/database dengan konfigurasi development. Fake clock, dua tenant, dan koneksi terpisah membuat skenario dapat diulang.
 
 ## Fixture sintetis dan expected result
 
@@ -100,7 +100,15 @@ Test tenant, uang, rollback, retry, dan kontrak yang wajib harus 100% lulus deng
 
 ## Rencana command dan bukti
 
-Setelah runtime tersedia, jalankan test terfokus untuk slice menggunakan PHPUnit/Laravel pada konfigurasi test yang diverifikasi, lalu suite yang relevan. `composer test` tersedia di proyek, tetapi jangan menjalankannya sebelum koneksi test dipastikan aman. Validator kontrak, koneksi engine target, dan command concurrency ditetapkan di BE-004; belum ada command custom yang diklaim tersedia.
+Periksa konfigurasi Compose sebelum menjalankan test, lalu jalankan suite terfokus hanya pada project test. `RefreshDatabase` menjalankan migration pada DB `larissama_test`; jangan mengarahkan koneksi itu ke service development atau DB lain. `IdempotencyConcurrencyTest` menjalankan dua proses Laravel HTTP Kernel dengan koneksi MySQL terpisah, menahan keduanya pada barrier sebelum request, dan memakai trigger delay sementara pada DB disposable.
+
+```sh
+docker compose -f compose.test.yaml config --quiet
+docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer install --no-interaction && php artisan config:clear && php artisan test --display-warnings tests/Feature/PenjualanApiTest.php tests/Feature/PembelianApiTest.php tests/Feature/TransactionAtomicityTest.php tests/Feature/IdempotencyConcurrencyTest.php'
+docker compose -f compose.test.yaml down --remove-orphans
+```
+
+Validator OpenAPI tetap terpisah dari test HTTP. Run `TRANSACTION-FEATURE-001` sudah menjalankan empat feature test transaksi pada DB MySQL terisolasi dan suite `composer test`; rincian hasil serta cakupan yang masih terbuka tercatat di tracker dan artefak run. Catat setiap run dengan command, environment, commit, hasil aktual, serta gap. Jangan mengklaim concurrency PASS bila barrier tidak benar-benar dilewati dua request.
 
 Setiap run dicatat dengan format berikut pada [tracker](../../IMPLEMENTATION_PROGRESS.md):
 
