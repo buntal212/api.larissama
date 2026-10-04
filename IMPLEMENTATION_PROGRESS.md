@@ -96,6 +96,8 @@ Jika hanya sebagian operasi satu area siap, pecah baris menurut operationId. Jan
 | Run ID | Scope / commit | Hasil | Batas bukti |
 | --- | --- | --- | --- |
 | DOC-001 | Draft OpenAPI `4d6b965`; Python PyYAML + jsonschema | PASS pemeriksaan lokal: 18 path, 28 operasi unik, 58 schema, 463 ref resolve, 264 contoh request/response tervalidasi termasuk response error yang digunakan ulang. | Command sesi `python3 /tmp/larissama_validate_contract.py`; script sementara, bukan tool proyek/CI. Bukan lint OAS penuh dan bukan T-API-01 lulus. |
+| DOC-002 | OpenAPI setelah perbaikan kapasitas laporan `17c6586` | PASS pemeriksaan yang sama: 18 path, 28 operasi, 59 schema, 463 ref resolve, 264 contoh. AggregateMoney menjaga kapasitas jumlah lintas transaksi. | Validasi dokumen/JSON Schema saja; tidak mengeksekusi Laravel, DB, atau validator OAS penuh. |
+| DOC-003 | Paket dokumen pada `4b4f7a0` | PASS: 56 tautan lokal, 29 task dengan dependency tanpa siklus, 45 skenario, 28 operasi terdokumentasi, 3 contoh JSON panduan, bentuk pembelian minimal valid dan 6 input invalid ditolak schema; arithmetic fixture decimal dan kesamaan AGENTS/CLAUDE benar; 14 commit dalam paket masing-masing satu file. | Command sesi `python3 /tmp/larissama_validate_docs.py`; cek awal helper gagal menghitung ID E2E karena regex hanya menerima huruf. Regex helper diperbaiki dan pemeriksaan ulang lulus. Ini bukan hasil test aplikasi. |
 | ENV-OBS-001 | Pemeriksaan shell 2026-10-04 | php -v dan composer -V: command not found. | Observasi awal; tidak ada test aplikasi yang dijalankan. |
 
 Run aplikasi berikutnya wajib memakai format lengkap pada TEST_PLAN. Simpan output yang relevan pada artefak bukti (lokasi disepakati saat M0), tanpa secret, dan tautkan di sini. Tiap hasil mencantumkan commit yang diuji, bukan sekadar branch yang bisa bergerak.
@@ -107,5 +109,7 @@ Run aplikasi berikutnya wajib memakai format lengkap pada TEST_PLAN. Simpan outp
 | 2026-10-04 | Rancangan pembelian ditambahkan | `652450a`, delapan tabel; belum migration. |
 | 2026-10-04 | Milestone pembelian awal | `6716613`, rencana sebelum rincian backlog ini. |
 | 2026-10-04 | Register keputusan, desain, kontrak dan test plan | `e570f65`, `2df2e17`, `4d6b965`, `25f3dfd`, `293b107`. Implementasi tetap 0/29. |
+| 2026-10-04 | Backlog/gate dan pedoman agent diselaraskan | `bda7024`, `c17b5be`, `b675557`, `cfe161e`, `0145fd7`, `0697609`. Aturan commit per file persisten dan AGENTS/CLAUDE sama. |
+| 2026-10-04 | Review kontrak dan pemeriksaan paket rancangan | `17c6586`, `785a597`, `4b4f7a0`; bukti DOC-002/DOC-003. Tidak ada task implementasi atau operasi live yang dinaikkan statusnya. |
 
 Saat mulai task, tambahkan log berisi ID task, agent/pelaksana, tujuan, fakta/invariant, scope izin, batas transaksi/retry, file, dan acceptance. Saat selesai, tambahkan perubahan, hasil test, hash tiap file, operasi yang diserahkan, serta task berikutnya.
