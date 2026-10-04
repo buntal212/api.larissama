@@ -20,6 +20,8 @@ info:
     D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 27 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
+    API-ROUTE-INVENTORY-CONFORMANCE-001 mencocokkan dua arah seluruh 28 method/path OpenAPI dengan route Laravel;
+    pemeriksaan ini hanya inventaris, bukan bukti conformance request/response atau kesiapan integrasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
