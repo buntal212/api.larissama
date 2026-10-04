@@ -21,12 +21,12 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | Auth | Kandidat bearer token melalui `Authorization: Bearer ...`. Belum dipilih final terhadap cookie SPA. Jangan menganggap token berbentuk JWT. |
 | Tenant | User biasa tidak mengirim pemilih warung. Backend menggunakan identitas user; path admin warung hanya untuk superadmin. |
 | ID | String digit, misalnya `"1001"`; jangan konversi BIGINT menjadi Number. |
-| Nominal dan qty | String decimal dua angka pecahan, tanpa pemisah ribuan; contoh `"150000.00"`, `"0.50"`. Format lokal hanya untuk tampilan. |
+| Nominal dan qty | String decimal dua angka pecahan, tanpa pemisah ribuan; contoh `"150000.00"`, `"0.50"`. Format lokal hanya untuk tampilan. Money transaksi mengikuti batas kolom; AggregateMoney laporan dapat melebihi kapasitas satu transaksi dan tetap string eksak. |
 | Tanggal | `tanggal` adalah RFC3339 ber-offset; filter periode memakai YYYY-MM-DD dalam timezone bisnis final. Response kandidat UTC. |
 | Null | JSON `null` berarti tidak diisi/tidak berlaku sesuai schema. `0.00` adalah nominal nol yang diketahui, bukan pengganti null/error. |
 | Field input | `additionalProperties: false`: field server seperti total header, warung_id, user_id, nomor, dan status tidak dikirim pada create transaksi. |
 | Detail | Endpoint detail/transaksi baru mengembalikan `rincian`. Endpoint daftar hanya header; fetch detail untuk membuka transaksi. |
-| Pagination | `page` >= 1, `per_page` 1–100, default 20. Response `meta` memuat page/per_page/total/last_page. Total adalah hasil filter seluruh halaman. |
+| Pagination | `page` >= 1, `per_page` 1–100, default 20. Response `meta` memuat page/per_page/total/last_page. Total adalah hasil filter seluruh halaman; hasil kosong memakai data=[], total=0, last_page=1. Halaman di atas last_page memberi data kosong dengan total asli. |
 | Sort | Hanya enum pada operasi; arah diikuti id sebagai tie-breaker. Default transaksi `-tanggal` dengan id menurun saat tanggal sama. Nilai tak didukung menghasilkan 422. |
 | Periode | `date_from` dan `date_to` wajib untuk laporan. Pada daftar transaksi boleh keduanya kosong; bila salah satu diisi harus berpasangan. Awal <= akhir. |
 | Patch | Hanya field yang berubah. Field nullable dikosongkan dengan null; field dihilangkan berarti tidak diubah. Body kosong ditolak. |
