@@ -187,27 +187,23 @@ User tenant dapat login dan memakai API hanya jika seluruh kondisi ini terpenuhi
 ```text
 user.aktif = TRUE
 warung.aktif = TRUE
-tanggal_mulai <= tanggal hari ini
-tanggal_berakhir >= tanggal hari ini
+(tanggal_mulai IS NULL OR tanggal_mulai <= tanggal hari ini)
+(tanggal_berakhir IS NULL OR tanggal_berakhir >= tanggal hari ini)
 ```
 
-Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar token lama tidak melewati masa aktif. Batas tanggal bersifat inklusif sesuai rancangan awal.
-
-Rancangan menandai kedua tanggal sebagai nullable, tetapi belum menjelaskan arti tanggal kosong. Tetapkan perilaku nilai `NULL` sebelum membuat validasi dan middleware produksi.
+Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar token lama tidak melewati masa aktif. Batas tanggal terisi bersifat inklusif. User telah menetapkan bahwa `NULL` pada `tanggal_mulai` berarti tidak ada batas mulai dan `NULL` pada `tanggal_berakhir` berarti tidak ada batas akhir (2026-10-04). Status aktif user dan warung tetap wajib.
 
 ## Keputusan yang harus ditetapkan sebelum migration fitur
 
 1. Vendor dan versi minimum database produksi serta collation yang dipakai. Keluarga MySQL/MariaDB sudah dipilih; validasi integrasi final menunggu target vendor/versi yang pasti.
-2. Arti `tanggal_mulai` atau `tanggal_berakhir` yang `NULL`.
-3. Apakah email nullable tetap unique global. Migration Laravel bawaan saat ini mewajibkan email dan membuatnya unique, sedangkan rancangan meminta email nullable.
-4. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
-5. Cara database dan aplikasi mencegah `kategori_menu_id`, `menu_id`, kasir, penjualan, pembelian, dan user pencatat menghubungkan data dari warung berbeda, termasuk apakah engine target akan memakai foreign key gabungan dengan `warung_id`.
-6. Batas nilai dan pembulatan uang, serta rumus subtotal/diskon header dan rincian.
-7. Apakah daftar nilai role, metode pembayaran, dan status dijaga sebagai konstanta/enum aplikasi atau constraint database. Rancangan saat ini menyebut kolom VARCHAR.
-8. Apakah superadmin dapat membuat transaksi atas nama warung, atau hanya mengelola data warung. Rancangan hanya menetapkan `warung_id = NULL` untuk akun superadmin.
-9. Perilaku idempotensi untuk request pembuatan/finalisasi penjualan yang dapat dicoba ulang, agar retry tidak menggandakan transaksi.
-10. Arti zona waktu pada `penjualans.tanggal` dan `pembelians.tanggal`: apakah itu instant tersimpan dalam UTC atau waktu lokal warung, serta bagaimana zona waktu bisnis ditetapkan untuk filter laporan periode.
-11. Aturan koreksi atau pembatalan pembelian setelah dicatat, termasuk dampaknya pada laporan dan apakah perlu status khusus.
+2. Apakah email nullable tetap unique global. Migration Laravel bawaan saat ini mewajibkan email dan membuatnya unique, sedangkan rancangan meminta email nullable.
+3. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
+4. Cara database dan aplikasi mencegah `kategori_menu_id`, `menu_id`, kasir, penjualan, pembelian, dan user pencatat menghubungkan data dari warung berbeda, termasuk apakah engine target akan memakai foreign key gabungan dengan `warung_id`.
+5. Batas nilai dan pembulatan uang, serta rumus subtotal/diskon header dan rincian.
+6. Apakah daftar nilai role, metode pembayaran, dan status dijaga sebagai konstanta/enum aplikasi atau constraint database. Pembagian tanggung jawab inti superadmin/owner/manager/kasir disetujui; detail izin per operasi mengikuti D04.
+7. Perilaku idempotensi untuk request pembuatan/finalisasi penjualan yang dapat dicoba ulang, agar retry tidak menggandakan transaksi.
+8. Arti zona waktu pada `penjualans.tanggal` dan `pembelians.tanggal`: apakah itu instant tersimpan dalam UTC atau waktu lokal warung, serta bagaimana zona waktu bisnis ditetapkan untuk filter laporan periode.
+9. Aturan koreksi atau pembatalan pembelian setelah dicatat, termasuk dampaknya pada laporan dan apakah perlu status khusus.
 
 ## Kondisi proyek saat dokumen dibuat
 
