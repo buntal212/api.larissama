@@ -11,6 +11,7 @@ use App\Http\Resources\Api\V1\UserResource;
 use App\Http\Resources\Api\V1\WarungResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\Warung;
+use App\Support\ApiPagination;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,10 +44,11 @@ class AdminWarungController extends Controller
         $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
         $column = ltrim($sort, '-');
 
-        $paginator = $query
-            ->orderBy($column, $direction)
-            ->orderBy('id', $direction)
-            ->paginate((int) ($filters['per_page'] ?? 20), ['*'], 'page', (int) ($filters['page'] ?? 1));
+        $paginator = ApiPagination::paginate(
+            $query->orderBy($column, $direction)->orderBy('id', $direction),
+            (int) ($filters['per_page'] ?? 20),
+            (int) ($filters['page'] ?? 1),
+        );
 
         return ApiPaginationResponse::make($paginator, WarungResource::class, $request);
     }

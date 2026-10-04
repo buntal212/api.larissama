@@ -9,6 +9,7 @@ use App\Http\Requests\Api\V1\UserUpdateRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\User;
+use App\Support\ApiPagination;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,10 +46,11 @@ class UserController extends Controller
         $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
         $column = ltrim($sort, '-');
 
-        $paginator = $query
-            ->orderBy($column, $direction)
-            ->orderBy('id', $direction)
-            ->paginate((int) ($filters['per_page'] ?? 20), ['*'], 'page', (int) ($filters['page'] ?? 1));
+        $paginator = ApiPagination::paginate(
+            $query->orderBy($column, $direction)->orderBy('id', $direction),
+            (int) ($filters['per_page'] ?? 20),
+            (int) ($filters['page'] ?? 1),
+        );
 
         return ApiPaginationResponse::make($paginator, UserResource::class, $request);
     }

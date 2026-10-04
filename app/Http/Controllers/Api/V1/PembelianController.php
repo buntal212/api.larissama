@@ -13,6 +13,7 @@ use App\Http\Responses\ApiErrorResponse;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\Pembelian;
 use App\Models\User;
+use App\Support\ApiPagination;
 use App\Support\PeriodBounds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,10 +36,11 @@ class PembelianController extends Controller
         }
 
         $direction = ($filters['sort'] ?? '-tanggal') === '-tanggal' ? 'desc' : 'asc';
-        $paginator = $query
-            ->orderBy('tanggal', $direction)
-            ->orderBy('id', $direction)
-            ->paginate((int) ($filters['per_page'] ?? 20), ['*'], 'page', (int) ($filters['page'] ?? 1));
+        $paginator = ApiPagination::paginate(
+            $query->orderBy('tanggal', $direction)->orderBy('id', $direction),
+            (int) ($filters['per_page'] ?? 20),
+            (int) ($filters['page'] ?? 1),
+        );
 
         return ApiPaginationResponse::make($paginator, PembelianSummaryResource::class, $request);
     }
