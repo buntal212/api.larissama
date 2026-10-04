@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Login/me/logout, administrasi warung + owner awal, profil warung, dan pengelolaan user tenant sudah memiliki implementasi awal, tetapi masih `DRAFT` karena test aplikasi dan contract test belum dijalankan. Katalog, transaksi, serta laporan belum tersedia. File ini dapat dipakai untuk review dan mock yang diberi label, bukan bukti integrasi live sudah dapat berjalan.
+Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Auth, administrasi, dan katalog kategori/menu sudah memiliki implementasi awal, tetapi masih `DRAFT` karena test aplikasi dan contract test belum dijalankan. Penjualan, pembelian, serta laporan belum tersedia. File ini dapat dipakai untuk review dan mock yang diberi label, bukan bukti integrasi live sudah dapat berjalan.
 
 ## Status implementasi yang tersedia
 
@@ -8,6 +8,7 @@ Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi
 | --- | --- | --- | --- |
 | Auth dan akses | `2cafc46` | Pint/PHP lint, 3 route, timezone sesi MySQL, migration timezone (`AUTH-API-001`, `DB-MIGRATION-003`) | Belum ada HTTP/app/contract test; DRAFT |
 | Administrasi warung dan user tenant | `0f7e39c` | Pint/PHP lint, 9 route, YAML parse (`ADMIN-API-001`) | Belum ada HTTP/app/contract test; DRAFT |
+| Kategori dan menu | perubahan lokal M2 | Implementasi awal API/migration sedang diverifikasi; belum di-commit | Belum ada HTTP/app/contract test; DRAFT |
 
 Rincian hasil dan batas pemeriksaan ada di [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md). Jangan arahkan frontend ke server live sampai kontrak operasi berstatus `READY_FOR_FRONTEND`.
 
@@ -41,7 +42,7 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | Patch | Hanya field yang berubah. Field nullable dikosongkan dengan null; field dihilangkan berarti tidak diubah. Body kosong ditolak. |
 | Retry | Mekanisme durable D09 belum ditentukan. Jangan mengarang Idempotency-Key atau retry create otomatis; timeout belum membuktikan transaksi gagal tersimpan. |
 
-User menyetujui tanggung jawab inti D04: superadmin mengelola warung dan owner awal melalui jalur admin; owner mengelola user warungnya; manager mengelola katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak sebagai user tenant. Hak per operasi pada tabel di bawah tetap kandidat untuk rincian yang belum disetujui, termasuk akses owner di luar user dan riwayat penjualan. Semua batas nominal/rounding tetap kandidat, bukan keputusan produksi. Setiap operasi harus menutup keputusan pemblokir sebelum READY_FOR_FRONTEND.
+User menyetujui tanggung jawab inti D04: superadmin mengelola warung dan owner awal melalui jalur admin; owner mengelola user warungnya; manager mengelola katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak sebagai user tenant. Hak katalog pada implementasi awal: manager dapat membaca dan mengubah; manager dan kasir dapat membaca katalog, dengan kasir hanya melihat kategori/menu aktif. Hak owner di luar pengelolaan user dan hak baca riwayat penjualan masih menunggu rincian D04. Semua batas nominal/rounding tetap kandidat, bukan keputusan produksi. Setiap operasi harus menutup keputusan pemblokir sebelum READY_FOR_FRONTEND.
 
 ## Daftar operasi
 
@@ -61,14 +62,14 @@ Path berikut relatif terhadap `/api/v1`. Hak akses di tabel adalah kandidat D04.
 | Tambah user | POST /users | createUser | owner |
 | Detail user | GET /users/{id} | getUser | owner |
 | Ubah user | PATCH /users/{id} | updateUser | owner |
-| Daftar kategori | GET /kategori-menus | listKategoriMenus | manager inti; hak owner/kasir menunggu D04 |
-| Tambah kategori | POST /kategori-menus | createKategoriMenu | manager inti; hak owner menunggu D04 |
-| Detail kategori | GET /kategori-menus/{id} | getKategoriMenu | manager inti; hak owner/kasir menunggu D04 |
-| Ubah kategori | PATCH /kategori-menus/{id} | updateKategoriMenu | manager inti; hak owner menunggu D04 |
-| Daftar menu | GET /menus | listMenus | manager inti; hak owner/kasir menunggu D04 |
-| Tambah menu | POST /menus | createMenu | manager inti; hak owner menunggu D04 |
-| Detail menu | GET /menus/{id} | getMenu | manager inti; hak owner/kasir menunggu D04 |
-| Ubah menu | PATCH /menus/{id} | updateMenu | manager inti; hak owner menunggu D04 |
+| Daftar kategori | GET /kategori-menus | listKategoriMenus | manager; kasir hanya kategori aktif |
+| Tambah kategori | POST /kategori-menus | createKategoriMenu | manager |
+| Detail kategori | GET /kategori-menus/{id} | getKategoriMenu | manager; kasir hanya kategori aktif |
+| Ubah kategori | PATCH /kategori-menus/{id} | updateKategoriMenu | manager |
+| Daftar menu | GET /menus | listMenus | manager; kasir hanya menu aktif dari kategori aktif |
+| Tambah menu | POST /menus | createMenu | manager |
+| Detail menu | GET /menus/{id} | getMenu | manager; kasir hanya menu aktif dari kategori aktif |
+| Ubah menu | PATCH /menus/{id} | updateMenu | manager |
 | Daftar penjualan | GET /penjualans | listPenjualans | Hak baca dan riwayat kasir menunggu D04 |
 | Catat penjualan | POST /penjualans | createPenjualan | kasir inti; hak owner/manager menunggu D04 |
 | Detail penjualan | GET /penjualans/{id} | getPenjualan | Hak baca dan riwayat kasir menunggu D04 |

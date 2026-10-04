@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs` dan adaptasi `users` sudah diterapkan pada clean-install lokal MySQL 8.0.40. Kolom zona waktu per warung direncanakan sebagai migration maju dan belum diterapkan; enam tabel bisnis lain juga belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs`, adaptasi `users`, timezone, kategori, dan menu telah diterapkan dan diperiksa pada database development lokal MySQL 8.0.40. Empat tabel transaksi masih belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
@@ -111,6 +111,8 @@ Relasi: satu warung memiliki banyak user. Validasi aplikasi harus memastikan use
 | `created_at`, `updated_at` | timestamp |
 
 Kategori dan menu harus berasal dari warung yang sama.
+
+Migration menggunakan FK biasa ke warung dan kategori. API membatasi kategori ke `warung_id` user dan query menu juga memastikan kategori terkait berada di warung yang sama. FK gabungan belum diterapkan karena strategi database untuk relasi lintas tenant masih terbuka di D16; constraint ini perlu ditentukan sebelum klaim proteksi untuk penulisan langsung ke database.
 
 ### `penjualans`
 

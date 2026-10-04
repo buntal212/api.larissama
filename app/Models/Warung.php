@@ -30,6 +30,16 @@ class Warung extends Model
         return $this->hasMany(User::class);
     }
 
+    public function kategoriMenus(): HasMany
+    {
+        return $this->hasMany(KategoriMenu::class);
+    }
+
+    public function menus(): HasMany
+    {
+        return $this->hasMany(Menu::class);
+    }
+
     public function allowsAccessAt(CarbonImmutable $instantUtc): bool
     {
         if (! $this->aktif || ! is_string($this->timezone) || $this->timezone === '') {

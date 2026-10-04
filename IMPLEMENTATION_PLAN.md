@@ -34,7 +34,7 @@ Aplikasi tidak memerlukan workflow dapur, resep, stok, item penjualan bebas, ata
 | --- | --- | --- | --- |
 | M0 — Kesiapan dan kontrak | BE-001–004 | Runtime dan DB test; inventaris migration; keputusan awal; konvensi/API draft ditinjau; validator dan harness tersedia. | G0: runtime/harness aman, keputusan prasyarat tersedia, lint kontrak lulus. |
 | M1 — Akses dan administrasi | BE-101–105 | Warung/users, login/me/logout, tenant/policy/status aktif, admin warung+owner, pengelolaan user tenant. 12 operasi akses/admin. | G1: auth, role, tenant, provisioning, dan kontrak lulus; operasi terkait siap frontend. |
-| M2 — Kategori dan menu | BE-201–204 | Migration/model/API katalog, filter/pagination, harga decimal, kategori satu warung. 8 operasi katalog. | G2: katalog dan arsip sesuai aturan; data tenant lain tidak terbaca/terubah; kontrak lulus. |
+| M2 — Kategori dan menu | BE-201–204 | Migration/model/API katalog, filter/pagination, harga decimal, kategori satu warung. 8 operasi katalog. | G2: katalog dan arsip sesuai aturan; data tenant lain tidak terbaca/terubah; strategi D16 dipilih; kontrak lulus. |
 | M3 — Penjualan dan pendapatan | BE-301–306 | Action atomic, snapshot, validasi uang, nomor/retry, riwayat/detail, laporan pendapatan. 3 operasi transaksi dan 1 laporan; cancel hanya setelah D06. | G3: nominal/snapshot/rollback/retry/concurrency dan laporan lulus pada engine target; kontrak siap. |
 | M4 — Pembelian dan total periode | BE-401–406 | Action atomic ringkas/rinci, nomor/retry, riwayat/detail, laporan pembelian. 3 operasi transaksi dan 1 laporan; koreksi hanya setelah D11. | G4: “Belanja di pasar + nominal” diterima, total detail benar, tenant/rollback/retry/laporan lulus. |
 | M5 — Integrasi dan rilis | BE-501–504 | Regression, runbook deploy/recovery, environment integrasi, handoff frontend dan bukti penerimaan. | G5: seluruh test wajib lulus, tidak ada endpoint diserahkan tanpa kontrak, runbook dan handoff terbukti. |
@@ -56,7 +56,7 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 ## Keputusan yang ditutup sebelum coding terkait
 
 1. M0/M1: D01 engine/transisi data, D02 auth, D03 tanggal nullable, D04 role/superadmin, D12 identitas/email, D13 HTTP; bagian D08 yang diperlukan untuk tanggal masa aktif.
-2. M2: D05 untuk representasi harga, D06 arsip/hapus; D14 hanya bila media gambar menu masuk scope.
+2. M2: D05 untuk representasi harga, D06 arsip/hapus, D16 untuk constraint relasi tenant; D14 hanya bila media gambar menu masuk scope.
 3. M3: D05 rumus dan pembayaran, D06 cancellation/history, D08 periode, D09 penomoran/retry durable. Setiap item wajib dari menu sesuai D07 yang telah diputuskan.
 4. M4: D05 nominal, D08 periode, D09 nomor/retry, D10 rincian sebagian, D11 koreksi pembelian.
 
