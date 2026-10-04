@@ -28,6 +28,8 @@ info:
     owner belum diberi izin report sampai keputusan D04 ditetapkan. Semua operasi masih DRAFT.
     SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 mencocokkan request/response OpenAPI untuk create sale dan purchase;
     superadmin tanpa warung mendapat 403 dan tidak menulis header/rincian. Matriks role lain tetap parsial.
+    ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid: manager ditolak saat create sale dan kasir
+    ditolak saat create purchase, tanpa write header/rincian. Owner serta role/operasi lain belum lengkap.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -1401,8 +1403,9 @@ paths:
         Setiap item wajib berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422;
         TRANSACTION-REQUEST-CONFORMANCE-001 mencocokkan body/header pada request create/replay/conflict terpilih dan
         tenant-crossing 422 schema-valid (menu_id berupa string). SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 menguji
-        payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah. Query,
-        body/status lain, serta gate penuh masih terbuka.
+        payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
+        ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi manager tanpa write.
+        Query, body/status lain, serta gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1692,6 +1695,7 @@ paths:
         mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. Request parsial yang melanggar
         oneOf D10 memang diuji 422, tetapi tidak cocok dengan request schema. SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001
         menguji payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
+        ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi kasir tanpa write.
         Query, body/status lain, dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
