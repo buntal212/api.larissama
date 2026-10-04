@@ -74,6 +74,53 @@ class AuthApiTest extends TestCase
         $this->assertStringNotContainsString($password, $me->getContent());
     }
 
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function supportedRoleCases(): array
+    {
+        return [
+            'superadmin has no tenant context' => ['superadmin'],
+            'owner receives tenant context' => ['owner'],
+            'manager receives tenant context' => ['manager'],
+            'cashier receives tenant context' => ['kasir'],
+        ];
+    }
+
+    #[DataProvider('supportedRoleCases')]
+    public function test_supported_roles_login_with_their_expected_warung_context(string $role): void
+    {
+        $warung = $role === 'superadmin' ? null : Warung::factory()->create();
+        $user = User::factory()->create([
+            'warung_id' => $warung?->id,
+            'role' => $role,
+        ]);
+
+        $login = $this->postJson('/api/v1/auth/login', [
+            'username' => $user->username,
+            'password' => 'password',
+        ])->assertOk();
+
+        $this->assertSame($role, $login->json('data.user.role'));
+        $this->assertSame(
+            $warung === null ? null : (string) $warung->id,
+            $login->json('data.user.warung_id'),
+        );
+        $this->assertSame($warung === null, $login->json('data.warung') === null);
+
+        $me = $this->withToken($login->json('data.access_token'))
+            ->getJson('/api/v1/auth/me')
+            ->assertOk();
+
+        $this->assertSame($user->username, $me->json('data.user.username'));
+        $this->assertSame($role, $me->json('data.user.role'));
+        $this->assertSame(
+            $warung === null ? null : (string) $warung->id,
+            $me->json('data.user.warung_id'),
+        );
+        $this->assertSame($warung === null, $me->json('data.warung') === null);
+    }
+
     public function test_invalid_credentials_return_the_same_generic_401_error(): void
     {
         $user = User::factory()->create(['username' => 'known-auth-user']);
