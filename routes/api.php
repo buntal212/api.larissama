@@ -4,7 +4,10 @@ use App\Http\Controllers\Api\V1\AdminWarungController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CurrentWarungController;
 use App\Http\Controllers\Api\V1\KategoriMenuController;
+use App\Http\Controllers\Api\V1\LaporanController;
 use App\Http\Controllers\Api\V1\MenuController;
+use App\Http\Controllers\Api\V1\PembelianController;
+use App\Http\Controllers\Api\V1\PenjualanController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Middleware\EnsureActiveAccount;
 use Illuminate\Support\Facades\Route;
@@ -41,5 +44,16 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('menus', [MenuController::class, 'store'])->name('menus.store');
         Route::get('menus/{id}', [MenuController::class, 'show'])->whereNumber('id')->name('menus.show');
         Route::patch('menus/{id}', [MenuController::class, 'update'])->whereNumber('id')->name('menus.update');
+
+        Route::get('penjualans', [PenjualanController::class, 'index'])->name('penjualans.index');
+        Route::post('penjualans', [PenjualanController::class, 'store'])->name('penjualans.store');
+        Route::get('penjualans/{id}', [PenjualanController::class, 'show'])->whereNumber('id')->name('penjualans.show');
+
+        Route::get('pembelians', [PembelianController::class, 'index'])->name('pembelians.index');
+        Route::post('pembelians', [PembelianController::class, 'store'])->name('pembelians.store');
+        Route::get('pembelians/{id}', [PembelianController::class, 'show'])->whereNumber('id')->name('pembelians.show');
+
+        Route::get('laporan/penjualan', [LaporanController::class, 'penjualan'])->name('laporan.penjualan');
+        Route::get('laporan/pembelian', [LaporanController::class, 'pembelian'])->name('laporan.pembelian');
     });
 });

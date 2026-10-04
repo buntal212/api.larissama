@@ -4,10 +4,14 @@ namespace App\Providers;
 
 use App\Models\KategoriMenu;
 use App\Models\Menu;
+use App\Models\Pembelian;
+use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
 use App\Policies\KategoriMenuPolicy;
 use App\Policies\MenuPolicy;
+use App\Policies\PembelianPolicy;
+use App\Policies\PenjualanPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WarungPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -36,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Warung::class, WarungPolicy::class);
         Gate::policy(KategoriMenu::class, KategoriMenuPolicy::class);
         Gate::policy(Menu::class, MenuPolicy::class);
+        Gate::policy(Penjualan::class, PenjualanPolicy::class);
+        Gate::policy(Pembelian::class, PembelianPolicy::class);
 
         RateLimiter::for('login', static function (Request $request): Limit {
             $username = Str::lower((string) $request->input('username', ''));
