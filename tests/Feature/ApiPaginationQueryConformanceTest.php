@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ApiPaginationQueryConformanceTest extends TestCase
@@ -73,5 +74,70 @@ class ApiPaginationQueryConformanceTest extends TestCase
             $this->assertSame(100, $response->json('meta.per_page'), "{$path} must accept per_page=100.");
             $this->assertSame(1, $response->json('meta.page'), "{$path} must report page 1.");
         }
+    }
+
+    #[DataProvider('listOperations')]
+    public function test_returns_422_for_per_page_101_when_openapi_maximum_is_100(string $path, string $role): void
+    {
+        $warung = Warung::factory()->create();
+        $user = $role === 'superadmin'
+            ? User::factory()->superadmin()->create()
+            : User::factory()->create([
+                'warung_id' => $warung->id,
+                'role' => $role,
+            ]);
+        $token = $user->createToken('pagination-overflow-test')->plainTextToken;
+        $query = ['per_page' => '101'];
+
+        $this->assertOpenApiRejectsPerPageOverflow($path);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1'.$path.'?'.http_build_query($query))
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
+        $response->assertJsonPath('code', 'VALIDATION_ERROR');
+        $response->assertJsonPath('message', 'Data belum valid.');
+        $response->assertInvalid(['per_page' => '100']);
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function listOperations(): array
+    {
+        return [
+            'admin warungs as superadmin' => ['/admin/warungs', 'superadmin'],
+            'users as owner' => ['/users', 'owner'],
+            'categories as manager' => ['/kategori-menus', 'manager'],
+            'menus as manager' => ['/menus', 'manager'],
+            'sales as manager' => ['/penjualans', 'manager'],
+            'purchases as manager' => ['/pembelians', 'manager'],
+        ];
+    }
+
+    private function assertOpenApiRejectsPerPageOverflow(string $path): void
+    {
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path]['get'] ?? null;
+        $this->assertIsArray($operation, "OpenAPI GET {$path} must exist.");
+
+        $perPageSchema = null;
+        foreach ($operation['parameters'] ?? [] as $parameter) {
+            if (isset($parameter['$ref'])) {
+                $parameter = $this->resolveOpenApiReference($document, $parameter['$ref']);
+            }
+
+            if (($parameter['in'] ?? null) === 'query' && ($parameter['name'] ?? null) === 'per_page') {
+                $perPageSchema = $parameter['schema'] ?? null;
+                break;
+            }
+        }
+
+        $this->assertIsArray($perPageSchema, "OpenAPI GET {$path} must define a per_page query schema.");
+        $this->assertSame(100, $perPageSchema['maximum'] ?? null, "OpenAPI GET {$path} must cap per_page at 100.");
+
+        $errors = $this->collectOpenApiSchemaErrors(101, $perPageSchema, $document, 'query.per_page');
+        $this->assertContains('query.per_page is above OpenAPI maximum', $errors);
     }
 }
