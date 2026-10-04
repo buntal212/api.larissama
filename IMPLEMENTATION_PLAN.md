@@ -1,108 +1,93 @@
-# Rencana Kerja Backend LarisSama
+# Rencana Pelaksanaan Backend LarisSama
 
-## Status dan lingkup
+Status: rancangan pelaksanaan, 2026-10-04. Tugas saat ini menghasilkan desain, kontrak, test plan, dan tracker. Implementasi aplikasi belum dimulai. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
 
-Ini rencana implementasi berdasarkan [rancangan database](database/README.md), bukan persetujuan untuk langsung membangun semua fitur. Lingkup yang dikerjakan adalah backend Laravel dan dokumentasi API contract. Kode frontend tidak termasuk lingkup.
+## Dokumen yang dipakai
 
-Pengembang frontend akan memakai kontrak API backend sebagai acuan integrasi. Untuk itu, setiap milestone harus menghasilkan atau memperbarui spesifikasi OpenAPI sebelum endpoint diserahkan untuk integrasi.
+| Dokumen | Otoritas / kegunaan |
+| --- | --- |
+| [AGENTS.md](AGENTS.md), [aturan database](database/AGENTS.md) | Instruksi kerja backend dan migration. |
+| [database/README.md](database/README.md) | Rancangan logis delapan tabel; migration kelak menunjukkan schema yang benar-benar diterapkan. |
+| [DESIGN.md](docs/backend/DESIGN.md) | Modul, struktur Laravel, batas transaksi, tenant, perhitungan, dan invariant. |
+| [DECISIONS.md](docs/backend/DECISIONS.md) | Kebutuhan K01–K08 serta keputusan D01–D13 yang belum ditetapkan. |
+| [openapi.yaml](docs/api/openapi.yaml) | Bentuk wire API kandidat, parameter, schema, contoh, status, dan keputusan pemblokir per operasi. |
+| [panduan API](docs/api/README.md) | Petunjuk AI frontend, alur integrasi, null/decimal/errors, dan changelog kontrak. |
+| [TEST_PLAN.md](docs/backend/TEST_PLAN.md) | 45 skenario, fixture sintetis, expected result, gate, dan format bukti test. |
+| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 29 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
+| [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Proses kerja per slice dan aturan commit per file. |
 
-Ikuti [alur kerja pengembangan](DEVELOPMENT_WORKFLOW.md), aturan backend di [`AGENTS.md`](AGENTS.md), dan aturan migration di [`database/AGENTS.md`](database/AGENTS.md).
+Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah catatan progres; keputusan berada di register; payload berada di OpenAPI. Jika salah satu berubah, perbarui artefak terkait secara eksplisit dan commit setiap file sebelum lanjut file berikutnya.
 
-## Prinsip pelaksanaan
+## Scope dan hasil yang dituju
 
-- Kerjakan fitur dalam vertical slice yang bisa diterima satu per satu; jangan membuat semua tabel lebih dulu lalu menunda endpoint dan integrasi.
-- Keputusan domain yang belum ditetapkan tetap terbuka sampai diputuskan. Tidak ada asumsi diam-diam untuk uang, role, tenant, status, atau masa aktif.
-- Backend adalah otoritas untuk otorisasi, tenant isolation, validasi, dan perhitungan.
-- Pembelian dan penjualan adalah pencatatan terpisah; pembelian tidak mengelola stok dan tidak terkait ke menu/resep.
-- Migration yang sudah dipakai bersama tidak diedit; koreksi dilakukan lewat migration baru.
-- Setiap perubahan kontrak API dicatat bersama implementasi backend yang mengubahnya.
+- Banyak warung dengan data terisolasi; konteks tenant berasal dari user login. User/warung aktif dan masa berlaku diperiksa backend.
+- Master kategori serta menu dan harga jual.
+- Penjualan: satu header, minimal satu rincian, snapshot nama/harga, perhitungan backend, riwayat dan pendapatan periode.
+- Pembelian bahan: header-rincian, mendukung input lengkap maupun satu baris seperti “Belanja di pasar” dan nominal. Total pembelian periode berdiri sendiri dari penjualan.
+- API yang terdokumentasi untuk akses, administrasi, katalog, penjualan, pembelian dan laporan; test membuktikan izin, angka, integritas, serta kontrak.
 
-## Kontrak API untuk frontend
+Aplikasi tidak memerlukan workflow dapur, resep, stok, atau perhitungan HPP/laba. Field lama `harga_modal`, role `koki`, dan cabang `luar_menu` memerlukan keputusan D07 jika hendak digunakan atau diubah; keberadaannya tidak mengotorisasi fitur tambahan.
 
-### Artefak yang akan dibuat
+## Milestone dan gate
 
-```text
-docs/api/openapi.yaml   OpenAPI 3.1, kontrak machine-readable
-docs/api/README.md      konvensi API dan cara membaca kontrak
+| Milestone | Task | Hasil yang harus tersedia | Kriteria gate |
+| --- | --- | --- | --- |
+| M0 — Kesiapan dan kontrak | BE-001–004 | Runtime dan DB test; inventaris migration; keputusan awal; konvensi/API draft ditinjau; validator dan harness tersedia. | G0: runtime/harness aman, keputusan prasyarat tersedia, lint kontrak lulus. |
+| M1 — Akses dan administrasi | BE-101–105 | Warung/users, login/me/logout, tenant/policy/status aktif, admin warung+owner, pengelolaan user tenant. 12 operasi akses/admin. | G1: auth, role, tenant, provisioning, dan kontrak lulus; operasi terkait siap frontend. |
+| M2 — Kategori dan menu | BE-201–204 | Migration/model/API katalog, filter/pagination, harga decimal, kategori satu warung. 8 operasi katalog. | G2: katalog dan arsip sesuai aturan; data tenant lain tidak terbaca/terubah; kontrak lulus. |
+| M3 — Penjualan dan pendapatan | BE-301–306 | Action atomic, snapshot, validasi uang, nomor/retry, riwayat/detail, laporan pendapatan. 3 operasi transaksi dan 1 laporan; cancel hanya setelah D06. | G3: nominal/snapshot/rollback/retry/concurrency dan laporan lulus pada engine target; kontrak siap. |
+| M4 — Pembelian dan total periode | BE-401–406 | Action atomic ringkas/rinci, nomor/retry, riwayat/detail, laporan pembelian. 3 operasi transaksi dan 1 laporan; koreksi hanya setelah D11. | G4: “Belanja di pasar + nominal” diterima, total detail benar, tenant/rollback/retry/laporan lulus. |
+| M5 — Integrasi dan rilis | BE-501–504 | Regression, runbook deploy/recovery, environment integrasi, handoff frontend dan bukti penerimaan. | G5: seluruh test wajib lulus, tidak ada endpoint diserahkan tanpa kontrak, runbook dan handoff terbukti. |
+
+Dependency teknis:
+
+```mermaid
+flowchart LR
+    M0[Persiapan M0] --> M1[Akses M1]
+    M1 --> M2[Katalog M2]
+    M2 --> M3[Penjualan M3]
+    M1 --> M4[Pembelian M4]
+    M3 --> M5[Integrasi dan rilis M5]
+    M4 --> M5
 ```
 
-Spesifikasi ditulis di backend dan menjadi acuan untuk integrasi frontend. Dokumen database menjelaskan penyimpanan; dokumen OpenAPI menjelaskan request dan response. Frontend tidak boleh menyimpulkan payload langsung dari nama kolom.
+Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki relasi domain ke penjualan; dependency M4 adalah akses/tenant M1. Detail dependency setiap task ada di tracker, termasuk keputusan retry sebelum action dibuat dan pembuktian concurrency sesudahnya.
 
-Setiap operasi OpenAPI harus menjelaskan:
+## Keputusan yang ditutup sebelum coding terkait
 
-- method, path, `operationId`, ringkasan, serta versi;
-- autentikasi dan role/scope yang diperlukan;
-- path/query parameters, filter, sort, pagination, dan batasnya;
-- request schema, field wajib/nullable, validasi, dan contoh request;
-- response sukses, status HTTP, response schema, dan contoh response;
-- error schema beserta kondisi yang memicunya;
-- format ID, tanggal/waktu/zona waktu, uang/kuantitas decimal, serta aturan pembulatan;
-- aturan idempotency atau version precondition jika operasi membutuhkannya.
+1. M0/M1: D01 engine/transisi data, D02 auth, D03 tanggal nullable, D04 role/superadmin, D12 identitas/email, D13 HTTP; bagian D08 yang diperlukan untuk tanggal masa aktif.
+2. M2: D05 untuk representasi harga, D06 arsip/hapus; D07 bila field/fitur legacy atau gambar digunakan.
+3. M3: D05 rumus dan pembayaran, D06 cancellation/history, D07 luar_menu, D08 periode, D09 penomoran/retry durable.
+4. M4: D05 nominal, D08 periode, D09 nomor/retry, D10 rincian sebagian, D11 koreksi pembelian.
 
-Sebelum milestone M0 selesai, tetapkan API prefix/versioning, skema auth, response/error convention, pagination, format decimal/tanggal, dan kebijakan perubahan kompatibel. OpenAPI tidak dianggap final selama keputusan itu masih terbuka. Setelah kontrak stabil, implementasi Laravel harus sesuai dengan spec; jangan meminta frontend menebak atau menyesuaikan terhadap implementasi yang tidak terdokumentasi.
+Rekomendasi sudah tersedia di register agar pembahasan terarah. Agent tidak boleh mengubah PROPOSED menjadi DECIDED tanpa sumber keputusan. Pekerjaan yang tidak bergantung keputusan itu dapat diteruskan; jangan menghentikan seluruh perencanaan hanya karena engine atau auth belum dipilih.
 
-## Milestone
+## Urutan kerja satu task
 
-| Milestone | Backend scope | API contract / handoff | Gate |
-| --- | --- | --- | --- |
-| M0 — Kesiapan dan keputusan | Verifikasi runtime, cara menjalankan kedua repo, migration Laravel yang ada, target DB, dan strategi auth. Tutup keputusan prasyarat tenant, tanggal, nominal, API errors, serta kompatibilitas `users` bawaan. | Tetapkan konvensi API; siapkan OpenAPI 3.1 dan pedoman kontrak. Belum menetapkan endpoint bisnis yang belum memiliki aturan. | Toolchain/DB/auth dan strategi migration diketahui; tidak ada asumsi prasyarat untuk slice M1. |
-| M1 — Warung, user, dan akses | Buat `warungs`; adaptasi `users` dengan `warung_id`, `nama`, `username`, `role`, dan `aktif`. Implementasikan relasi, login, current-user, pemeriksaan status user/warung, tanggal aktif, dan tenant scope. Tangani superadmin sebagai jalur otorisasi tersendiri. | Tulis operasi auth, profil/current-user, serta operasi pengelolaan warung/user yang sudah disepakati. Sertakan role/scope, contoh payload, validasi, dan error akses. | User tenant tidak dapat melintasi warung; akses aktif/kedaluwarsa ditegakkan backend; dokumentasi cocok dengan endpoint. |
-| M2 — Kategori dan menu | Buat `kategori_menus` dan `menus`; terapkan unique code per warung, relasi kategori-menu satu warung, validasi, query ter-tenant-scope, serta aturan aktif/arsip/hapus yang disetujui. | Tulis operasi daftar/detail/buat/ubah/status sesuai keputusan fitur, parameter filter/pagination, payload, validasi, error, dan contoh. Frontend menerima spec sebelum integrasi. | Request tenant tidak bisa membaca atau mengubah data warung lain; menu tidak dapat memakai kategori lintas warung. |
-| M3 — Penjualan | Buat `penjualans` dan `penjualan_rincis`; simpan header dan detail atomik, hitung nominal di backend, simpan snapshot nama/harga, dan dukung item luar-menu. Tetapkan nomor transaksi, pembatalan, diskon, pembayaran, dan retry sebelum coding. | Tulis kontrak create/list/detail/cancel sesuai perilaku yang disepakati, struktur item menu/luar-menu, bentuk nominal decimal, error, serta retry/idempotency. | Retry tidak menggandakan transaksi; nominal dan snapshot benar; detail penjualan dan header tidak terpisah; tenant scope terjaga. |
-| M4 — Pembelian | Buat `pembelians` dan `pembelian_rincis` secara atomik. Dukung rincian bahan satu per satu maupun satu rincian ringkas seperti `Belanja di pasar`; setiap header wajib memiliki minimal satu rincian. Backend menghitung total dari subtotal rincian dan membatasi data pada warung. | Dokumentasikan create/list/detail dan laporan total pembelian per periode. Sertakan contoh kedua bentuk input, filter tanggal, response nominal, validasi, error, dan tenant scope. | Kedua bentuk pencatatan diterima; header dan rincian konsisten; laporan hanya menjumlahkan pembelian warung tersebut; pembelian tidak mengubah data penjualan atau stok. |
-| M5 — Pengerasan dan rilis | Tinjau migrasi fresh/upgrade, otorisasi, integritas tenant, error handling, konfigurasi, backup/recovery, dan perilaku lintas milestone. | Pastikan OpenAPI lengkap dan cocok dengan implementasi; catat perubahan yang berdampak ke frontend dan siapkan contoh integrasi yang relevan. | Tidak ada endpoint undocumented untuk alur yang diserahkan; cakupan verifikasi dan batasan rilis dilaporkan. |
+1. Baca aturan, task/dependency, keputusan, status Git, dan contract operationId yang terkait.
+2. Catat tujuan, sumber aturan, fakta yang dibaca/diubah, invariant, auth/tenant, transaksi/retry, file, API, acceptance, dan test yang akan membuktikannya.
+3. Tetapkan keputusan yang memblokir. Perbarui schema/kontrak kandidat lebih dulu bila diperlukan; belum menandai READY.
+4. Implementasikan slice: migration aman → model/validasi/policy → action/query → controller/resource. Baca flow Laravel aktual sebelum mengubah bootstrap/route atau package.
+5. Setelah mengedit satu file, cek diff dan staged path, commit file itu, catat hash, kemudian lanjut file berikutnya. Checkpoint per file boleh belum memenuhi gate slice.
+6. Jalankan test penting untuk perubahan, lalu suite yang relevan setelah komponennya lengkap. Rekam commit yang diuji dan hasil; skipped/not-run tidak menjadi pass.
+7. Cocokkan respons runtime dengan OpenAPI, contoh sukses/error dan dokumentasi. Update per file dan commit sesuai aturan yang sama.
+8. Penuhi gate, ubah status task berdasarkan bukti, lalu serahkan operasi yang siap dengan versi spec, environment, auth, dan run test.
 
-## Urutan kerja per milestone
+## Kriteria selesai
 
-1. Baca aturan dan artefak yang relevan; cek status repository backend.
-2. Tulis ringkasan tindakan, keputusan sumber, fakta yang diubah, invariant, auth/tenant, transaksi/retry, API, acceptance, dan file.
-3. Tutup keputusan yang menghalangi milestone. Jika perlu keputusan pengguna, tanyakan hanya hal yang belum bisa disimpulkan.
-4. Draft/update OpenAPI untuk perilaku yang disepakati.
-5. Implementasikan migration aman, model, application action/query, authorization, validation, dan endpoint.
-6. Pastikan endpoint mengikuti kontrak; jalankan verifikasi sesuai lingkup tugas dan laporkan apa yang belum diuji.
-7. Serahkan OpenAPI beserta contoh request/response dan error kepada frontend; perbarui kontrak dan changelog saat ada perubahan.
-8. Tutup milestone dengan gate sebelum memulai milestone berikutnya.
+Task DONE membutuhkan deliverable dan acceptance pada tracker, keputusan yang diperlukan, invariant teruji, dokumentasi sesuai perilaku, dan bukti commit/test. Milestone hanya lulus jika seluruh skenario wajib pada TEST_PLAN lulus dan gap/defer dicatat dengan sumber persetujuan. Tidak menggunakan persentase kode coverage sebagai satu-satunya syarat.
 
-## Keputusan yang perlu ditutup
+Contoh hasil yang akan dibuktikan: pendapatan `33000.00` dari sale fixture; pembelian ringkas `150000.00` ditambah pembelian rinci `95000.00` menjadi `245000.00`. Laporan tidak menggandakan header akibat join rincian dan tidak memasukkan warung lain. Expected ini masih mengikuti kandidat aturan nominal/periode D05/D08/D10.
 
-Rincian rancangan ada pada bagian “Keputusan yang harus ditetapkan sebelum migration fitur” di `database/README.md`. Untuk rencana ini, keputusan tersebut dikelompokkan sebagai berikut:
+## Serah-terima kepada AI frontend
 
-### Harus ada sebelum M1
+AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lalu status handoff tracker. Setiap operasi READY_FOR_FRONTEND memiliki:
 
-- Target database dan strategi migration untuk tabel `users` bawaan.
-- Autentikasi API, cara client mengirim kredensial, API versioning/prefix, dan standar response/error.
-- Perilaku tanggal warung yang nullable, timezone untuk masa aktif, keunikan email, serta operasi superadmin yang diizinkan.
-- Strategi integritas foreign key/validasi tenant dan aturan penghapusan akun/warung.
+- versi/commit kontrak dan implementasi yang diuji;
+- base URL environment, auth final, role/scope;
+- request/response sukses serta contoh error per field;
+- format decimal, ID, tanggal, null, pagination, dan arti summary;
+- perilaku retry/correction jika fitur itu diserahkan;
+- run test yang mendukung dan keterbatasan yang masih berlaku.
 
-### Harus ada sebelum M2
-
-- Apakah kategori/menu dapat dihapus atau hanya dinonaktifkan/diarsipkan.
-- Filter dan pagination minimum yang dibutuhkan frontend untuk layar katalog.
-
-### Harus ada sebelum M3
-
-- Rumus subtotal, diskon rincian/header, pembayaran, kembalian, presisi, dan pembulatan.
-- Status dan operasi pembatalan transaksi; kebijakan retry/idempotency serta nomor transaksi.
-- Makna timezone pada `penjualans.tanggal` dan bentuk tanggal/waktu di API.
-- Batas operasi superadmin terkait transaksi.
-
-### Harus ada sebelum M4
-
-- Perilaku koreksi atau pembatalan pembelian setelah dicatat.
-- Rumus subtotal pembelian ketika kuantitas dan harga satuan disediakan, serta aturan presisi/pembulatannya.
-- Perilaku retry/idempotency dan penomoran transaksi pembelian.
-- Rentang tanggal laporan pembelian dan zona waktu yang dipakai untuk menentukan periode.
-
-## Hasil serah-terima backend ke frontend
-
-Untuk setiap slice, serahkan:
-
-1. Link ke operasi terkait dalam `docs/api/openapi.yaml`.
-2. Contoh request/response sukses dan contoh error.
-3. Kebutuhan auth dan role/scope.
-4. Arti field nullable, status, angka decimal, dan tanggal.
-5. Catatan perubahan kompatibilitas bila kontrak sebelumnya berubah.
-
-## Bukan bagian dari rencana ini
-
-Rancangan saat ini tidak mendefinisikan stok, meja, varian menu, refund, pajak, atau ledger. Jangan menambahkan tabel/alur domain tersebut tanpa requirement dan keputusan desain tersendiri. Rencana ini juga tidak mengunci engine, metode auth, bentuk route, ataupun semantik yang masih tercatat sebagai keputusan terbuka.
+Pada baseline ini semua operasi DRAFT/NOT_STARTED. Belum ada endpoint bisnis yang dapat diklaim siap integrasi live. Pekerjaan berikutnya dimulai dari BE-001 dan BE-002; ini tidak mengubah tugas rancangan menjadi izin untuk langsung mengimplementasikan semua fitur.
