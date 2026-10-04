@@ -11,9 +11,9 @@ info:
     tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
     login/me, role context, status akun, expiry/logout, rate limit, provisioning
     admin warung/user tenant, katalog, dan transaksi/laporan memiliki acceptance
-    test parsial. Profil `/warung`, D06 untuk transaksi atas menu nonaktif,
-    acceptance lintas seluruh operasi serta OpenAPI runtime conformance menyeluruh
-    belum diverifikasi.
+    test parsial. Response runtime auth dan admin dicocokkan dengan schema untuk
+    sebagian operasi/status; request schema, profil `/warung`, D06 untuk transaksi
+    atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -40,7 +40,7 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji sebagian login, error, expiry, limiter, dan field set D13. Conformance semua schema serta keputusan D08/D12 masih terbuka. Maksimum 5 percobaan login per menit untuk username lowercase-normalized dan IP.'
+      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403/422/429. Request schema, status 400/500, conformance lainnya, dan keputusan D08/D12 masih terbuka. Maksimum 5 percobaan login per menit untuk username lowercase-normalized dan IP.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles: []
@@ -113,7 +113,7 @@ paths:
       tags:
       - Auth
       summary: Identitas dan konteks akses aktif
-      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji sebagian identitas login/me, konteks role, akun aktif, token expired, serta field set D13; schema dan conformance OpenAPI penuh belum diverifikasi.'
+      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Status 400/500 dan conformance lainnya belum diverifikasi; keputusan D08 tetap terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -170,8 +170,9 @@ paths:
       tags:
       - Auth
       summary: Cabut sesi/token aktif
-      description: AUTH-API-ACCEPTANCE-001 membuktikan 204 tanpa body dan hanya token bearer yang dikirim dicabut.
-        Operasi tetap DRAFT sampai seluruh schema/conformance dan keputusan pemblokir selesai. Middleware memeriksa
+      description: AUTH-API-ACCEPTANCE-001 membuktikan hanya token bearer yang dikirim dicabut; AUTH-CONFORMANCE-001
+        mencocokkan response 204 tanpa body dengan kontrak. Operasi tetap DRAFT sampai error schema/conformance lain
+        dan keputusan pemblokir selesai. Middleware memeriksa
         user/warung sebelum logout; jika akun sudah nonaktif atau kedaluwarsa, frontend tetap dapat menghapus token
         lokal, tetapi request logout tidak mencabut record token di server.
       x-contract-status: DRAFT
