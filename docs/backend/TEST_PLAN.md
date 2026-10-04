@@ -252,6 +252,14 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 | T-E2E-01 | Alur API dari provisioning sampai laporan/logout | Warung/user/katalog/sale/P1/P2 terbentuk lewat API sah; angka fixture dan isolasi tenant benar; logout memutus akses. | M1–M4 |
 | T-E2E-02 | Handoff frontend | Penerima mencatat versi spec/commit/base URL, mencoba contoh sukses/error dan kedua bentuk pembelian; hasil tercatat. Jika environment/penerima belum tersedia, tetap BLOCKED/PENDING. | Endpoint READY kandidat |
 
+## Pra-implementasi verifikasi constraint tenant T-DB-03
+
+Task BE-101/201/301/401, T-DB-03, INV01 dan D16. Sumber kebenaran: migrations tenant composite FK dan unique indexes; D16 disetujui user. Tambahkan `tests/Feature/TenantCompositeForeignKeyTest.php` menggunakan MySQL Compose disposable dan `RefreshDatabase`.
+
+Cakupan langsung pada DB: keenam FK gabungan (menu-kategori, header penjualan-user, detail penjualan-header/menu, header pembelian-user, detail pembelian-header) menolak kombinasi lintas tenant; relasi orphan ditolak; kode menu serta nomor transaksi boleh sama antar-warung tetapi duplikat di warung yang sama ditolak oleh unique index. Setiap assertion mengidentifikasi constraint yang gagal agar error lain tidak dianggap lulus. API tenant/validasi sudah punya cakupan terpisah dan tidak diubah di slice ini.
+
+Tidak mengubah migration, schema, model, data selain fixture test, auth/policy, API atau keputusan Dxx. Acceptance: seluruh constraint yang diuji menghasilkan constraint DB yang tepat, duplikasi lintas tenant diterima, target dan suite penuh lulus di MySQL 8.0.40, Pint lulus, Compose dibersihkan; bukti dan status task diperbarui. T-DB-03 penuh tetap parsial bila constraint yang belum diuji atau jalur aplikasi belum punya bukti.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
