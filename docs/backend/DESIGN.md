@@ -17,11 +17,11 @@ Status: rancangan, belum implementasi. Dasar: [delapan tabel](../../database/REA
 | Akses | warungs, users | Login, profil, logout, pembatasan user/warung aktif, izin role. |
 | Administrasi | warungs, users | Superadmin mengelola warung; kandidat provisioning membuat warung dan owner awal secara atomik (D04). Owner mengelola user warung. |
 | Katalog | kategori_menus, menus | Daftar, detail, tambah, ubah kategori/menu dan status aktif. |
-| Penjualan | penjualans, penjualan_rincis | Catat penjualan menu, baca riwayat/detail, pertahankan snapshot nama/harga. Item luar menu menunggu D07. |
+| Penjualan | penjualans, penjualan_rincis | Catat menu terdaftar, baca riwayat/detail, pertahankan snapshot nama/harga jual. |
 | Pembelian | pembelians, pembelian_rincis | Catat pembelian bahan rinci atau ringkas, baca riwayat/detail. |
 | Laporan | query header transaksi | Pendapatan penjualan dan total pembelian dalam periode terpilih, terpisah per warung. |
 
-Tidak ada workflow dapur atau pengaitan pembelian dengan stok/resep. `harga_modal` yang ada pada rancangan menu tidak menjadi HPP otomatis. Perhitungan laba bukan keluaran yang disepakati.
+Tidak ada workflow dapur atau pengaitan pembelian dengan stok/resep. Field legacy `harga_modal` tidak dipakai oleh API penjualan/pembelian. Perhitungan HPP atau laba bukan keluaran yang disepakati.
 
 ## Alur request dan struktur kode yang disarankan
 
@@ -87,7 +87,7 @@ Matriks ini belum menjadi izin final. Field role dari client tidak boleh menaikk
 | INV03 | User aktif dan warung aktif dalam masa berlaku. | Periksa login serta setiap request; token lama tidak melewati penonaktifan/kedaluwarsa. |
 | INV04 | Header memiliki >= 1 detail, tanpa penyimpanan sebagian. | Validasi array dan DB transaction; kegagalan detail me-rollback header, total, nomor, serta efek retry. |
 | INV05 | Nominal eksak dan dihitung backend. | Decimal, validasi batas/rounding D05; total dari detail, bukan total client. |
-| INV06 | Riwayat penjualan menyimpan nama/harga saat transaksi. | Snapshot dalam action; perubahan master tidak menulis ulang rincian. |
+| INV06 | Setiap penjualan memilih menu terdaftar pada warung yang sama; riwayat menyimpan nama/harga jual saat transaksi. | `menu_id` wajib pada detail, menu di-resolve di scope warung dan snapshot disimpan dalam action; perubahan master tidak menulis ulang rincian. |
 | INV07 | Pembelian ringkas sah. | `nama_item` + `subtotal` menjadi satu detail; qty/satuan/harga_satuan nullable. |
 | INV08 | Pembelian tidak memengaruhi penjualan/menu/stok. | Action hanya menulis pembelian dan infrastruktur yang disetujui. |
 | INV09 | Retry/concurrency tidak menggandakan transaksi. | D09 harus diputuskan dan diuji dengan dua request/koneksi; disable retry UI saja tidak memenuhi syarat. |
@@ -96,9 +96,9 @@ Matriks ini belum menjadi izin final. Field role dari client tidak boleh menaikk
 
 ### Penjualan
 
-Action membaca menu dalam scope warung, memeriksa aktif, mengambil harga/nama yang sah saat pencatatan, menghitung setiap subtotal, lalu menyimpan header dan semua snapshot detail. Harga kiriman client untuk item master tidak menjadi otoritas. D05 menentukan respons terhadap perubahan harga bersamaan; snapshot harus konsisten dengan pembacaan dalam transaksi.
+Action membaca setiap menu dalam scope warung, memeriksa aktif, mengambil harga/nama jual yang sah saat pencatatan, menghitung setiap subtotal, lalu menyimpan header dan semua snapshot detail. Setiap rincian harus mempunyai `menu_id`; transaksi dengan item bebas tidak diterima. Harga kiriman client tidak menjadi otoritas. D05 menentukan respons terhadap perubahan harga bersamaan; snapshot harus konsisten dengan pembacaan dalam transaksi.
 
-Kandidat rumus D05: `subtotal_rinci = round(harga × qty - diskon_rinci, 2)`; `subtotal_header = SUM(subtotal_rinci)`; `total = subtotal_header - diskon_header`; `kembalian = bayar - total` untuk cash. Validasi mencegah total negatif/diskon berlebih; QRIS/transfer perlu aturan eksplisit. `bayar` bukan pendapatan. Kebijakan luar_menu/cancel tidak boleh diasumsikan hanya karena schema punya field terkait.
+Kandidat rumus D05: `subtotal_rinci = round(harga_jual × qty - diskon_rinci, 2)`; `subtotal_header = SUM(subtotal_rinci)`; `total = subtotal_header - diskon_header`; `kembalian = bayar - total` untuk cash. Validasi mencegah total negatif/diskon berlebih; QRIS/transfer perlu aturan eksplisit. `bayar` bukan pendapatan. Kebijakan cancel penjualan masih D06.
 
 Action harus mengaitkan nomor transaksi dan hasil retry dengan commit bisnis yang sama. Tentukan durable storage dan perilaku konflik D09 sebelum membuat endpoint write siap produksi. Kegagalan di detail terakhir tidak meninggalkan header/rincian awal.
 
