@@ -22,7 +22,7 @@ class UserStoreRequest extends FormRequest
             'username' => ['required', 'string', 'min:1', 'max:100', Rule::unique('users', 'username')],
             'email' => ['sometimes', 'nullable', 'email', 'max:150', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'string', Rule::in(['manager', 'kasir'])],
+            'role' => ['required', 'string', Rule::in(['owner', 'manager', 'kasir'])],
             'aktif' => ['sometimes', 'boolean'],
         ];
     }

@@ -9,12 +9,12 @@ class MenuPolicy
 {
     public function viewAny(User $actor): bool
     {
-        return $actor->warung_id !== null && in_array($actor->role, ['manager', 'kasir'], true);
+        return $actor->warung_id !== null && in_array($actor->role, ['owner', 'manager', 'kasir'], true);
     }
 
     public function create(User $actor): bool
     {
-        return $actor->role === 'manager' && $actor->warung_id !== null;
+        return in_array($actor->role, ['owner', 'manager'], true) && $actor->warung_id !== null;
     }
 
     public function view(User $actor, Menu $menu): bool

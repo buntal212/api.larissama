@@ -10,7 +10,8 @@ class LaporanPeriodeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'manager' && $this->user()?->warung_id !== null;
+        return in_array($this->user()?->role, ['owner', 'manager'], true)
+            && $this->user()?->warung_id !== null;
     }
 
     public function rules(): array

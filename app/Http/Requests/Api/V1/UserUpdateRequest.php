@@ -48,7 +48,7 @@ class UserUpdateRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($this->targetUser),
             ],
             'password' => ['sometimes', 'required', 'string', 'min:8'],
-            'role' => ['sometimes', 'required', 'string', Rule::in(['manager', 'kasir'])],
+            'role' => ['sometimes', 'required', 'string', Rule::in(['owner', 'manager', 'kasir'])],
             'aktif' => ['sometimes', 'boolean'],
         ];
     }

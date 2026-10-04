@@ -335,17 +335,16 @@ class MenuApiTest extends TestCase
     /**
      * @return array<string, array{string}>
      */
-    public static function rolesCannotManageMenus(): array
+    public static function rolesWithoutMenuWriteAccess(): array
     {
         return [
-            'owner' => ['owner'],
             'cashier' => ['kasir'],
             'superadmin' => ['superadmin'],
         ];
     }
 
-    #[DataProvider('rolesCannotManageMenus')]
-    public function test_only_manager_can_create_or_update_menus(string $role): void
+    #[DataProvider('rolesWithoutMenuWriteAccess')]
+    public function test_roles_without_menu_write_access_cannot_create_or_update_menus(string $role): void
     {
         $warung = $role === 'superadmin' ? null : Warung::factory()->create();
         $actor = User::factory()->create(['warung_id' => $warung?->id, 'role' => $role]);

@@ -16,7 +16,7 @@ info:
     body/header POST sale/purchase, dan query terpilih pada list akses/katalog/transaksi
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
-    superadmin dan anonim; cakupan role owner pada D04 masih terbuka. Request/query operasi lain,
+    superadmin dan anonim; keputusan D04 kini mengizinkan owner, namun role tersebut belum diuji. Request/query operasi lain,
     D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 27 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
@@ -24,8 +24,8 @@ info:
     pemeriksaan ini hanya inventaris, bukan bukti conformance request/response atau kesiapan integrasi.
     API-PATH-ID-POSITIVE-CONFORMANCE-001 membuktikan seluruh sepuluh operasi ber-parameter {id} memakai
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
-    REPORT-RBAC-CONFORMANCE-001 menguji kedua report: manager mendapat akses, kasir dan superadmin mendapat 403;
-    owner belum diberi izin report sampai keputusan D04 ditetapkan. API-END-TO-END-WORKFLOW-001 menguji satu alur HTTP
+    REPORT-RBAC-CONFORMANCE-001 menguji kedua report: manager mendapat akses, kasir dan superadmin mendapat 403.
+    Keputusan D04 kini mengizinkan owner, tetapi bukti run lama belum menguji role owner. API-END-TO-END-WORKFLOW-001 menguji satu alur HTTP
     lintas provisioning, katalog, transaksi, laporan, dan logout pada MySQL 8.0.40; hasilnya parsial dan seluruh operasi
     tetap DRAFT.
     TRANSACTION-LIST-QUERY-REJECTION-001 memeriksa Error422 untuk enum status sale dan tanggal list invalid.
@@ -34,10 +34,10 @@ info:
     SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 mencocokkan request/response OpenAPI untuk create sale dan purchase;
     superadmin tanpa warung mendapat 403 dan tidak menulis header/rincian. Matriks role lain tetap parsial.
     ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid: manager ditolak saat create sale dan kasir
-    ditolak saat create purchase, tanpa write header/rincian. Owner serta role/operasi lain belum lengkap.
+    ditolak saat create purchase, tanpa write header/rincian. Owner kini diizinkan membuat keduanya; bukti role owner belum dijalankan.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
-    D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
+    Conformance role D04, aturan bisnis D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
     Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh
     sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan
     kontrak live.
@@ -230,7 +230,6 @@ paths:
       - superadmin
       x-blocked-by:
       - D02
-      - D04
       - D13
       responses:
         '200':
@@ -300,7 +299,6 @@ paths:
       - superadmin
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D01
       - D12
@@ -384,7 +382,6 @@ paths:
       - superadmin
       x-blocked-by:
       - D02
-      - D04
       - D13
       responses:
         '200':
@@ -437,7 +434,6 @@ paths:
       - superadmin
       x-blocked-by:
       - D02
-      - D04
       - D13
       responses:
         '200':
@@ -494,15 +490,15 @@ paths:
       tags:
       - Akses
       summary: Profil warung user aktif
-      description: 'DRAFT: CURRENT-WARUNG-API-ACCEPTANCE-001 menguji manager/kasir membaca profil dari tenant pada token, superadmin 403, tanpa token 401, dan response terpilih terhadap schema. Cakupan role owner belum ditetapkan pada D04; conformance per operasi lainnya masih terbuka.'
+      description: 'DRAFT: CURRENT-WARUNG-API-ACCEPTANCE-001 menguji manager/kasir membaca profil dari tenant pada token, superadmin 403, tanpa token 401, dan response terpilih terhadap schema. D04 kini juga mengizinkan owner tenant; pengujian role owner dan conformance operasi lainnya masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       responses:
         '200':
@@ -554,7 +550,6 @@ paths:
       - owner
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D12
       responses:
@@ -615,14 +610,13 @@ paths:
       tags:
       - Akses
       summary: Tambah User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan eskalasi; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan keputusan D12 masih terbuka.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan membuat superadmin; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan keputusan D12 masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - owner
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D12
       responses:
@@ -685,7 +679,6 @@ paths:
       - owner
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D12
       responses:
@@ -736,7 +729,6 @@ paths:
       - owner
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D12
       responses:
@@ -795,11 +787,11 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D06
       - D16
@@ -865,10 +857,10 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D06
       - D16
@@ -925,11 +917,11 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D06
       - D16
@@ -976,10 +968,10 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D06
       - D16
@@ -1037,11 +1029,11 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D06
@@ -1114,10 +1106,10 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D06
@@ -1180,11 +1172,11 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D06
@@ -1235,10 +1227,10 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D06
@@ -1311,17 +1303,17 @@ paths:
         pada kedua list ditolak dengan HTTP 422 schema-conformant dan error field yang tepat.
         TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
         TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas hari Asia/Jakarta, dan TRANSACTION-LIST-DST-CONFORMANCE-001 membuktikan batas hari DST 23 jam di America/New_York pada kedua list.
-        SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; keputusan role lain tetap DRAFT.
+        SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; bukti role owner menyusul keputusan D04 terbaru.
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
         CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan list kasir hanya berisi transaksi miliknya dengan meta.total tepat 1.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D08
@@ -1424,10 +1416,10 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D08
@@ -1535,11 +1527,11 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       - kasir
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D08
@@ -1628,15 +1620,15 @@ paths:
         schema-conformant dan error field yang tepat.
         TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
         TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas hari Asia/Jakarta, dan TRANSACTION-LIST-DST-CONFORMANCE-001 membuktikan batas hari DST 23 jam di America/New_York pada kedua list.
-        SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; keputusan role lain tetap DRAFT.
+        SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; bukti role owner menyusul keputusan D04 terbaru.
         API-END-TO-END-READBACK-001 menguji manager membaca list purchase sesudah pembelian ringkas/rinci dibuat lewat API.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D08
@@ -1722,10 +1714,10 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D08
@@ -1854,10 +1846,10 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D08
@@ -1919,14 +1911,14 @@ paths:
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
-        superadmin; owner report belum disetujui D04 dan implementasi sementara memberi akses hanya ke manager.
+        superadmin; D04 kini mengizinkan owner serta manager; report conformance sebelumnya belum menguji akses owner.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D06
@@ -1987,14 +1979,14 @@ paths:
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
-        superadmin; owner report belum disetujui D04 dan implementasi sementara memberi akses hanya ke manager.
+        superadmin; D04 kini mengizinkan owner serta manager; report conformance sebelumnya belum menguji akses owner.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
+      - owner
       - manager
       x-blocked-by:
       - D02
-      - D04
       - D13
       - D05
       - D08
@@ -2242,7 +2234,7 @@ components:
       - manager
       - kasir
       - koki
-      description: Nilai pada rancangan DB; izin final D04. Koki tidak menyiratkan adanya workflow dapur.
+      description: Role aplikasi menurut D04. Koki tidak menyiratkan adanya workflow dapur.
     Warung:
       type: object
       additionalProperties: false
@@ -2466,7 +2458,7 @@ components:
       - tanggal_mulai
       - tanggal_berakhir
       - owner
-      description: 'Kandidat D04: warung dan owner awal dibuat atomik; tanggal NULL berarti tanpa batas sesuai D03.'
+      description: 'D04: warung dan owner awal dibuat atomik; tanggal NULL berarti tanpa batas sesuai D03.'
     WarungUpdate:
       type: object
       additionalProperties: false
@@ -2538,9 +2530,10 @@ components:
         role:
           type: string
           enum:
+          - owner
           - manager
           - kasir
-          description: Kandidat hak owner D04; tidak bisa membuat superadmin/owner melalui jalur tenant.
+          description: Owner dapat menetapkan owner, manager, atau kasir hanya dalam warungnya; superadmin hanya melalui jalur platform.
         aktif:
           type: boolean
           default: true
@@ -2575,9 +2568,10 @@ components:
         role:
           type: string
           enum:
+          - owner
           - manager
           - kasir
-          description: Kandidat hak owner D04; tidak bisa membuat superadmin/owner melalui jalur tenant.
+          description: Owner dapat menetapkan owner, manager, atau kasir hanya dalam warungnya; superadmin hanya melalui jalur platform.
         aktif:
           type: boolean
           default: true

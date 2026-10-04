@@ -32,6 +32,6 @@ class LaporanController extends Controller
 
     private function authorizeReportAccess(User $actor): void
     {
-        abort_unless($actor->role === 'manager' && $actor->warung_id !== null, 403);
+        abort_unless(in_array($actor->role, ['owner', 'manager'], true) && $actor->warung_id !== null, 403);
     }
 }

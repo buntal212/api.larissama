@@ -15,7 +15,7 @@ Status: implementasi backend sedang berjalan. Migration delapan tabel bisnis dan
 | Modul | Tabel | Perilaku yang direncanakan |
 | --- | --- | --- |
 | Akses | warungs, users | Login, profil, logout, pembatasan user/warung aktif, izin role. |
-| Administrasi | warungs, users | Superadmin mengelola warung; kandidat provisioning membuat warung dan owner awal secara atomik (D04). Owner mengelola user warung. |
+| Administrasi | warungs, users | Superadmin mengelola warung platform; provisioning membuat warung dan owner awal secara atomik. Owner mengelola seluruh akses tenant sendiri, termasuk delegasi role user. |
 | Katalog | kategori_menus, menus | Daftar, detail, tambah, ubah kategori/menu dan status aktif. |
 | Penjualan | penjualans, penjualan_rincis | Catat menu terdaftar, baca riwayat/detail, pertahankan snapshot nama/harga jual. |
 | Pembelian | pembelians, pembelian_rincis | Catat pembelian bahan rinci atau ringkas, baca riwayat/detail. |
@@ -58,13 +58,19 @@ Nama class adalah usulan organisasi; tidak perlu membuat semua folder atau menam
 
 | Tanggung jawab inti | superadmin | owner | manager | kasir |
 | --- | --- | --- | --- | --- |
-| Mengelola warung dan membuat owner awal melalui jalur admin | Ya | Tidak | Tidak | Tidak |
-| Mengelola user pada warung sendiri | Tidak melalui jalur tenant | Ya | Tidak | Tidak |
-| Mengelola katalog, pembelian, dan laporan | Tidak melalui jalur tenant | Belum ditetapkan | Ya | Tidak |
-| Menangani penjualan | Tidak melalui jalur tenant | Belum ditetapkan | Belum ditetapkan | Ya |
-| Bertindak sebagai user tenant tanpa autentikasi tenant | Tidak | — | — | — |
+| Mengelola warung pada jalur platform dan membuat owner awal | Ya | Tidak | Tidak | Tidak |
+| Melihat profil warung sendiri | Tidak melalui jalur tenant | Ya | Ya | Ya |
+| Mengelola user dan role tenant sendiri, termasuk menetapkan owner tambahan | Tidak melalui jalur tenant | Ya | Tidak | Tidak |
+| Membaca katalog | Tidak melalui jalur tenant | Ya | Ya | Ya, hanya yang aktif |
+| Membuat dan mengubah kategori/menu | Tidak melalui jalur tenant | Ya | Ya | Tidak |
+| Membaca seluruh penjualan warung | Tidak melalui jalur tenant | Ya | Ya | Tidak |
+| Membaca penjualan miliknya sendiri | Tidak melalui jalur tenant | Ya | Ya | Ya |
+| Membuat penjualan | Tidak melalui jalur tenant | Ya | Tidak | Ya |
+| Membaca dan membuat pembelian | Tidak melalui jalur tenant | Ya | Ya | Tidak |
+| Membaca laporan penjualan dan pembelian | Tidak melalui jalur tenant | Ya | Ya | Tidak |
+| Memilih tenant atau bertindak sebagai tenant tanpa identitas tenant | Tidak | Tidak | Tidak | Tidak |
 
-User menyetujui tanggung jawab inti ini pada 2026-10-04. Izin baca versus ubah di tiap modul, akses owner ke selain user, dan cakupan riwayat penjualan kasir masih menunggu rincian. Sampai diputuskan, policy mengikuti default deny. Superadmin memakai jalur administrasi terpisah dan tidak memperoleh akses transaksi tenant. Request tidak boleh menaikkan role; pengelolaan user tenant tidak boleh membuat superadmin. Perubahan email/username tetap tunduk pada D12.
+Matriks ini diputuskan user pada 2026-10-05. Owner berarti pemilik warung dan seluruh izin tenant-nya dibatasi ke `warung_id` dari token; satu warung boleh memiliki beberapa owner. Owner dapat menetapkan role `owner`, `manager`, atau `kasir` kepada user di warungnya, tetapi tidak dapat membuat superadmin atau mengelola warung lain. Manager dan kasir mempertahankan batas di tabel. Superadmin memakai jalur platform terpisah. Policy serta kontrak OpenAPI sudah diselaraskan, tetapi conformance role owner dan matriks lengkap tetap harus lulus sebelum operasi berstatus READY. Perubahan email/username tetap tunduk pada D12.
 
 ## Integritas data dan migration
 

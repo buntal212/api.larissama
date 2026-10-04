@@ -12,7 +12,7 @@ class PenjualanPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->warung_id !== null && in_array($user->role, ['manager', 'kasir'], true);
+        return $user->warung_id !== null && in_array($user->role, ['owner', 'manager', 'kasir'], true);
     }
 
     /**
@@ -24,7 +24,8 @@ class PenjualanPolicy
             return false;
         }
 
-        return $user->role === 'manager' || (int) $user->getKey() === (int) $penjualan->user_id;
+        return in_array($user->role, ['owner', 'manager'], true)
+            || (int) $user->getKey() === (int) $penjualan->user_id;
     }
 
     /**
@@ -32,7 +33,7 @@ class PenjualanPolicy
      */
     public function create(User $user): bool
     {
-        return $user->role === 'kasir' && $user->warung_id !== null;
+        return in_array($user->role, ['owner', 'kasir'], true) && $user->warung_id !== null;
     }
 
     /**

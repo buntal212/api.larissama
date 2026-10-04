@@ -215,17 +215,16 @@ class KategoriMenuApiTest extends TestCase
     /**
      * @return array<string, array{string}>
      */
-    public static function rolesCannotManageCategories(): array
+    public static function rolesWithoutCategoryWriteAccess(): array
     {
         return [
-            'owner' => ['owner'],
             'cashier' => ['kasir'],
             'superadmin' => ['superadmin'],
         ];
     }
 
-    #[DataProvider('rolesCannotManageCategories')]
-    public function test_only_manager_can_create_or_update_categories(string $role): void
+    #[DataProvider('rolesWithoutCategoryWriteAccess')]
+    public function test_roles_without_category_write_access_cannot_create_or_update_categories(string $role): void
     {
         $warung = $role === 'superadmin' ? null : Warung::factory()->create();
         $actor = User::factory()->create(['warung_id' => $warung?->id, 'role' => $role]);

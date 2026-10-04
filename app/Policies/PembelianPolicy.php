@@ -12,7 +12,7 @@ class PembelianPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->role === 'manager' && $user->warung_id !== null;
+        return in_array($user->role, ['owner', 'manager'], true) && $user->warung_id !== null;
     }
 
     /**
