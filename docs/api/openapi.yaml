@@ -2024,6 +2024,7 @@ components:
         type: integer
         minimum: 1
         default: 1
+      description: Halaman setelah last_page mengembalikan data kosong dan mempertahankan total hasil filter.
     PerPage:
       name: per_page
       in: query

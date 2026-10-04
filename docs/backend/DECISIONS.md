@@ -65,6 +65,8 @@ Rancangan delapan tabel dan skema migration yang sudah diterapkan ada di [databa
 | D15 | DECIDED | MySQL 8.0.40 sebagai target produksi | Jawaban user, 2026-10-04 |
 | D16 | DECIDED | Terapkan FK gabungan dengan `warung_id` untuk relasi tenant-owned | Persetujuan user, 2026-10-04 |
 
+Catatan D13 2026-10-05: keenam GET list menerima `page=9223372036854775807` dengan HTTP 200, `data=[]`, dan metadata total/last_page tetap benar setelah pagination bersama menghindari offset untuk page di luar jangkauan (`ACCESS-PAGINATION-LARGE-PAGE-CONFORMANCE-001`). OpenAPI tetap tidak memberi batas maksimum page baru. D13 masih PARTIAL; semua operasi tetap DRAFT sampai seluruh conformance selesai.
+
 ## Batas kontrak draft
 
 [OpenAPI](../api/openapi.yaml) adalah kandidat konkret untuk review dan mock terlabel. Seluruh operasi awal tetap berstatus DRAFT; metadata implementasi per operasi dapat berstatus IN_PROGRESS atau NOT_STARTED. Bearer Sanctum, expiry 30 hari, batas tanggal NULL, pembagian role inti, baseline decimal, replay idempoten, FK gabungan, serta konvensi wire D13 telah dipilih; detail policy, nominal yang tersisa, deployment, dan runtime conformance mengikuti D02/D04–D06/D08/D12/D13. Belum boleh diklaim tersedia di server. AI frontend harus memeriksa status handoff di [tracker](../../IMPLEMENTATION_PROGRESS.md) sebelum integrasi live.
