@@ -1,6 +1,6 @@
 # Rancangan Test dan Kriteria Lulus
 
-Status awal dokumen ini adalah seluruh test aplikasi **NOT_RUN**. Sejak itu, tujuh run transaksi serta `AUTH-API-ACCEPTANCE-001` menjalankan sebagian feature test pada MySQL 8.0.40; suite terbaru lulus 47 test / 443 assertions. Auth menguji 20 kasus/230 assertions untuk login/me, role context, error, akun nonaktif, batas tanggal lokal dan NULL, token 30 hari/logout, hash/log secret, serta limiter username+IP. Bukti dan batasnya ada di [tracker](../../IMPLEMENTATION_PROGRESS.md) serta artefak run terkait. Zona waktu NULL/invalid, keputusan D12, conformance OpenAPI penuh, milestone dan handoff API masih terbuka.
+Status awal dokumen ini adalah seluruh test aplikasi **NOT_RUN**. Sejak itu, tujuh run transaksi, `AUTH-API-ACCEPTANCE-001`, dan `ADMIN-API-ACCEPTANCE-001` menjalankan sebagian feature test pada MySQL 8.0.40; suite terbaru lulus 58 test / 582 assertions. Auth menguji 20 kasus/230 assertions dan admin/user tenant menguji 11/139 assertions. Bukti dan batasnya ada di [tracker](../../IMPLEMENTATION_PROGRESS.md) serta artefak run terkait. Zona waktu NULL/invalid, keputusan D12, conformance OpenAPI penuh, milestone dan handoff API masih terbuka.
 
 Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung Dxx adalah kandidat: finalkan keputusan dan sesuaikan test sebelum test tersebut menjadi gate.
 
