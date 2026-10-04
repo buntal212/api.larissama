@@ -129,6 +129,34 @@ class ApiPaginationQueryConformanceTest extends TestCase
         $response->assertInvalid([$parameter => '1']);
     }
 
+    #[DataProvider('paginationNonIntegerOperations')]
+    public function test_returns_422_for_non_integer_pagination_parameter(
+        string $path,
+        string $role,
+        string $parameter,
+    ): void {
+        $warung = Warung::factory()->create();
+        $user = $role === 'superadmin'
+            ? User::factory()->superadmin()->create()
+            : User::factory()->create([
+                'warung_id' => $warung->id,
+                'role' => $role,
+            ]);
+        $token = $user->createToken('pagination-type-test')->plainTextToken;
+        $query = [$parameter => 'abc'];
+
+        $this->assertOpenApiRejectsPaginationNonInteger($path, $parameter);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1'.$path.'?'.http_build_query($query))
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
+        $response->assertJsonPath('code', 'VALIDATION_ERROR');
+        $response->assertJsonPath('message', 'Data belum valid.');
+        $response->assertInvalid([$parameter => 'integer']);
+    }
+
     /**
      * @return array<string, array{string, string}>
      */
@@ -154,6 +182,22 @@ class ApiPaginationQueryConformanceTest extends TestCase
         foreach (self::listOperations() as $name => [$path, $role]) {
             foreach (['page', 'per_page'] as $parameter) {
                 $operations["{$name} with {$parameter}=0"] = [$path, $role, $parameter];
+            }
+        }
+
+        return $operations;
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function paginationNonIntegerOperations(): array
+    {
+        $operations = [];
+
+        foreach (self::listOperations() as $name => [$path, $role]) {
+            foreach (['page', 'per_page'] as $parameter) {
+                $operations["{$name} with non-integer {$parameter}"] = [$path, $role, $parameter];
             }
         }
 
@@ -208,5 +252,30 @@ class ApiPaginationQueryConformanceTest extends TestCase
 
         $errors = $this->collectOpenApiSchemaErrors(0, $schema, $document, "query.{$parameter}");
         $this->assertContains("query.{$parameter} is below OpenAPI minimum", $errors);
+    }
+
+    private function assertOpenApiRejectsPaginationNonInteger(string $path, string $parameter): void
+    {
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path]['get'] ?? null;
+        $this->assertIsArray($operation, "OpenAPI GET {$path} must exist.");
+
+        $schema = null;
+        foreach ($operation['parameters'] ?? [] as $operationParameter) {
+            if (isset($operationParameter['$ref'])) {
+                $operationParameter = $this->resolveOpenApiReference($document, $operationParameter['$ref']);
+            }
+
+            if (($operationParameter['in'] ?? null) === 'query' && ($operationParameter['name'] ?? null) === $parameter) {
+                $schema = $operationParameter['schema'] ?? null;
+                break;
+            }
+        }
+
+        $this->assertIsArray($schema, "OpenAPI GET {$path} must define a {$parameter} query schema.");
+        $this->assertSame('integer', $schema['type'] ?? null, "OpenAPI GET {$path} must set {$parameter} type to integer.");
+
+        $errors = $this->collectOpenApiSchemaErrors('abc', $schema, $document, "query.{$parameter}");
+        $this->assertContains("query.{$parameter} does not match OpenAPI type integer", $errors);
     }
 }
