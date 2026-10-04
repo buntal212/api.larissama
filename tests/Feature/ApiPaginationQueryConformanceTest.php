@@ -9,6 +9,7 @@ use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 class ApiPaginationQueryConformanceTest extends TestCase
@@ -59,6 +60,7 @@ class ApiPaginationQueryConformanceTest extends TestCase
             $this->assertOperationQueryMatchesOpenApi($query, $path, 'get');
 
             $token = $user->createToken('pagination-boundary-test')->plainTextToken;
+            Auth::forgetGuards();
             $response = $this->withToken($token)
                 ->getJson('/api/v1'.$path.'?'.http_build_query($query));
             $this->assertSame(
