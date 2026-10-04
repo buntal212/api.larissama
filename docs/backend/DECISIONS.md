@@ -14,7 +14,7 @@ Status awal: 2026-10-04. Dokumen ini membedakan kebutuhan yang sudah disepakati 
 | K06 | Pengguna memperoleh pendapatan penjualan dan total pembelian pada periode tertentu. | Keduanya agregasi terpisah; selisihnya tidak otomatis menjadi laba/HPP. |
 | K07 | Pekerjaan tim ini adalah backend beserta dokumentasi dan API contract. | AI frontend memakai kontrak yang telah dinyatakan siap, bukan menebak tabel atau route. |
 | K08 | Setelah mengedit satu file, commit file itu sebelum mengedit file berikutnya. | Izin commit sudah diberikan; stage path spesifik, review diff, cek whitespace, catat hash. Push memerlukan instruksi tersendiri. |
-| K09 | User memilih MySQL/MariaDB untuk database produksi dan Sanctum bearer token dengan masa berlaku 30 hari. | Versi database dan konfigurasi deployment yang masih terbuka dicatat sebelum gate terkait. |
+| K09 | User memilih MySQL 8.0.40 untuk database produksi dan Sanctum bearer token dengan masa berlaku 30 hari. | Transisi schema/data dan konfigurasi deployment yang masih terbuka dicatat sebelum gate terkait. |
 
 Rancangan delapan tabel ada di [database/README.md](../../database/README.md). Pilihan di bawah belum mengubah skema tersebut.
 
@@ -22,7 +22,7 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 
 | ID | Keputusan | Usulan untuk ditinjau / informasi yang dibutuhkan | Blokir |
 | --- | --- | --- | --- |
-| D01 | Versi database produksi dan transisi schema awal | User memilih keluarga MySQL/MariaDB. Tetapkan vendor/version tepat sesuai deployment dan inventaris migration/isi tabel users sebelum menentukan migration maju. Test integrasi harus memakai versi target; SQLite default bukan keputusan produksi. | M0 setup DB, seluruh migration |
+| D01 | Versi database produksi dan transisi schema awal | User memilih MySQL 8.0.40 sebagai target. Inventaris migration/isi tabel users tetap harus dilakukan sebelum perubahan users; validasi integrasi memakai versi ini, bukan SQLite default. | M0 setup DB, transisi users |
 | D02 | Detail konfigurasi auth Sanctum bearer yang dipilih user | User menetapkan masa berlaku bearer token 30 hari dan login ulang setelah kedaluwarsa. Set `sanctum.expiration` ke 30 hari; logout mencabut token yang dipakai. Tetapkan CORS frontend, HTTPS, dan rate limit sebelum route auth digunakan. | M1 login dan route terproteksi |
 | D03 | Arti tanggal masa aktif warung yang NULL — DIPUTUSKAN | `tanggal_mulai = NULL` tidak membatasi tanggal mulai; `tanggal_berakhir = NULL` tidak membatasi tanggal akhir. Nilai terisi tetap berlaku inklusif. Periksa status aktif user dan warung secara terpisah. | Selesai untuk M1 middleware/login |
 | D04 | Matriks role inti dan operasi superadmin — DISETUJUI | User menyetujui pembagian inti: superadmin mengelola warung dan owner awal melalui jalur admin; owner mengelola user warungnya; manager menangani katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak pada tenant. Detail izin baca/ubah yang tidak disebut dan cakupan riwayat kasir tetap harus ditetapkan sebelum policy terkait dibuat. | M1 policies dan endpoint berizin; detail policy tersisa |
@@ -33,10 +33,10 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 | D09 | Nomor transaksi dan retry/concurrency | Tentukan pembuatan nomor unik per warung serta strategi retry durable untuk kedua transaksi; jangan menggunakan COUNT+1. Tentukan kunci, scope, payload sama/berbeda, crash/replay, masa simpan, dan mekanisme penyimpanan sebelum menambah tabel/header API. Draft belum menetapkan Idempotency-Key atau mengizinkan retry otomatis. | Create sale/purchase production-ready |
 | D10 | Input sebagian pada rincian pembelian | K05 tetap wajib diterima. Kandidat: qty dan harga_satuan diisi berpasangan; bila keduanya ada backend menghitung subtotal dan menolak subtotal kiriman yang tidak cocok. Bila keduanya kosong, nominal subtotal wajib. Satuan opsional. Rincian nominal dan hitungan boleh bercampur. Nilai minimal/rounding mengikuti D05. | Validasi pembelian selain bentuk minimal K05 |
 | D11 | Koreksi/pembatalan pembelian | Skema saat ini tidak punya status pembelian. Tentukan apakah perlu revisi/cancel dan metadata audit; tambah rancangan schema lebih dulu jika diperlukan. Jangan mengarang filter status atau menghapus histori. Kontrak awal hanya create/list/detail/report. | Operasi koreksi dan semantik laporan final |
-| D12 | Identitas user dan migrasi datanya | Tentukan uniqueness email nullable, normalisasi username/email dan sensitivitas huruf. Username tetap unique global pada rancangan. Data lama `name` tidak otomatis dipetakan tanpa inventaris; password selalu hash dan tidak keluar API. | M1 users migration dan validasi |
+| D12 | Identitas user dan migrasi datanya | User memilih email nullable dan unique global jika terisi. Username tetap unique global pada rancangan. Tetapkan normalisasi username/email dan sensitivitas huruf; data lama `name` tidak otomatis dipetakan tanpa inventaris. Password selalu hash dan tidak keluar API. | M1 users migration dan validasi |
 | D13 | Konvensi HTTP dan kompatibilitas | Kandidat OpenAPI: /api/v1, ID string, decimal string, response data/meta, error code/message/errors, pagination page/per_page, page size maksimum 100, sort dari allowlist. Tinjau sebelum menandai kontrak READY. | M0 baseline kontrak |
 | D14 | Upload dan perubahan gambar menu | Field `gambar` boleh null sesuai skema; tentukan apakah gambar sekadar reference atau perlu upload/delete API, storage dan validasi. | Endpoint upload/ubah gambar saja |
-| D15 | Vendor dan versi database deployment | Pilih MySQL atau MariaDB beserta versi minimum/target; validasi collation, FK, decimal, locking, dan migration integrasi terhadap engine yang dipakai. | Test integrasi final dan klaim kompatibilitas |
+| D15 | Vendor dan versi database deployment | User memilih MySQL 8.0.40 sebagai target produksi. Validasi collation, FK, decimal, locking, dan migration integrasi terhadap versi ini sebelum klaim kompatibilitas. | Test integrasi final dan klaim kompatibilitas |
 
 ## Proses penetapan
 
@@ -47,13 +47,16 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 
 | ID | Status saat ini | Pilihan final | Sumber / tanggal |
 | --- | --- | --- | --- |
-| D01 | PARTIAL | Keluarga MySQL/MariaDB | Pilihan user, 2026-10-04; D15 tersisa |
+| D01 | PARTIAL | MySQL 8.0.40; transisi users masih menunggu inventaris | Pilihan user, 2026-10-04 |
 | D02 | PARTIAL | Sanctum bearer token, kedaluwarsa setelah 30 hari; logout mencabut token aktif | Pilihan user, 2026-10-04; CORS/HTTPS/rate limit tersisa |
 | D03 | DECIDED | NULL berarti tanpa batas; tanggal terisi inklusif | Jawaban user, 2026-10-04 |
 | D04 | PARTIAL | Pembagian tugas inti role dan batas superadmin disetujui | Persetujuan user, 2026-10-04; detail policy baca/ubah dan riwayat tersisa |
 | D05–D06 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
 | D07 | DECIDED | Menu terdaftar saja; pembelian terpisah; tanpa stok/dapur/resep | Klarifikasi eksplisit user, 2026-10-04 |
-| D08–D15 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
+| D08–D11 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
+| D12 | PARTIAL | Email nullable, unique global jika diisi | Jawaban user, 2026-10-04; normalisasi dan pemetaan data lama tersisa |
+| D13–D14 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
+| D15 | DECIDED | MySQL 8.0.40 sebagai target produksi | Jawaban user, 2026-10-04 |
 
 ## Batas kontrak draft
 
