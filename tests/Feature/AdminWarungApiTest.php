@@ -23,6 +23,7 @@ class AdminWarungApiTest extends TestCase
         $response = $this->withToken($token)
             ->postJson('/api/v1/admin/warungs', $payload)
             ->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'post');
 
         $body = $response->json();
         $this->assertEqualsCanonicalizing(['data'], array_keys($body));
@@ -65,6 +66,20 @@ class AdminWarungApiTest extends TestCase
         $this->assertTrue(Hash::check($payload['owner']['password'], $owner->password));
     }
 
+    public function test_superadmin_gets_schema_conformant_422_for_invalid_provision_payload(): void
+    {
+        $superadmin = User::factory()->superadmin()->create();
+        $token = $superadmin->createToken('admin-feature-test')->plainTextToken;
+
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/admin/warungs', [])
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'post');
+        $this->assertD13ErrorEnvelope($response, 'VALIDATION_ERROR');
+        $this->assertSame(0, Warung::query()->count());
+    }
+
     /**
      * @return array<string, array{string}>
      */
@@ -89,6 +104,7 @@ class AdminWarungApiTest extends TestCase
             ->postJson('/api/v1/admin/warungs', $payload)
             ->assertForbidden();
 
+        $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'post');
         $this->assertD13ErrorEnvelope($response, 'FORBIDDEN');
         $this->assertSame(1, Warung::query()->count());
         $this->assertSame(1, User::query()->count());

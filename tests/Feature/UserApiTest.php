@@ -33,6 +33,7 @@ class UserApiTest extends TestCase
                 'role' => 'manager',
             ])
             ->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($created, '/users', 'post');
 
         $userResource = $created->json('data');
         $this->assertEqualsCanonicalizing(
@@ -56,6 +57,7 @@ class UserApiTest extends TestCase
         $this->assertTrue(Hash::check($password, $createdUser->password));
 
         $list = $this->withToken($token)->getJson('/api/v1/users')->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($list, '/users', 'get');
         $listedIds = array_column($list->json('data'), 'id');
         $this->assertSame(2, $list->json('meta.total'));
         $this->assertContains((string) $ownerA->id, $listedIds);
@@ -66,6 +68,7 @@ class UserApiTest extends TestCase
         $detail = $this->withToken($token)
             ->getJson('/api/v1/users/'.$createdUser->id)
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/users/{id}', 'get');
         $this->assertSame((string) $createdUser->id, $detail->json('data.id'));
         $this->assertSame('manager', $detail->json('data.role'));
 
@@ -75,6 +78,7 @@ class UserApiTest extends TestCase
                 'role' => 'kasir',
             ])
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($updated, '/users/{id}', 'patch');
 
         $this->assertSame('Kasir Warung A', $updated->json('data.nama'));
         $this->assertSame('kasir', $updated->json('data.role'));
@@ -102,11 +106,13 @@ class UserApiTest extends TestCase
         $detail = $this->withToken($token)
             ->getJson('/api/v1/users/'.$managerB->id)
             ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/users/{id}', 'get');
         $this->assertD13ErrorEnvelope($detail, 'NOT_FOUND');
 
         $update = $this->withToken($token)
             ->patchJson('/api/v1/users/'.$managerB->id, ['nama' => 'Pemilik Menyerang'])
             ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($update, '/users/{id}', 'patch');
         $this->assertD13ErrorEnvelope($update, 'NOT_FOUND');
 
         $this->assertDatabaseHas('users', [
@@ -135,6 +141,7 @@ class UserApiTest extends TestCase
             ...$createPayload,
             'warung_id' => $warungB->id,
         ])->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($createWithTenant, '/users', 'post');
         $this->assertD13ErrorEnvelope($createWithTenant, 'VALIDATION_ERROR', 'warung_id');
 
         $createWithElevatedRole = $this->withToken($token)->postJson('/api/v1/users', [
@@ -142,16 +149,19 @@ class UserApiTest extends TestCase
             'username' => 'injected-superadmin',
             'role' => 'superadmin',
         ])->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($createWithElevatedRole, '/users', 'post');
         $this->assertD13ErrorEnvelope($createWithElevatedRole, 'VALIDATION_ERROR', 'role');
 
         $updateWithTenant = $this->withToken($token)
             ->patchJson('/api/v1/users/'.$target->id, ['warung_id' => $warungB->id])
             ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($updateWithTenant, '/users/{id}', 'patch');
         $this->assertD13ErrorEnvelope($updateWithTenant, 'VALIDATION_ERROR', 'warung_id');
 
         $updateWithElevatedRole = $this->withToken($token)
             ->patchJson('/api/v1/users/'.$target->id, ['role' => 'superadmin'])
             ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($updateWithElevatedRole, '/users/{id}', 'patch');
         $this->assertD13ErrorEnvelope($updateWithElevatedRole, 'VALIDATION_ERROR', 'role');
 
         $this->assertSame(2, User::query()->count());
@@ -186,13 +196,16 @@ class UserApiTest extends TestCase
         ]);
         $token = $actor->createToken('user-feature-test')->plainTextToken;
 
-        $this->withToken($token)->getJson('/api/v1/users')->assertForbidden();
-        $this->withToken($token)->postJson('/api/v1/users', [
+        $list = $this->withToken($token)->getJson('/api/v1/users')->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($list, '/users', 'get');
+
+        $create = $this->withToken($token)->postJson('/api/v1/users', [
             'nama' => 'Tidak Diizinkan',
             'username' => 'forbidden-user-'.$role,
             'password' => 'forbidden-test-password',
             'role' => 'manager',
         ])->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($create, '/users', 'post');
 
         $this->assertSame(1, User::query()->count());
         $this->assertDatabaseMissing('users', ['username' => 'forbidden-user-'.$role]);

@@ -57,6 +57,7 @@ class ProvisionWarungAtomicityTest extends TestCase
                 ->assertInternalServerError()
                 ->assertDontSee('test owner insert failure');
 
+            $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'post');
             $this->assertD13ErrorEnvelope($response, 'INTERNAL_ERROR');
             $this->assertDatabaseMissing('warungs', ['kode' => $warungCode]);
             $this->assertDatabaseMissing('users', ['username' => $ownerUsername]);
