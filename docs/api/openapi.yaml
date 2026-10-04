@@ -44,7 +44,7 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403/422/429. Request schema, status 400/500, conformance lainnya, dan keputusan D08/D12 masih terbuka. Maksimum 5 percobaan login per menit untuk username lowercase-normalized dan IP.'
+      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Request/status lain, conformance lengkap, dan keputusan D08/D12 masih terbuka. Maksimum 5 percobaan login per menit untuk username lowercase-normalized dan IP.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles: []
