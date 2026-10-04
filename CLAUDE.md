@@ -67,3 +67,12 @@ Boost replaces these bootstrap instructions with guidelines tailored to the appl
 - Preserve completed sales as history. A cancellation or correction must follow an explicit backend operation and preserve the original transaction facts; do not hard-delete completed sales to correct them.
 - Backend authorization and tenant scoping are authoritative. UI visibility is only a usability hint.
 - For implementation work, identify applicable checks for the important invariants and report clearly which checks were and were not run.
+
+## Planning, tests, handoff, and commits
+
+- Start backend planning or implementation from [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md). Use [`docs/backend/DESIGN.md`](docs/backend/DESIGN.md) for module boundaries and invariants, and [`docs/backend/DECISIONS.md`](docs/backend/DECISIONS.md) for approved requirements and unresolved choices. A PROPOSED choice is not a final business decision.
+- Track execution in [`IMPLEMENTATION_PROGRESS.md`](IMPLEMENTATION_PROGRESS.md), including task dependencies, status, commit hashes, test run evidence, and API handoff. Documentation completion does not mean backend implementation is complete.
+- Follow [`docs/backend/TEST_PLAN.md`](docs/backend/TEST_PLAN.md) for meaningful scenarios and milestone gates. Record PASS, FAIL, BLOCKED, and NOT_RUN honestly; skipped tests do not satisfy required gates. Test database constraints and concurrency against the selected production engine before claiming those guarantees.
+- Maintain [`docs/api/openapi.yaml`](docs/api/openapi.yaml) and [`docs/api/README.md`](docs/api/README.md) with the implementation. An operation stays DRAFT until its decisions, endpoint, and required contract/functional tests are complete; only then mark READY_FOR_FRONTEND and record environment/version/evidence in the tracker.
+- The user has authorized commits for task-related changes: after editing one file, review its diff, stage only that file, run `git diff --cached --check`, and commit it before editing the next file. Verify commit/status and preserve unrelated work. No repeated commit approval is needed within authorized scope; pushing requires separate authorization.
+- Keep this file and `CLAUDE.md` synchronized, committing each file separately under the user's per-file rule. A file commit is a checkpoint; acceptance still requires the complete slice and its tests.
