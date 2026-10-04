@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs`, adaptasi `users`, timezone, kategori, dan menu telah diterapkan dan diperiksa pada database development lokal MySQL 8.0.40. Empat tabel transaksi masih belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs`, adaptasi `users`, timezone, kategori, menu, dan FK tenant gabungan telah diterapkan serta diperiksa pada database development lokal MySQL 8.0.40. Empat tabel transaksi masih belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
@@ -88,7 +88,7 @@ Relasi: satu warung memiliki banyak user. Validasi aplikasi harus memastikan use
 | Kolom | Tipe/rule |
 | --- | --- |
 | `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key |
+| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` mendukung FK tenant |
 | `nama` | VARCHAR(100) |
 | `urutan` | INT, default 0 |
 | `aktif` | BOOLEAN, default true |
@@ -99,8 +99,8 @@ Relasi: satu warung memiliki banyak user. Validasi aplikasi harus memastikan use
 | Kolom | Tipe/rule |
 | --- | --- |
 | `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key |
-| `kategori_menu_id` | BIGINT foreign key |
+| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` mendukung FK tenant |
+| `kategori_menu_id` | BIGINT bagian FK gabungan dengan `warung_id` |
 | `kode` | VARCHAR(30), unique bersama `warung_id` |
 | `nama` | VARCHAR(150) |
 | `harga` | DECIMAL(15,2) |
@@ -112,15 +112,15 @@ Relasi: satu warung memiliki banyak user. Validasi aplikasi harus memastikan use
 
 Kategori dan menu harus berasal dari warung yang sama.
 
-Migration menggunakan FK biasa ke warung dan kategori. API membatasi kategori ke `warung_id` user dan query menu juga memastikan kategori terkait berada di warung yang sama. FK gabungan belum diterapkan karena strategi database untuk relasi lintas tenant masih terbuka di D16; constraint ini perlu ditentukan sebelum klaim proteksi untuk penulisan langsung ke database.
+Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan unique key `(warung_id, id)` pada `users`, `kategori_menus`, dan `menus`, lalu menetapkan FK `(warung_id, kategori_menu_id)` → `kategori_menus.(warung_id, id)`. Database menolak menu yang menunjuk kategori warung lain. API tetap harus membatasi query ke tenant terautentikasi. Pola yang sama berlaku pada header transaksi, user pencatat, dan rincian transaksi; setiap tabel detail membawa `warung_id` agar FK gabungan menegakkan tenant yang sama.
 
 ### `penjualans`
 
 | Kolom | Tipe/rule |
 | --- | --- |
 | `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key |
-| `user_id` | BIGINT foreign key kasir |
+| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
+| `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
 | `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
 | `tanggal` | DATETIME |
 | `subtotal` | DECIMAL(15,2) |
@@ -140,8 +140,9 @@ Relasi: satu warung dan satu user dapat terkait dengan banyak penjualan. User pe
 | Kolom | Tipe/rule |
 | --- | --- |
 | `id` | BIGINT primary key |
-| `penjualan_id` | BIGINT foreign key |
-| `menu_id` | BIGINT foreign key wajib |
+| `warung_id` | BIGINT; bagian FK gabungan ke header penjualan dan menu |
+| `penjualan_id` | BIGINT; bagian FK gabungan ke header penjualan |
+| `menu_id` | BIGINT; FK gabungan wajib ke menu pada warung yang sama |
 | `nama_menu` | VARCHAR(150), snapshot nama item |
 | `harga` | DECIMAL(15,2), snapshot harga saat transaksi |
 | `qty` | DECIMAL(10,2) |
@@ -157,8 +158,8 @@ Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu`
 | Kolom | Tipe/rule |
 | --- | --- |
 | `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key |
-| `user_id` | BIGINT foreign key user pencatat |
+| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
+| `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
 | `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
 | `tanggal` | DATETIME |
 | `total` | DECIMAL(15,2), jumlah seluruh subtotal rincian |
@@ -172,7 +173,8 @@ Relasi: satu warung dan satu user dapat terkait dengan banyak pembelian. User pe
 | Kolom | Tipe/rule |
 | --- | --- |
 | `id` | BIGINT primary key |
-| `pembelian_id` | BIGINT foreign key |
+| `warung_id` | BIGINT; bagian FK gabungan ke header pembelian |
+| `pembelian_id` | BIGINT; bagian FK gabungan ke header pembelian |
 | `nama_item` | VARCHAR(150), nama bahan atau keterangan, misalnya `Belanja di pasar` |
 | `qty` | DECIMAL(10,2), nullable |
 | `satuan` | VARCHAR(30), nullable |
@@ -202,12 +204,11 @@ Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar
 1. Inventaris migration dan data sebelum transisi `users`; target produksi telah dipilih MySQL 8.0.40. Validasi integrasi harus memakai versi itu, bukan SQLite default.
 2. Aturan normalisasi username/email dan sensitivitas huruf. Username unique global; email boleh `NULL` dan unique global saat terisi. Migration awal Laravel mewajibkan email, jadi transisi tetap perlu menjaga data lama.
 3. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
-4. Cara database dan aplikasi mencegah `kategori_menu_id`, `menu_id`, kasir, penjualan, pembelian, dan user pencatat menghubungkan data dari warung berbeda, termasuk apakah engine target akan memakai foreign key gabungan dengan `warung_id`.
-5. Batas nilai dan pembulatan uang, serta rumus subtotal/diskon header dan rincian.
-6. Apakah daftar nilai role, metode pembayaran, dan status dijaga sebagai konstanta/enum aplikasi atau constraint database. Pembagian tanggung jawab inti superadmin/owner/manager/kasir disetujui; detail izin per operasi mengikuti D04.
-7. Perilaku idempotensi untuk request pembuatan/finalisasi penjualan yang dapat dicoba ulang, agar retry tidak menggandakan transaksi.
-8. Arti zona waktu pada `penjualans.tanggal` dan `pembelians.tanggal`: apakah itu instant tersimpan dalam UTC atau waktu lokal warung, serta bagaimana zona waktu bisnis ditetapkan untuk filter laporan periode.
-9. Aturan koreksi atau pembatalan pembelian setelah dicatat, termasuk dampaknya pada laporan dan apakah perlu status khusus.
+4. Batas nilai dan rumus qty/diskon/pembayaran selain baseline decimal eksak dua angka dan round half-up per rincian yang telah disetujui.
+5. Apakah daftar nilai role, metode pembayaran, dan status dijaga sebagai konstanta/enum aplikasi atau constraint database. Pembagian tanggung jawab inti superadmin/owner/manager/kasir disetujui; detail izin per operasi mengikuti D04.
+6. Format nomor transaksi dan bukti bahwa Idempotency-Key me-replay payload identik serta menolak payload berbeda dengan HTTP 409 saat retry/concurrency.
+7. Periode memakai timezone warung dan timestamp disimpan UTC sesuai D08; kebijakan backdate/future date dan warung tanpa timezone masih perlu ditetapkan.
+8. Aturan koreksi atau pembatalan pembelian setelah dicatat, termasuk dampaknya pada laporan dan apakah perlu status khusus.
 
 ## Kondisi proyek yang telah diverifikasi
 

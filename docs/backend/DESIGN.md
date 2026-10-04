@@ -1,6 +1,6 @@
 # Rancangan Backend LarisSama
 
-Status: implementasi backend sedang berjalan. Migration `warungs` dan adaptasi `users` berhasil diterapkan pada clean-install lokal MySQL 8.0.40; model `Warung` dan `User` sudah mencerminkan relasi dan kolom tenant. Enam tabel bisnis lain serta endpoint API belum diimplementasikan. Database lama yang sudah berisi user belum dapat di-upgrade sampai pemetaan identitas dan tenant ditetapkan. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K09 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx masih menunggu penetapan. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
+Status: implementasi backend sedang berjalan. Migration `warungs`, adaptasi `users`, timezone, kategori, menu, dan FK tenant gabungan berhasil diterapkan pada database development lokal MySQL 8.0.40; model katalog dan tenant sudah mencerminkan scope-nya. Enam tabel bisnis transaksi/laporan serta endpoint API belum diimplementasikan. Database lama yang sudah berisi user belum dapat di-upgrade sampai pemetaan identitas dan tenant ditetapkan. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K16 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx masih menunggu penetapan. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
 
 ## Kondisi awal yang diamati
 
@@ -70,9 +70,9 @@ User menyetujui tanggung jawab inti ini pada 2026-10-04. Izin baca versus ubah d
 1. Inventaris tabel/users yang sudah ada dan riwayat migration di environment tujuan. Jangan menjalankan composer setup tanpa meninjau script migrate-nya.
 2. Buat warungs, lalu sesuaikan users menggunakan migration maju jika migration awal sudah dibagikan. Pemetaan user lama ke warung perlu sumber data berwenang.
 3. Buat kategori_menus sebelum menus; buat penjualans sebelum penjualan_rincis; buat pembelians sebelum pembelian_rincis.
-4. Pertahankan unique global warungs.kode/users.username serta unique `(warung_id, kode)` menu dan `(warung_id, no_transaksi)` masing-masing header.
-5. Gunakan FK/index relasi; kandidat index laporan `(warung_id, tanggal, id)`, dan filter status penjualan sesuai hasil query plan. Pilihan fisik menunggu D01.
-6. D01 menentukan strategi FK tenant gabungan. Walaupun ID unik global, backend tetap mengecek kategori/menu/user dari warung yang sama. Detail mengikuti tenant melalui header induk.
+4. Pertahankan unique global warungs.kode/users.username serta unique `(warung_id, kode)` menu dan `(warung_id, no_transaksi)` masing-masing header; parent tenant-owned menyediakan unique `(warung_id, id)`.
+5. Gunakan FK/index relasi dan index laporan `(warung_id, tanggal, id)`; validasi pilihan index serta filter status lewat query plan saat integrasi MySQL 8.0.40.
+6. D16 menetapkan FK tenant gabungan. Backend tetap membatasi query/action ke warung terautentikasi dan database menolak relasi silang tenant.
 7. Rincian tidak memiliki endpoint CRUD bebas. Tindakan bisnis mengelola header dan rincian dalam satu transaksi. D06/D11 menentukan koreksi dan penghapusan.
 
 ## Invariant dan rancangan tindakan
@@ -80,14 +80,14 @@ User menyetujui tanggung jawab inti ini pada 2026-10-04. Izin baca versus ubah d
 | ID | Invariant | Penegakan |
 | --- | --- | --- |
 | INV01 | Warung biasa berasal dari user terautentikasi. | Abaikan sebagai otoritas dan tolak field tenant yang tidak didukung pada request; filter setiap query/route lookup. |
-| INV02 | Semua referensi milik warung yang sama. | Validasi tenant dan FK sesuai engine; detail dibaca melalui header terscope. |
+| INV02 | Semua referensi milik warung yang sama. | Scope aplikasi ditambah FK gabungan database untuk kategori/menu, user pencatat, header, dan detail; detail juga dibaca melalui header terscope. |
 | INV03 | User aktif dan warung aktif dalam masa berlaku. | Periksa login serta setiap request; `tanggal_mulai` NULL tidak membatasi awal, `tanggal_berakhir` NULL tidak membatasi akhir, dan tanggal terisi inklusif; token kedaluwarsa atau status nonaktif tidak boleh diterima. |
 | INV04 | Header memiliki >= 1 detail, tanpa penyimpanan sebagian. | Validasi array dan DB transaction; kegagalan detail me-rollback header, total, nomor, serta efek retry. |
-| INV05 | Nominal eksak dan dihitung backend. | Decimal, validasi batas/rounding D05; total dari detail, bukan total client. |
+| INV05 | Nominal eksak dan dihitung backend. | Wire dan penyimpanan memakai decimal string eksak dua angka pecahan; round half-up per rincian. Batas lain/rumus final mengikuti D05; total dari detail, bukan total client. |
 | INV06 | Setiap penjualan memilih menu terdaftar pada warung yang sama; riwayat menyimpan nama/harga jual saat transaksi. | `menu_id` wajib pada detail, menu di-resolve di scope warung dan snapshot disimpan dalam action; perubahan master tidak menulis ulang rincian. |
 | INV07 | Pembelian ringkas sah. | `nama_item` + `subtotal` menjadi satu detail; qty/satuan/harga_satuan nullable. |
 | INV08 | Pembelian tidak memengaruhi penjualan/menu/stok. | Action hanya menulis pembelian dan infrastruktur yang disetujui. |
-| INV09 | Retry/concurrency tidak menggandakan transaksi. | D09 harus diputuskan dan diuji dengan dua request/koneksi; disable retry UI saja tidak memenuhi syarat. |
+| INV09 | Retry/concurrency tidak menggandakan transaksi. | `Idempotency-Key` durable disimpan bersama transaksi; payload sama replay hasil awal, payload berbeda pada key sama menghasilkan 409. Buktikan dengan dua request/koneksi sebelum handoff. |
 | INV10 | Laporan tidak bocor tenant atau menggandakan header. | Aggregate header terfilter; jangan SUM(header.total) setelah join one-to-many rincian. |
 | INV11 | Kontrak mencerminkan implementasi. | Response divalidasi terhadap schema, parameter/peran diuji; handoff READY membutuhkan bukti. |
 
@@ -95,9 +95,9 @@ User menyetujui tanggung jawab inti ini pada 2026-10-04. Izin baca versus ubah d
 
 Action membaca setiap menu dalam scope warung, memeriksa aktif, mengambil harga/nama jual yang sah saat pencatatan, menghitung setiap subtotal, lalu menyimpan header dan semua snapshot detail. Setiap rincian harus mempunyai `menu_id`; transaksi dengan item bebas tidak diterima. Harga kiriman client tidak menjadi otoritas. D05 menentukan respons terhadap perubahan harga bersamaan; snapshot harus konsisten dengan pembacaan dalam transaksi.
 
-Kandidat rumus D05: `subtotal_rinci = round(harga_jual × qty - diskon_rinci, 2)`; `subtotal_header = SUM(subtotal_rinci)`; `total = subtotal_header - diskon_header`; `kembalian = bayar - total` untuk cash. Validasi mencegah total negatif/diskon berlebih; QRIS/transfer perlu aturan eksplisit. `bayar` bukan pendapatan. Kebijakan cancel penjualan masih D06.
+Baseline nominal D05 sudah disetujui: wire/penyimpanan decimal string dengan dua angka pecahan dan pembulatan half-up per rincian. Rumus diskon, validasi pembayaran cash/QRIS/transfer, harga nol, batas angka, dan qty pecahan tetap perlu dicatat sebelum aksi penjualan final. `bayar` bukan pendapatan; pendapatan memakai `total` sesuai D08. Kebijakan cancel penjualan masih D06.
 
-Action harus mengaitkan nomor transaksi dan hasil retry dengan commit bisnis yang sama. Tentukan durable storage dan perilaku konflik D09 sebelum membuat endpoint write siap produksi. Kegagalan di detail terakhir tidak meninggalkan header/rincian awal.
+Action menyimpan kunci idempotensi, hash payload kanonis, header, dan detail dalam transaksi database yang sama. Retry dengan key dan payload sama membaca ulang transaksi pertama; payload berbeda mendapat 409. Kegagalan di detail terakhir tidak meninggalkan header/rincian atau klaim key awal.
 
 ### Pembelian
 

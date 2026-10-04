@@ -56,11 +56,11 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 ## Keputusan yang ditutup sebelum coding terkait
 
 1. M0/M1: D01 engine/transisi data, D02 auth, D03 tanggal nullable, D04 role/superadmin, D12 identitas/email, D13 HTTP; bagian D08 yang diperlukan untuk tanggal masa aktif.
-2. M2: D05 untuk representasi harga, D06 arsip/hapus, D16 untuk constraint relasi tenant; D14 hanya bila media gambar menu masuk scope.
-3. M3: D05 rumus dan pembayaran, D06 cancellation/history, D08 periode, D09 penomoran/retry durable. Setiap item wajib dari menu sesuai D07 yang telah diputuskan.
-4. M4: D05 nominal, D08 periode, D09 nomor/retry, D10 rincian sebagian, D11 koreksi pembelian.
+2. M2: baseline decimal D05 sudah dipilih; finalisasi aturan arsip D06. FK gabungan tenant D16 telah dipilih dan diterapkan. D14 hanya bila media gambar menu masuk scope.
+3. M3: tetapkan sisa rumus/pembayaran D05 dan cancellation/history D06; gunakan timezone periode D08 serta replay durable D09 yang sudah disetujui. Setiap item wajib dari menu sesuai D07.
+4. M4: terapkan baseline decimal D05, timezone D08, replay D09, dan finalisasi input sebagian D10 serta koreksi pembelian D11.
 
-Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Agent tidak boleh menandai D01 atau D02 final sebelum versi engine dan detail konfigurasi auth dicatat. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.
+Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Pilihan MySQL 8.0.40, auth, baseline nominal, Idempotency-Key, dan FK tenant gabungan sudah dicatat; rincian tersisa tetap menjadi gate sebelum kontrak siap frontend. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.
 
 ## Urutan kerja satu task
 
