@@ -29,6 +29,7 @@ info:
     lintas provisioning, katalog, transaksi, laporan, dan logout pada MySQL 8.0.40; hasilnya parsial dan seluruh operasi
     tetap DRAFT.
     TRANSACTION-LIST-QUERY-REJECTION-001 memeriksa Error422 untuk enum status sale dan tanggal list invalid.
+    TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan date_from/date_to harus dikirim bersama; satu parameter saja menghasilkan Error422.
     API-END-TO-END-READBACK-001 menguji manager membaca list/detail transaksi yang dibuat pada workflow API dan mencocokkan response terpilih.
     SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 mencocokkan request/response OpenAPI untuk create sale dan purchase;
     superadmin tanpa warung mendapat 403 dan tidak menulis header/rincian. Matriks role lain tetap parsial.
@@ -1308,6 +1309,7 @@ paths:
         schema response 422, dan error field terkait.
         TRANSACTION-LIST-QUERY-REJECTION-001 membuktikan status sale di luar enum dan tanggal malformed/range terbalik
         pada kedua list ditolak dengan HTTP 422 schema-conformant dan error field yang tepat.
+        TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
@@ -1619,6 +1621,7 @@ paths:
         schema response 422, dan error field terkait.
         TRANSACTION-LIST-QUERY-REJECTION-001 membuktikan tanggal malformed/range terbalik ditolak dengan HTTP 422
         schema-conformant dan error field yang tepat.
+        TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
         API-END-TO-END-READBACK-001 menguji manager membaca list purchase sesudah pembelian ringkas/rinci dibuat lewat API.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
