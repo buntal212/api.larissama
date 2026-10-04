@@ -8,6 +8,7 @@ RUN apt-get update \
         libsqlite3-dev \
         libxml2-dev \
         libzip-dev \
+        git \
         unzip \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
