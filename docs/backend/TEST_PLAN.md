@@ -36,6 +36,12 @@ Cakupan: `GET /penjualans` memakai page, per_page, sort, dan status; `GET /pembe
 
 Checker menilai map fixture yang dipakai membangun URL, bukan request object Laravel aktual, dan bukan validator OpenAPI umum. Nilai invalid/unknown, seluruh kombinasi filter/status/operasi, serta batas per_page 100 tidak diperiksa di slice ini. Tidak ada perubahan DB, controller, business rule, tenant/authorization, retry, atau transaksi. Semua operasi tetap `DRAFT`; T-API-02/03 penuh dan gate G3/G4 tetap terbuka. Rincian ada di artefak [TRANSACTION-QUERY-CONFORMANCE-001](test-runs/TRANSACTION-QUERY-CONFORMANCE-001.md).
 
+## Rencana conformance query administrasi dan katalog
+
+Pra-implementasi untuk BE-103/104/202/203, subset T-API-02/03 dan D13: pakai checker query yang sama pada GET list `admin/warungs`, `users`, `kategori-menus`, dan `menus`. Sumber kebenaran adalah parameter OpenAPI dan validator/index query Laravel saat ini. Cakupan fixture sukses akan meliputi pagination/sort di tiap operasi serta filter yang memang sudah dipakai test (q, aktif, dan kategori_menu_id bila relevan). Nilai query yang diperiksa akan menjadi map yang sama untuk membangun URL test.
+
+Slice hanya membaca data. Tidak mengubah schema, controller, filter/role/tenant policy, behavior bisnis, atau operasi tulis. Acceptance: query terpilih cocok schema OpenAPI pada empat operasi; tes invalid `per_page`/sort dan tenant/kasir yang sudah ada tetap lulus tanpa diklaim sebagai query schema-conformant; Pint, empat feature test area terkait, dan suite penuh lulus pada MySQL 8.0.40 Compose disposable. Perbarui notes operation, tracker, README API, dan artifact sesudah run. Semua operasi tetap `DRAFT`; query lain, nilai maksimum 100, semua role/status, serta G1/G2/T-API-02/03 penuh masih terbuka.
+
 Sebelum test DB, pastikan APP_ENV=testing, koneksi dan nama database adalah target test terisolasi, serta bukan data bersama/produksi. Jangan menjalankan refresh/wipe pada koneksi yang belum diketahui. `phpunit.xml` memakai SQLite memory sebagai default, tetapi gate FK/concurrency/migration memerlukan engine target D01. `compose.test.yaml` menyediakan project tersendiri dengan MySQL 8.0.40, DB `larissama_test`, tanpa port host dan tanpa volume data persisten; jangan mengganti host/database dengan konfigurasi development. Fake clock, dua tenant, dan koneksi terpisah membuat skenario dapat diulang.
 
 ## Fixture sintetis dan expected result
