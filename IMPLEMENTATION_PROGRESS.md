@@ -34,7 +34,7 @@ Semua bukti `—` berarti belum ada, bukan hilang dari laporan. Kolom test menga
 
 | ID | Dependensi | Deliverable dan acceptance | Test / keputusan | Status | Bukti |
 | --- | --- | --- | --- | --- | --- |
-| BE-001 | — | Runtime/dependencies/toolchain siap; identitas environment dan cara menjalankan backend tercatat. PHP/Composer saat ini tidak ditemukan; setup paket sistem perlu persetujuan lingkungan, lalu Boost rules diverifikasi. | T-ENV-01; D01,D02 | BLOCKED | B01 |
+| BE-001 | — | Runtime Docker opsional, dependency Composer, dan cara menjalankan backend sudah disiapkan. T-ENV-01 masih perlu harness serta DB test terisolasi yang terverifikasi. | T-ENV-01; D01,D02 | IN_PROGRESS | B01,ENV-001 |
 | BE-002 | — | Tutup keputusan M0/M1 beserta sumbernya; inventaris schema/migration/data users; tidak menebak mapping warung. Pilihan keluarga DB/auth dan scope menu-only telah dicatat. | D01,D02,D03,D04,D12,D13,D15; D08 untuk masa aktif | IN_PROGRESS | Pilihan user 2026-10-04; detail tersisa di DECISIONS.md |
 | BE-003 | BE-002 | Finalkan konvensi API dan auth, pilih validator OpenAPI 3.1, tutup gap draft, sediakan pedoman integrasi; kontrak tidak dianggap live hanya karena final draft. | T-API-01; D02,D13 | NOT_STARTED | — |
 | BE-004 | BE-001,BE-002,BE-003 | Harness/unit/feature/integration/contract, DB test aman, fixture dua tenant, command runner/CI terdokumentasi. | T-ENV-01; D01 | NOT_STARTED | — |
@@ -86,7 +86,7 @@ Jika hanya sebagian operasi satu area siap, pecah baris menurut operationId. Jan
 
 | ID | Fakta | Dampak / langkah pembuka |
 | --- | --- | --- |
-| B01 | php dan composer tidak ditemukan pada shell pemeriksaan awal. | BE-001 perlu PHP 8.3+, Composer, extension SQLite/MySQL serta dependency Laravel. Instalasi paket OS perlu persetujuan escalation; sesudah itu verifikasi ulang runtime. |
+| B01 | PHP dan Composer tidak ada di host; Docker Desktop Windows dapat diakses dari WSL. | Image PHP 8.3.35/Composer 2.10.3 berhasil dibangun dan dependency terkunci terpasang. Dockerfile/Compose opsional tersedia; T-ENV-01 masih menunggu harness dan DB test terisolasi. |
 | B02 | Versi tepat MySQL/MariaDB dan detail D02/D03/D04/D05/D06/D08/D09/D10/D11/D12/D13/D14 belum ditetapkan. | Pilihan keluarga DB dan mekanisme Sanctum bearer sudah dibuat; catat detail yang wajib untuk setiap gate. Tetap lanjut pada pekerjaan yang tidak bergantung. |
 | B03 | Schema bisnis, route API, dan test aplikasi belum ada. | Jalankan backlog per dependency; jangan menganggap dokumen ini implementasi. |
 | B04 | Environment/handoff frontend belum tersedia. | Lengkapi BE-502/BE-503 sesudah endpoint dibangun dan diuji. |
@@ -99,6 +99,7 @@ Jika hanya sebagian operasi satu area siap, pecah baris menurut operationId. Jan
 | DOC-002 | OpenAPI setelah perbaikan kapasitas laporan `17c6586` | PASS pemeriksaan yang sama: 18 path, 28 operasi, 59 schema, 463 ref resolve, 264 contoh. AggregateMoney menjaga kapasitas jumlah lintas transaksi. | Validasi dokumen/JSON Schema saja; tidak mengeksekusi Laravel, DB, atau validator OAS penuh. |
 | DOC-003 | Paket dokumen pada `4b4f7a0` | PASS: 56 tautan lokal, 29 task dengan dependency tanpa siklus, 45 skenario, 28 operasi terdokumentasi, 3 contoh JSON panduan, bentuk pembelian minimal valid dan 6 input invalid ditolak schema; arithmetic fixture decimal dan kesamaan AGENTS/CLAUDE benar; 14 commit dalam paket masing-masing satu file. | Command sesi `python3 /tmp/larissama_validate_docs.py`; cek awal helper gagal menghitung ID E2E karena regex hanya menerima huruf. Regex helper diperbaiki dan pemeriksaan ulang lulus. Ini bukan hasil test aplikasi. |
 | ENV-OBS-001 | Pemeriksaan shell 2026-10-04 | php -v dan composer -V: command not found. | Observasi awal; tidak ada test aplikasi yang dijalankan. |
+| ENV-001 | Dockerfile/Compose `e8914b9`, `ee6a4df`, `3686947`, `a16b536`; Boost `bb0c553`, `0781735` | PASS: `docker compose config --quiet`; image PHP 8.3.35 dan Composer 2.10.3; `composer install` 110 package; `boost:install` selesai untuk Codex dan Claude. | Tidak menyelesaikan T-ENV-01: harness dan identitas DB test belum diverifikasi. Tidak ada feature test atau migration bisnis yang dijalankan. MySQL 8.0.40 hanya image development lokal, bukan pilihan versi produksi. |
 
 Run aplikasi berikutnya wajib memakai format lengkap pada TEST_PLAN. Simpan output yang relevan pada artefak bukti (lokasi disepakati saat M0), tanpa secret, dan tautkan di sini. Tiap hasil mencantumkan commit yang diuji, bukan sekadar branch yang bisa bergerak.
 
