@@ -11,9 +11,11 @@ info:
     tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
     login/me, role context, status akun, expiry/logout, rate limit, provisioning
     admin warung/user tenant, katalog, dan transaksi/laporan memiliki acceptance
-    test parsial. Response runtime auth, admin, dan katalog dicocokkan dengan schema
-    untuk sebagian operasi/status; request schema, profil `/warung`, D06 untuk transaksi
-    atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
+    test parsial. Response runtime auth, admin, katalog, dan transaksi/laporan dicocokkan
+    dengan schema untuk subset operasi/status; body/header request POST sale/purchase
+    juga diperiksa untuk payload terpilih. Query schema, request operasi lain, profil
+    `/warung`, D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance
+    menyeluruh belum diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -1372,10 +1374,13 @@ paths:
       tags:
       - Penjualan
       summary: Catat Penjualan
-      description: 'Implementasi awal menyimpan header dan rincian atomik; warung/user/nomor/total dari backend.
+      description: >-
+        Implementasi awal menyimpan header dan rincian atomik; warung/user/nomor/total dari backend.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. Aturan nominal lain masih D05 dan operasi tetap DRAFT, belum dapat dipakai live.
-        Setiap item wajib berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; request schema, status lain, dan gate penuh masih terbuka.'
+        Setiap item wajib berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422;
+        TRANSACTION-REQUEST-CONFORMANCE-001 mencocokkan body/header pada request create/replay/conflict terpilih dan
+        tenant-crossing 422 schema-valid (menu_id berupa string). Query, body/status lain, serta gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1649,10 +1654,13 @@ paths:
       tags:
       - Pembelian
       summary: Catat Pembelian
-      description: 'Implementasi awal menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
+      description: >-
+        Implementasi awal menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; operasi tetap DRAFT.
-        TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; request schema, status lain, dan gate penuh masih terbuka.'
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; TRANSACTION-REQUEST-CONFORMANCE-001
+        mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. Request parsial yang melanggar
+        oneOf D10 memang diuji 422, tetapi tidak cocok dengan request schema. Query, body/status lain, dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
