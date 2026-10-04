@@ -455,3 +455,9 @@ Acceptance: seluruh 10 operasi detail/update membuktikan pola schema dan perilak
 ## Hasil validasi format ID pada path
 
 `API-PATH-ID-POSITIVE-CONFORMANCE-001` lulus pada sepuluh operasi detail/update. Probe awal menghasilkan 10 kegagalan/65 assertions karena `whereNumber()` menerima `0` sebelum auth. Route kini memakai `[1-9][0-9]*`, selaras dengan schema OpenAPI `Id`. Test memeriksa parameter `id` required pada path, schema string/pola, ID `1` menuju middleware (401), serta `0`, `01`, `abc` yang menghasilkan 404 schema-conformant. Pint lulus; `ApiRouteOpenApiConformanceTest` 11/735 dan suite penuh 292/27992 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Tidak ada DB di focused test; tidak ada perubahan schema bisnis/tenant/role/payload. Compose dibersihkan. Semua operasi tetap DRAFT dan gate T-API masih terbuka. Bukti: [artefak run](test-runs/API-PATH-ID-POSITIVE-CONFORMANCE-001.md).
+
+## Rencana conformance role laporan D04
+
+`REPORT-RBAC-CONFORMANCE-001`, T-RBAC-01 dan D04. OpenAPI saat ini menetapkan manager sebagai role kandidat untuk kedua operasi laporan; persetujuan inti D04 juga memberi laporan kepada manager. Tambahkan kasus feature untuk kasir dan superadmin pada `GET /laporan/penjualan` serta `GET /laporan/pembelian` dengan periode valid. Setiap request harus mendapat 403 sesuai schema response OpenAPI `Error403`, dan tidak mengubah data transaksi. Kasus manager sukses yang sudah ada pada masing-masing report menjadi kontrol positif. Owner tidak diuji karena izin di luar user-administration belum diputuskan D04.
+
+Acceptance: empat pasangan terlarang kasir/superadmin × report menghasilkan 403 schema-conformant; kontrol manager tetap 200; `LaporanApiTest`, Pint, dan suite penuh lulus pada MySQL 8.0.40 Compose disposable, lalu cleanup. Scope hanya verifikasi role, tanpa perubahan policy atau kontrak kecuali probe menemukan drift terhadap D04.
