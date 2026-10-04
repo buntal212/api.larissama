@@ -119,7 +119,7 @@ Kandidat D08: query `tanggal >= start_of_day(date_from, zone)` dan `tanggal < st
 
 ## Keamanan, operasional, dan handoff
 
-Password/token tidak keluar resource atau log. Sanctum bearer token sudah dipilih; rate limit login, token expiry/revokasi, HTTPS/CORS, penyimpanan rahasia, dan detail deployment masih perlu ditetapkan di D02 sebelum BE-001/BE-502 selesai. Error JSON tidak menampilkan SQL atau kredensial; request ID membantu penelusuran. Halaman di luar scope menggunakan respons yang konsisten menurut D13.
+Password/token tidak keluar resource atau log. Sanctum bearer token sudah dipilih dan package v4.3.3 terpasang; rate limit login, token expiry/revokasi, HTTPS/CORS, penyimpanan rahasia, dan detail deployment masih perlu ditetapkan di D02 sebelum BE-102/BE-502 selesai. Error JSON tidak menampilkan SQL atau kredensial; request ID membantu penelusuran. Halaman di luar scope menggunakan respons yang konsisten menurut D13.
 
 Runbook rilis yang dibuat pada BE-502 harus berisi prasyarat versi, konfigurasi tanpa rahasia, migrasi upgrade, backup/restore yang diuji pada salinan, rollback aplikasi, endpoint health, log, dan keterbatasan. Hindari migration destruktif pada data bersama.
 
