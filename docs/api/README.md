@@ -47,6 +47,16 @@ Konvensi wire D13 pada baris terkait sudah disetujui user. Kontrak operation-lev
 | Patch | Hanya field yang berubah. Field nullable dikosongkan dengan null; field dihilangkan berarti tidak diubah. Body kosong ditolak. |
 | Retry | Create penjualan/pembelian wajib memakai `Idempotency-Key`. Key yang sama dengan payload kanonis identik me-replay respons awal; key sama dengan payload berbeda memberi 409 `IDEMPOTENCY_KEY_REUSED`. Retry identik, conflict bersamaan, nomor unik, dan pemulihan setelah worker mati sudah memiliki bukti parsial (`IDEMPOTENCY-CRASH-RESTART-001`); retensi setelah record dihapus dan seluruh gate D09 masih terbuka. Jangan gunakan otomatisasi retry live sebelum operasinya berstatus READY. |
 
+### Contoh filter hari lokal pada daftar transaksi
+
+```http
+GET /api/v1/penjualans?page=1&per_page=20&sort=-tanggal&date_from=2026-10-04&date_to=2026-10-04 HTTP/1.1
+Accept: application/json
+Authorization: Bearer <token>
+```
+
+Untuk timezone warung `Asia/Jakarta`, contoh itu meminta seluruh tanggal lokal 4 Oktober 2026. Rentang database UTC-nya mulai `2026-10-03T17:00:00Z` (inklusif) dan berakhir sebelum `2026-10-04T17:00:00Z`. Kirim `date_from` dan `date_to` sebagai tanggal `YYYY-MM-DD` lokal, tanpa mengonversinya di browser ke UTC. Kedua parameter boleh sama-sama tidak dikirim untuk daftar tanpa filter periode; jika hanya satu dikirim, server memberi 422. Aturan yang sama berlaku untuk `/api/v1/pembelians`.
+
 User menyetujui tanggung jawab inti D04: superadmin mengelola warung dan owner awal lewat admin; owner mengelola user; manager menangani katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak sebagai user tenant. Implementasi least-privilege sementara memberi manager akses daftar/detail penjualan satu warung dan kasir akses transaksi miliknya saja; create sale untuk kasir; pembelian/laporan untuk manager. Hak owner di luar pengelolaan user tetap default deny sampai D04 ditutup. Semua operasi harus menutup keputusan pemblokir dan test sebelum READY_FOR_FRONTEND.
 
 ## Daftar operasi

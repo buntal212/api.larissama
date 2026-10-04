@@ -2091,12 +2091,14 @@ components:
       schema:
         $ref: '#/components/schemas/Date'
       description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+      example: '2026-10-04'
     DateTo:
       name: date_to
       in: query
       schema:
         $ref: '#/components/schemas/Date'
       description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+      example: '2026-10-04'
   responses:
     Error400:
       description: JSON request tidak dapat dibaca.
