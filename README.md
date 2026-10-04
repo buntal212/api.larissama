@@ -7,6 +7,21 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Menjalankan backend lokal
+
+Docker adalah pilihan untuk development, bukan syarat semua anggota tim. Untuk menggunakan Docker Desktop yang terpasang di Windows, aktifkan integrasi WSL 2 lalu jalankan perintah dari terminal WSL di direktori repo ini. Compose menyediakan PHP 8.3 dan MySQL 8.0.40 untuk development lokal; versi MySQL ini bukan keputusan versi database produksi.
+
+```bash
+cp -n .env.example .env
+docker compose up --build -d
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate
+```
+
+API server lokal tersedia di `http://localhost:8010`; MySQL dapat diakses dari host pada port `3309`. Compose memasang dependency Composer saat container app mulai. Untuk menghentikan layanan tanpa menghapus data database, jalankan `docker compose down` (hindari opsi `-v` jika volume database ingin dipertahankan). Kredensial default Compose hanya untuk database development lokal. Port dan kredensial dapat diubah lewat variabel `LARISSAMA_API_PORT`, `LARISSAMA_DB_PORT`, `LARISSAMA_DB_DATABASE`, `LARISSAMA_DB_USERNAME`, `LARISSAMA_DB_PASSWORD`, dan `LARISSAMA_DB_ROOT_PASSWORD`; ID user/group container default `1000` dan dapat diubah dengan `LARISSAMA_UID` serta `LARISSAMA_GID`.
+
+Tanpa Docker, gunakan PHP 8.3+ dan Composer yang sesuai dengan `composer.json`, jalankan `composer install`, siapkan `.env` dari `.env.example`, isi koneksi ke MySQL/MariaDB lokal, lalu jalankan `php artisan key:generate`, `php artisan migrate`, dan `php artisan serve`. Rincian operasi kontrak dan status handoff frontend ada di [panduan API](docs/api/README.md) dan [OpenAPI](docs/api/openapi.yaml); keduanya tetap draft sampai status tracker menyatakan siap.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
