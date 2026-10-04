@@ -23,15 +23,17 @@ class UserApiTest extends TestCase
         $managerB = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'manager']);
         $token = $ownerA->createToken('user-feature-test')->plainTextToken;
         $password = 'manager-test-password';
+        $createPayload = [
+            'nama' => 'Manager Warung A',
+            'username' => 'manager-warung-a',
+            'email' => null,
+            'password' => $password,
+            'role' => 'manager',
+        ];
+        $this->assertOperationRequestMatchesOpenApi($createPayload, [], '/users', 'post');
 
         $created = $this->withToken($token)
-            ->postJson('/api/v1/users', [
-                'nama' => 'Manager Warung A',
-                'username' => 'manager-warung-a',
-                'email' => null,
-                'password' => $password,
-                'role' => 'manager',
-            ])
+            ->postJson('/api/v1/users', $createPayload)
             ->assertCreated();
         $this->assertOperationResponseMatchesOpenApi($created, '/users', 'post');
 
@@ -76,11 +78,14 @@ class UserApiTest extends TestCase
         $this->assertSame((string) $createdUser->id, $detail->json('data.id'));
         $this->assertSame('manager', $detail->json('data.role'));
 
+        $updatePayload = [
+            'nama' => 'Kasir Warung A',
+            'role' => 'kasir',
+        ];
+        $this->assertOperationRequestMatchesOpenApi($updatePayload, [], '/users/{id}', 'patch');
+
         $updated = $this->withToken($token)
-            ->patchJson('/api/v1/users/'.$createdUser->id, [
-                'nama' => 'Kasir Warung A',
-                'role' => 'kasir',
-            ])
+            ->patchJson('/api/v1/users/'.$createdUser->id, $updatePayload)
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($updated, '/users/{id}', 'patch');
 

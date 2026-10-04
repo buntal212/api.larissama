@@ -19,6 +19,7 @@ class AdminWarungApiTest extends TestCase
         $superadmin = User::factory()->superadmin()->create();
         $token = $superadmin->createToken('admin-feature-test')->plainTextToken;
         $payload = $this->warungPayload('WRG-ADMIN-001', 'owner-admin-001');
+        $this->assertOperationRequestMatchesOpenApi($payload, [], '/admin/warungs', 'post');
 
         $response = $this->withToken($token)
             ->postJson('/api/v1/admin/warungs', $payload)

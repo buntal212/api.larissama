@@ -35,9 +35,11 @@ class KategoriMenuApiTest extends TestCase
         ]);
         KategoriMenu::factory()->create(['warung_id' => $warungB->id, 'nama' => 'Tenant B']);
         $token = $manager->createToken('kategori-feature-test')->plainTextToken;
+        $createPayload = ['nama' => 'Dessert', 'urutan' => 3];
+        $this->assertOperationRequestMatchesOpenApi($createPayload, [], '/kategori-menus', 'post');
 
         $created = $this->withToken($token)
-            ->postJson('/api/v1/kategori-menus', ['nama' => 'Dessert', 'urutan' => 3])
+            ->postJson('/api/v1/kategori-menus', $createPayload)
             ->assertCreated();
         $this->assertOperationResponseMatchesOpenApi($created, '/kategori-menus', 'post');
         $category = $created->json('data');
@@ -104,8 +106,11 @@ class KategoriMenuApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($detail, '/kategori-menus/{id}', 'get');
         $this->assertSame($category['id'], $detail->json('data.id'));
 
+        $updatePayload = ['nama' => 'Camilan', 'aktif' => false];
+        $this->assertOperationRequestMatchesOpenApi($updatePayload, [], '/kategori-menus/{id}', 'patch');
+
         $updated = $this->withToken($token)
-            ->patchJson('/api/v1/kategori-menus/'.$category['id'], ['nama' => 'Camilan', 'aktif' => false])
+            ->patchJson('/api/v1/kategori-menus/'.$category['id'], $updatePayload)
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($updated, '/kategori-menus/{id}', 'patch');
         $this->assertSame('Camilan', $updated->json('data.nama'));

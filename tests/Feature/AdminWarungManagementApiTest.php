@@ -72,13 +72,16 @@ class AdminWarungManagementApiTest extends TestCase
         $this->assertSame('WRG-ADM-A', $warungResource['kode']);
         $this->assertTrue($warungResource['aktif']);
 
+        $updatePayload = [
+            'nama' => 'Alpha Updated',
+            'alamat' => 'Jalan Baru 1',
+            'timezone' => 'America/New_York',
+            'aktif' => false,
+        ];
+        $this->assertOperationRequestMatchesOpenApi($updatePayload, [], '/admin/warungs/{id}', 'patch');
+
         $updated = $this->withToken($token)
-            ->patchJson('/api/v1/admin/warungs/'.$alpha->id, [
-                'nama' => 'Alpha Updated',
-                'alamat' => 'Jalan Baru 1',
-                'timezone' => 'America/New_York',
-                'aktif' => false,
-            ])
+            ->patchJson('/api/v1/admin/warungs/'.$alpha->id, $updatePayload)
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($updated, '/admin/warungs/{id}', 'patch');
         $this->assertSame('Alpha Updated', $updated->json('data.nama'));
