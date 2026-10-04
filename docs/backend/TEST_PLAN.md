@@ -337,6 +337,14 @@ Tambah data provider untuk sale dan purchase pada `tests/Feature/IdempotencyConc
 
 `IDEMPOTENCY-CONFLICT-RACE-001` lulus untuk penjualan dan pembelian: Pint, focused `IdempotencyConcurrencyTest` 4/37, dan suite penuh 241/26334 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Untuk tiap jenis transaksi, dua proses HTTP Kernel dengan bearer user/tenant/endpoint sama mencapai barrier sebelum request, memakai key sama dan payload berbeda, lalu memperoleh satu 201 serta satu 409 `IDEMPOTENCY_KEY_REUSED`. Hanya satu header/detail tersimpan; ID response 201 cocok dengan row, elapsed kurang dari tiga detik, dan skenario payload identik tetap lulus. Compose dibersihkan. Cakupan ini tidak menguji scope-key lintas user/warung/endpoint, crash/restart, retensi, atau nomor unik untuk request berbeda; D09/T-RET-03 masih PARTIAL dan seluruh operasi transaksi tetap DRAFT. Detail ada pada [artefak run](test-runs/IDEMPOTENCY-CONFLICT-RACE-001.md).
 
+## Pra-implementasi scope key dan nomor unik concurrent T-RET-03
+
+Task BE-304/BE-404, T-RET-03, D09. Migration menetapkan unique key `(warung_id,user_id,idempotency_key)` terpisah di setiap tabel header; endpoint menjadi scope lewat pemisahan tabel/action. Acceptance concurrency yang tersisa: pemakaian key sama pada konteks actor/tenant/endpoint berbeda tetap membuat transaksi mandiri; key berbeda untuk request baru menghasilkan nomor berbeda.
+
+Tambah dua feature test provider pada `tests/Feature/IdempotencyConcurrencyTest.php`. Untuk konteks scope, jalankan dua worker HTTP serentak dengan key dan payload yang sama, tapi konteks valid: (a) dua kasir pada satu tenant dan endpoint penjualan; (b) dua manager pada tenant berbeda dan endpoint pembelian; (c) kasir dan manager pada satu tenant melalui endpoint penjualan/pembelian. Setiap pair harus memberi dua 201, dua ID dan nomor berbeda, tepat satu header/detail per request, dan masing-masing row berada pada user/tenant yang benar. Karena user tenant terikat ke satu warung dan user_id unik global, kolom tenant tidak dapat diuji terpisah dari actor pada data valid; endpoint juga berpisah melalui tabel/action berbeda dan role yang berbeda. Catat batas ini.
+
+Untuk nomor unik, jalankan dua request berbeda secara bersamaan dalam scope yang sama untuk tiap endpoint: user dan tenant sama, key serta catatan berbeda. Acceptance: dua 201, ID/no_transaksi berbeda, tepat dua header/detail, dan nomor tersimpan yang kembali pada response sama dengan dua row. Kedua skenario memakai barrier dua worker dan trigger MySQL dua detik; elapsed harus <3.5 detik agar proses serial tidak lolos. Gunakan trigger per tabel yang disentuh dan bersihkan trigger/barrier/fixture. Tidak mengubah source API, migration, schema, atau dependency. Pint, focused/full MySQL 8.0.40 Compose disposable dan cleanup wajib. Crash/restart serta retensi key tetap terpisah dan belum dibuktikan.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
