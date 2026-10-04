@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Ini belum menjadi skema database yang berjalan dan belum dibuatkan migration. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Delapan tabel bisnisnya belum dibuatkan migration. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
@@ -12,7 +12,7 @@ Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder
 - Kontrak API menentukan bentuk data yang dikonsumsi frontend; frontend tidak menjadi sumber kebenaran bisnis.
 - Jika sumber-sumber itu berbeda, telusuri keputusan yang mendasarinya dan perbarui artefak yang terkait. Jangan menyelesaikan konflik dengan menebak atau hanya mengubah dokumen turunan.
 
-Rancangan ini mencakup delapan tabel: `warungs`, `users`, `kategori_menus`, `menus`, `penjualans`, `penjualan_rincis`, `pembelians`, dan `pembelian_rincis`. Aplikasi tidak memakai tabel `mejas` atau `menu_varians`.
+Rancangan ini mencakup delapan tabel bisnis: `warungs`, `users`, `kategori_menus`, `menus`, `penjualans`, `penjualan_rincis`, `pembelians`, dan `pembelian_rincis`. Tabel infrastruktur framework, termasuk `sessions`, `cache`, `jobs`, `password_reset_tokens`, dan Sanctum `personal_access_tokens`, berada di luar hitungan tersebut. Aplikasi tidak memakai tabel `mejas` atau `menu_varians`.
 
 ## Aturan inti
 
@@ -211,4 +211,4 @@ Rancangan menandai kedua tanggal sebagai nullable, tetapi belum menjelaskan arti
 
 ## Kondisi proyek saat dokumen dibuat
 
-Backend masih berupa starter Laravel. Migration awal Laravel sudah membuat `users` dengan `name`, `email` non-null unique, `email_verified_at`, `password`, `remember_token`, serta tabel session dan password reset. Ini belum sama dengan rancangan di atas. Periksa apakah migration awal pernah dijalankan atau database sudah berisi data sebelum menentukan cara transisi; jangan mengubah migration yang telah dipakai bersama.
+Backend masih memakai starter Laravel dan belum memiliki migration untuk delapan tabel bisnis. Migration framework saat ini menyediakan `users` dengan `name`, `email` non-null unique, `email_verified_at`, `password`, `remember_token`, tabel session/password reset, cache/jobs, serta migration Sanctum untuk `personal_access_tokens`. Ini belum sama dengan rancangan bisnis di atas. Periksa apakah migration pernah dijalankan atau database sudah berisi data sebelum menentukan cara transisi; jangan mengubah migration yang telah dipakai bersama.
