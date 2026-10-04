@@ -1405,7 +1405,8 @@ paths:
         tenant-crossing 422 schema-valid (menu_id berupa string). SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 menguji
         payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
         ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi manager tanpa write.
-        Query, body/status lain, serta gate penuh masih terbuka.
+        TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
+        schema request melarang field tambahan. Query, body/status lain, serta gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1696,7 +1697,8 @@ paths:
         oneOf D10 memang diuji 422, tetapi tidak cocok dengan request schema. SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001
         menguji payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
         ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi kasir tanpa write.
-        Query, body/status lain, dan gate penuh masih terbuka.
+        TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
+        schema request melarang field tambahan. Query, body/status lain, dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
