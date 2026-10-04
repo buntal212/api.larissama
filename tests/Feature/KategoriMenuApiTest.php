@@ -60,31 +60,41 @@ class KategoriMenuApiTest extends TestCase
             'aktif' => true,
         ]);
 
+        $firstPageQuery = ['page' => '1', 'per_page' => '1', 'sort' => 'urutan'];
+        $this->assertOperationQueryMatchesOpenApi($firstPageQuery, '/kategori-menus', 'get');
         $list = $this->withToken($token)
-            ->getJson('/api/v1/kategori-menus?page=1&per_page=1&sort=urutan')
+            ->getJson('/api/v1/kategori-menus?'.http_build_query($firstPageQuery))
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($list, '/kategori-menus', 'get');
         $this->assertSame([(string) $drinks->id], array_column($list->json('data'), 'id'));
         $this->assertSame(['page' => 1, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $list->json('meta'));
 
+        $secondPageQuery = ['page' => '2', 'per_page' => '1', 'sort' => 'urutan'];
+        $this->assertOperationQueryMatchesOpenApi($secondPageQuery, '/kategori-menus', 'get');
         $secondPage = $this->withToken($token)
-            ->getJson('/api/v1/kategori-menus?page=2&per_page=1&sort=urutan')
+            ->getJson('/api/v1/kategori-menus?'.http_build_query($secondPageQuery))
             ->assertOk();
         $this->assertSame([(string) $food->id], array_column($secondPage->json('data'), 'id'));
         $this->assertSame(['page' => 2, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $secondPage->json('meta'));
 
+        $searchQuery = ['q' => 'Dessert'];
+        $this->assertOperationQueryMatchesOpenApi($searchQuery, '/kategori-menus', 'get');
         $search = $this->withToken($token)
-            ->getJson('/api/v1/kategori-menus?q=Dessert')
+            ->getJson('/api/v1/kategori-menus?'.http_build_query($searchQuery))
             ->assertOk();
         $this->assertSame([(string) $category['id']], array_column($search->json('data'), 'id'));
 
+        $inactiveQuery = ['aktif' => 'false'];
+        $this->assertOperationQueryMatchesOpenApi($inactiveQuery, '/kategori-menus', 'get');
         $inactive = $this->withToken($token)
-            ->getJson('/api/v1/kategori-menus?aktif=false')
+            ->getJson('/api/v1/kategori-menus?'.http_build_query($inactiveQuery))
             ->assertOk();
         $this->assertSame([(string) $drinks->id], array_column($inactive->json('data'), 'id'));
 
+        $activeQuery = ['aktif' => 'true', 'sort' => 'urutan'];
+        $this->assertOperationQueryMatchesOpenApi($activeQuery, '/kategori-menus', 'get');
         $active = $this->withToken($token)
-            ->getJson('/api/v1/kategori-menus?aktif=true&sort=urutan')
+            ->getJson('/api/v1/kategori-menus?'.http_build_query($activeQuery))
             ->assertOk();
         $this->assertSame([(string) $food->id, (string) $category['id']], array_column($active->json('data'), 'id'));
 

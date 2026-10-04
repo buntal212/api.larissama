@@ -56,7 +56,11 @@ class UserApiTest extends TestCase
         $createdUser = User::query()->findOrFail((int) $userResource['id']);
         $this->assertTrue(Hash::check($password, $createdUser->password));
 
-        $list = $this->withToken($token)->getJson('/api/v1/users')->assertOk();
+        $listQuery = ['page' => '1', 'per_page' => '20', 'sort' => 'nama'];
+        $this->assertOperationQueryMatchesOpenApi($listQuery, '/users', 'get');
+        $list = $this->withToken($token)
+            ->getJson('/api/v1/users?'.http_build_query($listQuery))
+            ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($list, '/users', 'get');
         $listedIds = array_column($list->json('data'), 'id');
         $this->assertSame(2, $list->json('meta.total'));

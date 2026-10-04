@@ -69,27 +69,40 @@ class MenuApiTest extends TestCase
             'aktif' => true,
         ]);
 
+        $filteredQuery = [
+            'q' => 'Nasi',
+            'kategori_menu_id' => (string) $category->id,
+            'per_page' => '1',
+            'sort' => 'nama',
+        ];
+        $this->assertOperationQueryMatchesOpenApi($filteredQuery, '/menus', 'get');
         $filtered = $this->withToken($token)
-            ->getJson('/api/v1/menus?q=Nasi&kategori_menu_id='.$category->id.'&per_page=1&sort=nama')
+            ->getJson('/api/v1/menus?'.http_build_query($filteredQuery))
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($filtered, '/menus', 'get');
         $this->assertSame([(string) $menu['id']], array_column($filtered->json('data'), 'id'));
         $this->assertSame(['page' => 1, 'per_page' => 1, 'total' => 1, 'last_page' => 1], $filtered->json('meta'));
 
+        $firstPageQuery = ['page' => '1', 'per_page' => '1', 'sort' => 'nama'];
+        $this->assertOperationQueryMatchesOpenApi($firstPageQuery, '/menus', 'get');
         $firstPage = $this->withToken($token)
-            ->getJson('/api/v1/menus?page=1&per_page=1&sort=nama')
+            ->getJson('/api/v1/menus?'.http_build_query($firstPageQuery))
             ->assertOk();
         $this->assertSame([(string) $coffee->id], array_column($firstPage->json('data'), 'id'));
         $this->assertSame(['page' => 1, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $firstPage->json('meta'));
 
+        $secondPageQuery = ['page' => '2', 'per_page' => '1', 'sort' => 'nama'];
+        $this->assertOperationQueryMatchesOpenApi($secondPageQuery, '/menus', 'get');
         $secondPage = $this->withToken($token)
-            ->getJson('/api/v1/menus?page=2&per_page=1&sort=nama')
+            ->getJson('/api/v1/menus?'.http_build_query($secondPageQuery))
             ->assertOk();
         $this->assertSame([(string) $menu['id']], array_column($secondPage->json('data'), 'id'));
         $this->assertSame(['page' => 2, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $secondPage->json('meta'));
 
+        $thirdPageQuery = ['page' => '3', 'per_page' => '1', 'sort' => 'nama'];
+        $this->assertOperationQueryMatchesOpenApi($thirdPageQuery, '/menus', 'get');
         $thirdPage = $this->withToken($token)
-            ->getJson('/api/v1/menus?page=3&per_page=1&sort=nama')
+            ->getJson('/api/v1/menus?'.http_build_query($thirdPageQuery))
             ->assertOk();
         $this->assertSame([(string) $tea->id], array_column($thirdPage->json('data'), 'id'));
         $this->assertSame(['page' => 3, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $thirdPage->json('meta'));
@@ -119,7 +132,11 @@ class MenuApiTest extends TestCase
             'aktif' => false,
         ]);
 
-        $inactive = $this->withToken($token)->getJson('/api/v1/menus?aktif=false')->assertOk();
+        $inactiveQuery = ['aktif' => 'false'];
+        $this->assertOperationQueryMatchesOpenApi($inactiveQuery, '/menus', 'get');
+        $inactive = $this->withToken($token)
+            ->getJson('/api/v1/menus?'.http_build_query($inactiveQuery))
+            ->assertOk();
         $this->assertSame([(string) $menu['id']], array_column($inactive->json('data'), 'id'));
     }
 

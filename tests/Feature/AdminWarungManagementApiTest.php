@@ -32,23 +32,29 @@ class AdminWarungManagementApiTest extends TestCase
         ]);
         $superadmin = User::factory()->superadmin()->create();
         $token = $superadmin->createToken('admin-warung-management-test')->plainTextToken;
+        $firstPageQuery = ['page' => '1', 'per_page' => '1', 'sort' => 'nama'];
 
+        $this->assertOperationQueryMatchesOpenApi($firstPageQuery, '/admin/warungs', 'get');
         $firstPage = $this->withToken($token)
-            ->getJson('/api/v1/admin/warungs?page=1&per_page=1&sort=nama')
+            ->getJson('/api/v1/admin/warungs?'.http_build_query($firstPageQuery))
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($firstPage, '/admin/warungs', 'get');
         $this->assertSame([(string) $alpha->id], array_column($firstPage->json('data'), 'id'));
         $this->assertSame(['page' => 1, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $firstPage->json('meta'));
 
+        $secondPageQuery = ['page' => '2', 'per_page' => '1', 'sort' => 'nama'];
+        $this->assertOperationQueryMatchesOpenApi($secondPageQuery, '/admin/warungs', 'get');
         $secondPage = $this->withToken($token)
-            ->getJson('/api/v1/admin/warungs?page=2&per_page=1&sort=nama')
+            ->getJson('/api/v1/admin/warungs?'.http_build_query($secondPageQuery))
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($secondPage, '/admin/warungs', 'get');
         $this->assertSame([(string) $bravo->id], array_column($secondPage->json('data'), 'id'));
         $this->assertSame(['page' => 2, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $secondPage->json('meta'));
 
+        $searchQuery = ['q' => 'Alpha'];
+        $this->assertOperationQueryMatchesOpenApi($searchQuery, '/admin/warungs', 'get');
         $search = $this->withToken($token)
-            ->getJson('/api/v1/admin/warungs?q=Alpha')
+            ->getJson('/api/v1/admin/warungs?'.http_build_query($searchQuery))
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($search, '/admin/warungs', 'get');
         $this->assertSame([(string) $alpha->id], array_column($search->json('data'), 'id'));
@@ -88,8 +94,10 @@ class AdminWarungManagementApiTest extends TestCase
             'aktif' => false,
         ]);
 
+        $inactiveQuery = ['aktif' => 'false'];
+        $this->assertOperationQueryMatchesOpenApi($inactiveQuery, '/admin/warungs', 'get');
         $inactiveList = $this->withToken($token)
-            ->getJson('/api/v1/admin/warungs?aktif=false')
+            ->getJson('/api/v1/admin/warungs?'.http_build_query($inactiveQuery))
             ->assertOk();
         $this->assertOperationResponseMatchesOpenApi($inactiveList, '/admin/warungs', 'get');
         $this->assertEqualsCanonicalizing(
