@@ -2,8 +2,9 @@ openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
-  description: Rancangan 2026-10-04; semua operasi DRAFT/NOT_STARTED. Mekanisme auth Sanctum bearer sudah dipilih
-    user tetapi belum diimplementasikan; detail token/config D02 masih terbuka. Role D04, nominal D05, periode D08,
+  description: Rancangan 2026-10-04; semua operasi DRAFT/NOT_STARTED. Sanctum bearer dipilih dan package v4.3.3
+    serta migration token sudah terpasang; endpoint auth belum diimplementasikan dan detail token/config D02 masih terbuka.
+    Role D04, nominal D05, periode D08,
     HTTP D13 masih perlu finalisasi. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. D09 belum menentukan
     mekanisme/header retry. Contoh sintetis; nomor contoh bukan format penomoran final.
 servers:
@@ -1965,8 +1966,9 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: 'Mekanisme terpilih: Sanctum bearer token. Belum dipasang atau diimplementasikan. Sanctum personal
-        access token opaque; expiry/revokasi dan konfigurasi deployment masih D02.'
+      description: 'Mekanisme terpilih: Sanctum bearer token; `laravel/sanctum` v4.3.3 dan migration token sudah terpasang.
+        Endpoint auth belum diimplementasikan. Sanctum personal access token opaque; expiry/revokasi dan konfigurasi
+        deployment masih D02.'
   parameters:
     Id:
       name: id
@@ -2268,8 +2270,8 @@ components:
       properties:
         access_token:
           type: string
-          description: Sanctum bearer token opaque sesuai pilihan user; belum diimplementasikan. Jangan dicatat
-            dalam log atau parsing sebagai JWT.
+          description: Sanctum bearer token opaque; endpoint belum diimplementasikan. Jangan dicatat dalam log atau
+            parsing sebagai JWT.
         token_type:
           type: string
           const: Bearer
