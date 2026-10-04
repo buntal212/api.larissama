@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Menu;
 use App\Models\Penjualan;
+use App\Models\PenjualanRinci;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -208,6 +209,38 @@ class PenjualanApiTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', (string) $saleA->id);
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
+    }
+
+    public function test_cashier_can_only_read_own_sales_and_gets_404_for_another_cashiers_sale(): void
+    {
+        $warung = Warung::factory()->create();
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $otherCashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $ownSale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $cashier->id]);
+        $otherSale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $otherCashier->id]);
+        PenjualanRinci::factory()->create(['warung_id' => $warung->id, 'penjualan_id' => $ownSale->id]);
+        PenjualanRinci::factory()->create(['warung_id' => $warung->id, 'penjualan_id' => $otherSale->id]);
+        $token = $cashier->createToken('feature-test')->plainTextToken;
+        $query = ['page' => '1', 'per_page' => '20', 'sort' => '-tanggal'];
+
+        $this->assertOperationQueryMatchesOpenApi($query, '/penjualans', 'get');
+        $list = $this->withToken($token)
+            ->getJson('/api/v1/penjualans?'.http_build_query($query))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', (string) $ownSale->id)
+            ->assertJsonPath('meta.total', 1);
+        $this->assertOperationResponseMatchesOpenApi($list, '/penjualans', 'get');
+
+        $ownDetail = $this->withToken($token)->getJson("/api/v1/penjualans/{$ownSale->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', (string) $ownSale->id);
+        $this->assertOperationResponseMatchesOpenApi($ownDetail, '/penjualans/{id}', 'get');
+
+        $otherDetail = $this->withToken($token)->getJson("/api/v1/penjualans/{$otherSale->id}")
+            ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($otherDetail, '/penjualans/{id}', 'get');
+        $this->assertDatabaseHas('penjualans', ['id' => $otherSale->id, 'user_id' => $otherCashier->id]);
     }
 
     public function test_superadmin_cannot_list_sales_for_a_tenant(): void
