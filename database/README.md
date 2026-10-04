@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Delapan tabel bisnisnya belum dibuatkan migration. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs` sudah dibuat dan berhasil diterapkan pada clean-install lokal MySQL 8.0.40; migration bisnis lain dan adaptasi `users` belum dibuat. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
@@ -205,6 +205,6 @@ Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar
 8. Arti zona waktu pada `penjualans.tanggal` dan `pembelians.tanggal`: apakah itu instant tersimpan dalam UTC atau waktu lokal warung, serta bagaimana zona waktu bisnis ditetapkan untuk filter laporan periode.
 9. Aturan koreksi atau pembatalan pembelian setelah dicatat, termasuk dampaknya pada laporan dan apakah perlu status khusus.
 
-## Kondisi proyek saat dokumen dibuat
+## Kondisi proyek yang telah diverifikasi
 
-Backend masih memakai starter Laravel dan belum memiliki migration lengkap untuk delapan tabel bisnis; migration `warungs` baru dibuat dan belum dijalankan. Migration framework saat ini menyediakan `users` dengan `name`, `email` non-null unique, `email_verified_at`, `password`, `remember_token`, tabel session/password reset, cache/jobs, serta migration Sanctum untuk `personal_access_tokens`. Ini belum sama dengan rancangan bisnis di atas. Email bisnis telah diputuskan nullable dan unique saat diisi. Periksa apakah migration pernah dijalankan atau database sudah berisi data sebelum menentukan cara transisi; jangan mengubah migration yang telah dipakai bersama.
+Backend masih memakai starter Laravel dan belum memiliki migration lengkap untuk delapan tabel bisnis; migration `warungs` berhasil dijalankan pada clean-install lokal MySQL 8.0.40. Database itu bukan produksi. Migration framework saat ini menyediakan `users` dengan `name`, `email` non-null unique, `email_verified_at`, `password`, `remember_token`, tabel session/password reset, cache/jobs, serta migration Sanctum untuk `personal_access_tokens`. Ini belum sama dengan rancangan bisnis di atas. Email bisnis telah diputuskan nullable dan unique saat diisi. Periksa apakah migration pernah dijalankan atau database sudah berisi data sebelum menentukan cara transisi; jangan mengubah migration yang telah dipakai bersama.
