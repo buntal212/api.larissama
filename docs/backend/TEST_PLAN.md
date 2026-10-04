@@ -283,6 +283,12 @@ Addendum pra-implementasi: audit metadata T-DB-01 juga harus mencocokkan seluruh
 
 Run 2026-10-05: Pint lulus; focused `BusinessSchemaMigrationConformanceTest` 4/210; suite penuh `php artisan test --display-warnings` 229/25821 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Compose dibersihkan. T-DB-01 lulus untuk kriteria fresh-schema yang direncanakan dan diuji di sini. T-DB-02 (upgrade/backfill data lama), rollback migration, serta seluruh gate milestone tetap terbuka. Rincian batas audit ada di [artefak run](test-runs/DATABASE-SCHEMA-MIGRATION-CONFORMANCE-001.md).
 
+## Pra-implementasi cakupan kolom lengkap T-DB-01
+
+Audit yang ada memeriksa kolom penting dan semua tabel/index/FK, tetapi belum membandingkan kolom lain satu per satu. Tambahkan satu test ke `BusinessSchemaMigrationConformanceTest.php` dengan expected metadata seluruh kolom pada delapan tabel bisnis dari migration yang berlaku. Untuk tiap tabel, pastikan himpunan dan urutan `COLUMN_NAME` tepat; untuk tiap kolom cocokkan `COLUMN_TYPE` lengkap (termasuk panjang, precision/scale dan unsigned), `IS_NULLABLE`, `COLUMN_DEFAULT`, serta `EXTRA` (`auto_increment` atau `on update CURRENT_TIMESTAMP`). `DATETIME_PRECISION` untuk tipe temporal ikut dibandingkan. Nilai metadata harus dinormalisasi secara konsisten agar string default angka/capitalization tidak menghasilkan beda semu.
+
+Scope hanya pembacaan `information_schema` sesudah fresh migration MySQL 8.0.40. Jangan mengubah migration, runtime, keputusan, data bersama, atau dependency. Pertahankan pemeriksaan index/FK/UTC yang sudah ada. Pint, focused/full suite, catat jumlah assertion/hash/evidence, dan bersihkan Compose; T-DB-02 mapping legacy tetap terbuka.
+
 ## Pra-implementasi koreksi authorization profil warung
 
 Task BE-104/T-ADM-04, D02/D04/D13. Acceptance awal menemukan manager dan kasir mendapat 403 dari `GET /api/v1/warung`. Pemeriksaan Laravel terpasang menunjukkan `Gate::authorize('viewCurrent', $user)` memilih `UserPolicy`, sedangkan ability `viewCurrent` didefinisikan pada `WarungPolicy`. Perbaikan yang direncanakan hanya mengirim `Warung::class` sebagai subject Gate agar policy yang sudah ada dipilih; kondisi role pada policy tidak berubah.
