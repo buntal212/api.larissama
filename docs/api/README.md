@@ -18,8 +18,8 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | --- | --- |
 | Base URL | Diserahkan per environment saat handoff. Prefix `/api/v1` sudah ada pada `servers.url`; jangan menggandakannya. |
 | Media | Request/response JSON; kirim `Accept: application/json`, body dengan `Content-Type: application/json`. |
-| Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`. Detail expiry, revokasi, CORS, HTTPS dan rate limit masih menunggu D02. Sanctum personal access token bersifat opaque; jangan parsing isinya sebagai JWT. |
-| Tenant | User biasa tidak mengirim pemilih warung. Backend menggunakan identitas user; path admin warung hanya untuk superadmin. |
+| Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`; token berlaku 30 hari lalu user login ulang. Logout mencabut token aktif. Sanctum personal access token bersifat opaque; jangan parsing isinya sebagai JWT. CORS, HTTPS, dan rate limit masih perlu ditetapkan sebelum handoff. |
+| Tenant | User biasa tidak mengirim pemilih warung. Backend menggunakan identitas user; path admin warung hanya untuk superadmin. `tanggal_mulai` NULL berarti tanpa batas mulai; `tanggal_berakhir` NULL berarti tanpa batas akhir; tanggal terisi berlaku inklusif. |
 | ID | String digit, misalnya `"1001"`; jangan konversi BIGINT menjadi Number. |
 | Nominal dan qty | String decimal dua angka pecahan, tanpa pemisah ribuan; contoh `"150000.00"`, `"0.50"`. Format lokal hanya untuk tampilan. Money transaksi mengikuti batas kolom; AggregateMoney laporan dapat melebihi kapasitas satu transaksi dan tetap string eksak. |
 | Tanggal | `tanggal` adalah RFC3339 ber-offset; filter periode memakai YYYY-MM-DD dalam timezone bisnis final. Response kandidat UTC. |
@@ -32,7 +32,7 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | Patch | Hanya field yang berubah. Field nullable dikosongkan dengan null; field dihilangkan berarti tidak diubah. Body kosong ditolak. |
 | Retry | Mekanisme durable D09 belum ditentukan. Jangan mengarang Idempotency-Key atau retry create otomatis; timeout belum membuktikan transaksi gagal tersimpan. |
 
-Semua batas nominal/rounding/hak role di atas adalah kandidat, bukan keputusan produksi. Setiap operasi harus menutup keputusan pemblokir sebelum READY_FOR_FRONTEND.
+User menyetujui tanggung jawab inti D04: superadmin mengelola warung dan owner awal melalui jalur admin; owner mengelola user warungnya; manager mengelola katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak sebagai user tenant. Hak per operasi pada tabel di bawah tetap kandidat untuk rincian yang belum disetujui, termasuk akses owner di luar user dan riwayat penjualan. Semua batas nominal/rounding tetap kandidat, bukan keputusan produksi. Setiap operasi harus menutup keputusan pemblokir sebelum READY_FOR_FRONTEND.
 
 ## Daftar operasi
 
@@ -47,27 +47,27 @@ Path berikut relatif terhadap `/api/v1`. Hak akses di tabel adalah kandidat D04.
 | Warung + owner awal | POST /admin/warungs | createWarung | superadmin |
 | Detail warung | GET /admin/warungs/{id} | getWarung | superadmin |
 | Ubah warung | PATCH /admin/warungs/{id} | updateWarung | superadmin |
-| Profil warung sendiri | GET /warung | getCurrentWarung | owner, manager, kasir |
+| Profil warung sendiri | GET /warung | getCurrentWarung | DRAFT; akses baca menunggu rincian D04 |
 | Daftar user | GET /users | listUsers | owner |
 | Tambah user | POST /users | createUser | owner |
 | Detail user | GET /users/{id} | getUser | owner |
 | Ubah user | PATCH /users/{id} | updateUser | owner |
-| Daftar kategori | GET /kategori-menus | listKategoriMenus | owner, manager, kasir |
-| Tambah kategori | POST /kategori-menus | createKategoriMenu | owner, manager |
-| Detail kategori | GET /kategori-menus/{id} | getKategoriMenu | owner, manager, kasir |
-| Ubah kategori | PATCH /kategori-menus/{id} | updateKategoriMenu | owner, manager |
-| Daftar menu | GET /menus | listMenus | owner, manager, kasir |
-| Tambah menu | POST /menus | createMenu | owner, manager |
-| Detail menu | GET /menus/{id} | getMenu | owner, manager, kasir |
-| Ubah menu | PATCH /menus/{id} | updateMenu | owner, manager |
-| Daftar penjualan | GET /penjualans | listPenjualans | owner/manager; scope kasir menunggu D04 |
-| Catat penjualan | POST /penjualans | createPenjualan | owner, manager, kasir |
-| Detail penjualan | GET /penjualans/{id} | getPenjualan | sesuai scope riwayat |
-| Daftar pembelian | GET /pembelians | listPembelians | owner, manager |
-| Catat pembelian | POST /pembelians | createPembelian | owner, manager |
-| Detail pembelian | GET /pembelians/{id} | getPembelian | owner, manager |
-| Pendapatan periode | GET /laporan/penjualan | getLaporanPenjualan | owner, manager |
-| Total pembelian periode | GET /laporan/pembelian | getLaporanPembelian | owner, manager |
+| Daftar kategori | GET /kategori-menus | listKategoriMenus | manager inti; hak owner/kasir menunggu D04 |
+| Tambah kategori | POST /kategori-menus | createKategoriMenu | manager inti; hak owner menunggu D04 |
+| Detail kategori | GET /kategori-menus/{id} | getKategoriMenu | manager inti; hak owner/kasir menunggu D04 |
+| Ubah kategori | PATCH /kategori-menus/{id} | updateKategoriMenu | manager inti; hak owner menunggu D04 |
+| Daftar menu | GET /menus | listMenus | manager inti; hak owner/kasir menunggu D04 |
+| Tambah menu | POST /menus | createMenu | manager inti; hak owner menunggu D04 |
+| Detail menu | GET /menus/{id} | getMenu | manager inti; hak owner/kasir menunggu D04 |
+| Ubah menu | PATCH /menus/{id} | updateMenu | manager inti; hak owner menunggu D04 |
+| Daftar penjualan | GET /penjualans | listPenjualans | Hak baca dan riwayat kasir menunggu D04 |
+| Catat penjualan | POST /penjualans | createPenjualan | kasir inti; hak owner/manager menunggu D04 |
+| Detail penjualan | GET /penjualans/{id} | getPenjualan | Hak baca dan riwayat kasir menunggu D04 |
+| Daftar pembelian | GET /pembelians | listPembelians | manager inti; hak owner menunggu D04 |
+| Catat pembelian | POST /pembelians | createPembelian | manager inti; hak owner menunggu D04 |
+| Detail pembelian | GET /pembelians/{id} | getPembelian | manager inti; hak owner menunggu D04 |
+| Pendapatan periode | GET /laporan/penjualan | getLaporanPenjualan | manager inti; hak owner menunggu D04 |
+| Total pembelian periode | GET /laporan/pembelian | getLaporanPembelian | manager inti; hak owner menunggu D04 |
 
 Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi: hasilnya satu ringkasan periode.
 
