@@ -6,13 +6,15 @@ use Illuminate\Http\Request;
 $barrierId = getenv('LARISSAMA_TEST_BARRIER_ID');
 $idempotencyKey = getenv('LARISSAMA_TEST_IDEMPOTENCY_KEY');
 $token = getenv('LARISSAMA_TEST_TOKEN');
-$body = getenv('LARISSAMA_TEST_PURCHASE_PAYLOAD');
+$transactionType = getenv('LARISSAMA_TEST_TRANSACTION_TYPE');
+$body = getenv('LARISSAMA_TEST_PAYLOAD');
 
 if (
     ! is_string($barrierId)
     || preg_match('/^[a-f0-9-]{36}$/', $barrierId) !== 1
     || ! is_string($idempotencyKey)
     || ! is_string($token)
+    || ! in_array($transactionType, ['penjualan', 'pembelian'], true)
     || ! is_string($body)
 ) {
     fwrite(STDERR, "Konfigurasi worker test tidak lengkap.\n");
@@ -41,7 +43,11 @@ if (count($arrivals) < 2) {
 require __DIR__.'/../../vendor/autoload.php';
 $app = require __DIR__.'/../../bootstrap/app.php';
 $kernel = $app->make(Kernel::class);
-$uri = '/api/v1/pembelians';
+$endpoint = match ($transactionType) {
+    'penjualan' => 'penjualans',
+    'pembelian' => 'pembelians',
+};
+$uri = '/api/v1/'.$endpoint;
 $request = Request::create($uri, 'POST', [], [], [], [
     'HTTP_ACCEPT' => 'application/json',
     'HTTP_AUTHORIZATION' => 'Bearer '.$token,
