@@ -40,7 +40,7 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 | ID | Skenario dan lapisan | Kriteria lulus | Prasyarat |
 | --- | --- | --- | --- |
 | T-ENV-01 | Runtime, dependencies, harness dan DB test terisolasi | Versi memenuhi composer constraints; harness jalan; identitas DB test terbukti; tidak menyentuh DB bersama. | D01, BE-001 |
-| T-DB-01 | Migration baru pada engine target | Delapan tabel bisnis terbentuk sesuai rancangan; PK/FK/unique/index/nullability/decimal benar. Jalankan subset tabel per milestone; full delapan pada M4/M5. | D01 |
+| T-DB-01 | Migration baru pada engine target | Delapan tabel bisnis terbentuk sesuai rancangan; PK/FK/unique/index/nullability/decimal benar. `penjualan_rincis.menu_id` wajib dan tidak ada kolom `jenis_item`; harga_modal yang tersisa tidak dipakai oleh laporan. Jalankan subset tabel per milestone; full delapan pada M4/M5. | D01,D07 |
 | T-DB-02 | Upgrade users awal dan data lama | Data/ID/password hash yang sah tetap utuh; migration tidak menebak warung; hasil pemetaan sesuai sumber; tanpa edit migration bersama. | D01,D12 |
 | T-DB-03 | Constraint dan relasi tenant | Kode/nomor boleh sama pada warung berbeda bila unique composite; duplikat dalam warung ditolak; orphan ditolak; relasi tenant mengikuti strategi FK+validasi yang disepakati. | D01,D12 |
 | T-AUTH-01 | Login benar/salah, me | Kredensial sah memberi identity/scope sesuai user; salah 401 tanpa informasi sensitif; /me mengembalikan identitas aktual. | D02,D03,D12 |
@@ -57,7 +57,7 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 | T-CAT-01 | Kategori/menu create/read/update/filter | Data dan response sesuai input sah; kode unique per warung; kategori harus satu warung; aktif/filter/sort berlaku konsisten. | D05,D06 |
 | T-CAT-02 | Arsip menu yang pernah dijual | Status master berubah sesuai D06; riwayat rincian tidak terhapus/berubah; item nonaktif tidak dapat dijual menurut aturan final. | D06 |
 | T-SAL-01 | Simpan S1 melalui API | Tepat 1 header dan 2 detail; subtotal 35000.00, total 33000.00, bayar 50000.00, kembalian 17000.00; response sama dengan nilai DB. | D05 |
-| T-SAL-02 | Otoritas harga dan jenis item | Master menu menentukan snapshot harga/nama; total/user/warung dari client ditolak. Cabang luar_menu hanya berjalan jika D07 disetujui, dengan menu_id NULL. | D05,D07 |
+| T-SAL-02 | Otoritas dan scope menu pada rincian | Setiap baris wajib menunjuk menu aktif pada warung sama; nama/harga dari client tidak dipercaya dan snapshot datang dari master. Menu salah tenant, nonaktif, ID tak ada, rincian kosong, atau field `jenis_item`/item bebas ditolak; tidak ada write parsial. | D05,D06,D07 |
 | T-SAL-03 | Exception pada detail kedua | Header, detail pertama, dan efek nomor/retry rollback bersama; tidak ada orphan/penjualan setengah jadi. | D09 |
 | T-SAL-04 | Nama/harga menu berubah setelah S1 | Read detail/riwayat S1 tetap nama/harga/total awal; transaksi baru mengikuti kebijakan harga final. | D05 |
 | T-SAL-05 | Nilai negatif/nol/overflow/rounding/diskon/bayar | Semua batas D05 diuji; input invalid 422 tanpa write. Candidate half-up 0.01 × 0.50 = 0.01 pada helper jika pecahan diperbolehkan. Discount berlebih dan cash kurang ditolak. | D05 |
