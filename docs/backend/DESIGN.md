@@ -1,14 +1,14 @@
 # Rancangan Backend LarisSama
 
-Status: rancangan backend; fondasi Laravel dan Sanctum sudah dipasang, tetapi migration bisnis dan endpoint belum diimplementasikan. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K09 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx masih menunggu penetapan. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
+Status: rancangan backend; fondasi Laravel dan Sanctum sudah dipasang. Migration `warungs` dibuat dan berhasil diterapkan pada clean-install lokal MySQL 8.0.40; migration bisnis lain dan endpoint belum diimplementasikan. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K09 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx masih menunggu penetapan. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
 
 ## Kondisi awal yang diamati
 
 - composer.json meminta PHP ^8.3 dan Laravel ^13.17; itu constraint proyek, bukan bukti runtime terpasang.
-- Kolom User masih bawaan (`name`, `email`, `password`); trait Sanctum sudah ditambahkan, migration bisnis belum ada. Migration users/cache/jobs dan `personal_access_tokens` adalah infrastruktur.
+- Kolom User masih bawaan (`name`, `email`, `password`); trait Sanctum sudah ditambahkan. Migration `warungs` berhasil diterapkan pada clean-install lokal; migration bisnis lain belum ada. Migration users/cache/jobs dan `personal_access_tokens` adalah infrastruktur.
 - `bootstrap/app.php` mendaftarkan API; `routes/api.php` masih kosong dan belum menyediakan endpoint.
 - Test yang tersedia hanya contoh Unit dan Feature. Tidak ada bukti tenant, nominal, transaksi, atau kontrak bisnis sudah lulus.
-- Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia di host, tetapi image Docker opsional berhasil menyediakan PHP 8.3.35 dan Composer 2.10.3. Harness dan database test terisolasi belum diverifikasi.
+- Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia di host, tetapi image Docker opsional menyediakan PHP 8.3.35 dan Composer 2.10.3. Clean-install migrations berjalan di MySQL 8.0.40 lokal; harness test dan upgrade data lama belum diverifikasi (lihat `DB-MIGRATION-001`).
 
 ## Modul dan hasil bagi pengguna
 
