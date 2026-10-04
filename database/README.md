@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs` dan adaptasi `users` sudah diterapkan pada clean-install lokal MySQL 8.0.40. Enam tabel bisnis lain belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs` dan adaptasi `users` sudah diterapkan pada clean-install lokal MySQL 8.0.40. Kolom zona waktu per warung direncanakan sebagai migration maju dan belum diterapkan; enam tabel bisnis lain juga belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
@@ -20,6 +20,7 @@ Rancangan ini mencakup delapan tabel bisnis: `warungs`, `users`, `kategori_menus
 - Satu warung dapat memiliki banyak user; setiap user biasa terhubung ke tepat satu warung.
 - `users.warung_id` boleh `NULL` hanya untuk `superadmin`.
 - Warung memiliki status aktif dan rentang masa aktif.
+- Timestamp disimpan dalam UTC. Tampilan waktu dan filter periode mengikuti timezone lokal warung. Usulan implementasi adalah kolom IANA `warungs.timezone`, default `Asia/Jakarta`; default ini belum dikonfirmasi user.
 - Kategori menu dan menu milik satu warung.
 - Satu penjualan memiliki satu kasir dan banyak rincian.
 - Rincian penjualan menyimpan snapshot nama dan harga supaya perubahan data menu tidak mengubah riwayat transaksi.
@@ -60,6 +61,7 @@ Tipe berikut menjelaskan maksud desain. Migration harus memakai tipe Laravel yan
 | `alamat` | TEXT, nullable |
 | `telepon` | VARCHAR(30), nullable |
 | `logo` | VARCHAR(255), nullable |
+| `timezone` | VARCHAR(64), usulan identifier IANA, default `Asia/Jakarta`; belum diterapkan |
 | `tanggal_mulai` | DATE, nullable pada rancangan |
 | `tanggal_berakhir` | DATE, nullable pada rancangan |
 | `aktif` | BOOLEAN, default true |
