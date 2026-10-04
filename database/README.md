@@ -73,7 +73,7 @@ Tipe berikut menjelaskan maksud desain. Migration harus memakai tipe Laravel yan
 | `warung_id` | BIGINT foreign key, nullable hanya untuk superadmin |
 | `nama` | VARCHAR(150) |
 | `username` | VARCHAR(100), unique global sesuai rancangan |
-| `email` | VARCHAR(150), nullable; aturan uniqueness perlu diputuskan |
+| `email` | VARCHAR(150), nullable; unique global jika diisi |
 | `password` | VARCHAR(255), simpan hash melalui mekanisme Laravel |
 | `role` | VARCHAR(30); contoh: `superadmin`, `owner`, `manager`, `kasir`, `koki` |
 | `aktif` | BOOLEAN, default true |
@@ -195,8 +195,8 @@ Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar
 
 ## Keputusan yang harus ditetapkan sebelum migration fitur
 
-1. Vendor dan versi minimum database produksi serta collation yang dipakai. Keluarga MySQL/MariaDB sudah dipilih; validasi integrasi final menunggu target vendor/versi yang pasti.
-2. Apakah email nullable tetap unique global. Migration Laravel bawaan saat ini mewajibkan email dan membuatnya unique, sedangkan rancangan meminta email nullable.
+1. Inventaris migration dan data sebelum transisi `users`; target produksi telah dipilih MySQL 8.0.40. Validasi integrasi harus memakai versi itu, bukan SQLite default.
+2. Aturan normalisasi username/email dan sensitivitas huruf. Username unique global; email boleh `NULL` dan unique global saat terisi. Migration awal Laravel mewajibkan email, jadi transisi tetap perlu menjaga data lama.
 3. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
 4. Cara database dan aplikasi mencegah `kategori_menu_id`, `menu_id`, kasir, penjualan, pembelian, dan user pencatat menghubungkan data dari warung berbeda, termasuk apakah engine target akan memakai foreign key gabungan dengan `warung_id`.
 5. Batas nilai dan pembulatan uang, serta rumus subtotal/diskon header dan rincian.
@@ -207,4 +207,4 @@ Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar
 
 ## Kondisi proyek saat dokumen dibuat
 
-Backend masih memakai starter Laravel dan belum memiliki migration untuk delapan tabel bisnis. Migration framework saat ini menyediakan `users` dengan `name`, `email` non-null unique, `email_verified_at`, `password`, `remember_token`, tabel session/password reset, cache/jobs, serta migration Sanctum untuk `personal_access_tokens`. Ini belum sama dengan rancangan bisnis di atas. Periksa apakah migration pernah dijalankan atau database sudah berisi data sebelum menentukan cara transisi; jangan mengubah migration yang telah dipakai bersama.
+Backend masih memakai starter Laravel dan belum memiliki migration lengkap untuk delapan tabel bisnis; migration `warungs` baru dibuat dan belum dijalankan. Migration framework saat ini menyediakan `users` dengan `name`, `email` non-null unique, `email_verified_at`, `password`, `remember_token`, tabel session/password reset, cache/jobs, serta migration Sanctum untuk `personal_access_tokens`. Ini belum sama dengan rancangan bisnis di atas. Email bisnis telah diputuskan nullable dan unique saat diisi. Periksa apakah migration pernah dijalankan atau database sudah berisi data sebelum menentukan cara transisi; jangan mengubah migration yang telah dipakai bersama.
