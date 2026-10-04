@@ -23,7 +23,7 @@ Rancangan ini mencakup delapan tabel: `warungs`, `users`, `kategori_menus`, `men
 - Kategori menu dan menu milik satu warung.
 - Satu penjualan memiliki satu kasir dan banyak rincian.
 - Rincian penjualan menyimpan snapshot nama dan harga supaya perubahan data menu tidak mengubah riwayat transaksi.
-- Item yang tidak ada di master menu tetap disimpan di `penjualan_rincis` dengan `menu_id = NULL` dan `jenis_item = luar_menu`.
+- Setiap rincian penjualan wajib merujuk ke menu pada warung yang sama; nama dan harga jual disimpan sebagai snapshot.
 - Satu pembelian dicatat untuk satu warung dan satu user pencatat, lalu memiliki satu atau lebih rincian.
 - Rincian pembelian boleh berupa item bahan satu per satu atau satu baris ringkasan, misalnya `Belanja di pasar` dengan nominal total.
 - Pembelian dan penjualan berdiri sendiri. Pembelian tidak mengubah stok dan tidak terhubung ke menu, resep, atau rincian penjualan.
@@ -137,8 +137,7 @@ Relasi: satu warung dan satu user dapat terkait dengan banyak penjualan. User pe
 | --- | --- |
 | `id` | BIGINT primary key |
 | `penjualan_id` | BIGINT foreign key |
-| `menu_id` | BIGINT foreign key, nullable untuk item luar menu |
-| `jenis_item` | VARCHAR(20), default `menu`; nilai rancangan: `menu` atau `luar_menu` |
+| `menu_id` | BIGINT foreign key wajib |
 | `nama_menu` | VARCHAR(150), snapshot nama item |
 | `harga` | DECIMAL(15,2), snapshot harga saat transaksi |
 | `qty` | DECIMAL(10,2) |
@@ -147,7 +146,7 @@ Relasi: satu warung dan satu user dapat terkait dengan banyak penjualan. User pe
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Untuk item dari master, simpan `menu_id`, `jenis_item = menu`, dan snapshot `nama_menu` serta `harga`. Untuk item bebas, simpan `menu_id = NULL`, `jenis_item = luar_menu`, lalu isi nama dan harga dari input kasir yang sudah divalidasi backend. Jangan menghapus atau mengubah snapshot transaksi saat master menu berubah.
+Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu` dan harga jual saat transaksi. Tidak ada rincian item bebas. Perubahan master menu tidak boleh menulis ulang snapshot transaksi yang sudah terjadi.
 
 ### `pembelians`
 
@@ -204,7 +203,7 @@ Rancangan menandai kedua tanggal sebagai nullable, tetapi belum menjelaskan arti
 4. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
 5. Cara database dan aplikasi mencegah `kategori_menu_id`, `menu_id`, kasir, penjualan, pembelian, dan user pencatat menghubungkan data dari warung berbeda, termasuk apakah engine target akan memakai foreign key gabungan dengan `warung_id`.
 6. Batas nilai dan pembulatan uang, serta rumus subtotal/diskon header dan rincian.
-7. Apakah daftar nilai role, metode pembayaran, status, dan `jenis_item` dijaga sebagai konstanta/enum aplikasi atau constraint database. Rancangan saat ini menyebut kolom VARCHAR.
+7. Apakah daftar nilai role, metode pembayaran, dan status dijaga sebagai konstanta/enum aplikasi atau constraint database. Rancangan saat ini menyebut kolom VARCHAR.
 8. Apakah superadmin dapat membuat transaksi atas nama warung, atau hanya mengelola data warung. Rancangan hanya menetapkan `warung_id = NULL` untuk akun superadmin.
 9. Perilaku idempotensi untuk request pembuatan/finalisasi penjualan yang dapat dicoba ulang, agar retry tidak menggandakan transaksi.
 10. Arti zona waktu pada `penjualans.tanggal` dan `pembelians.tanggal`: apakah itu instant tersimpan dalam UTC atau waktu lokal warung, serta bagaimana zona waktu bisnis ditetapkan untuk filter laporan periode.
