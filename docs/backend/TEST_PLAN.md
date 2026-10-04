@@ -16,6 +16,12 @@ Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant IN
 
 M0 memilih validator OpenAPI 3.1 yang sesuai lalu mencatat versi/command di tracker. Jangan mengunci package hanya karena dipakai App POS. PHPUnit sudah ada di composer.json; struktur folder baru belum dibuat pada tahap rancangan.
 
+## Slice conformance response transaksi dan laporan
+
+Slice berikut membandingkan response HTTP yang sudah tersedia pada feature test dengan schema response operasi di `docs/api/openapi.yaml`: list/create/detail penjualan, list/create/detail pembelian, dan kedua laporan. Status yang dicakup hanya response yang memang dibuat test: sukses 200/201, role denial 403, tenant detail 404, validasi 422, serta konflik idempotency 409. Tambahkan GET detail sukses pembelian pada fixture create yang sudah ada agar operation `getPembelian` punya response 200 juga.
+
+Gunakan `assertOperationResponseMatchesOpenApi()`; ini pemeriksaan subset schema yang didukung helper, bukan validator OpenAPI umum. Scope tidak mencakup schema request, penambahan skenario uang/retry/authorization, atau perubahan perilaku produksi selain perbaikan mismatch response yang dibuktikan checker. Semua write tetap di fixture `RefreshDatabase` pada MySQL 8.0.40 disposable `larissama_test`; jalankan Pint, tiga feature test transaksi/laporan, lalu suite penuh. Catat hasil awal dan akhir jika checker mengungkap batas checker atau mismatch kontrak. Semua operasi tetap `DRAFT` sampai keputusan bisnis, seluruh status/request schema yang relevan, dan gate selesai.
+
 Sebelum test DB, pastikan APP_ENV=testing, koneksi dan nama database adalah target test terisolasi, serta bukan data bersama/produksi. Jangan menjalankan refresh/wipe pada koneksi yang belum diketahui. `phpunit.xml` memakai SQLite memory sebagai default, tetapi gate FK/concurrency/migration memerlukan engine target D01. `compose.test.yaml` menyediakan project tersendiri dengan MySQL 8.0.40, DB `larissama_test`, tanpa port host dan tanpa volume data persisten; jangan mengganti host/database dengan konfigurasi development. Fake clock, dua tenant, dan koneksi terpisah membuat skenario dapat diulang.
 
 ## Fixture sintetis dan expected result
