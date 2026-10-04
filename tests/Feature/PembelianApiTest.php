@@ -177,6 +177,47 @@ class PembelianApiTest extends TestCase
         $this->assertNotSame($atEnd->id, $response->json('data.0.id'));
     }
 
+    public function test_purchase_list_uses_the_shop_timezone_across_a_dst_short_day(): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'America/New_York']);
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $beforeStart = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'tanggal' => '2026-03-08 04:59:59',
+        ]);
+        $atStart = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'tanggal' => '2026-03-08 05:00:00',
+        ]);
+        $beforeEnd = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'tanggal' => '2026-03-09 03:59:59',
+        ]);
+        $atEnd = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'tanggal' => '2026-03-09 04:00:00',
+        ]);
+        $token = $manager->createToken('feature-test')->plainTextToken;
+        $query = ['page' => '1', 'per_page' => '20', 'date_from' => '2026-03-08', 'date_to' => '2026-03-08'];
+
+        $this->assertOperationQueryMatchesOpenApi($query, '/pembelians', 'get');
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/pembelians?'.http_build_query($query))
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('data.0.id', (string) $beforeEnd->id)
+            ->assertJsonPath('data.1.id', (string) $atStart->id);
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'get');
+
+        $this->assertNotSame($beforeStart->id, $response->json('data.0.id'));
+        $this->assertNotSame($atEnd->id, $response->json('data.0.id'));
+    }
+
     public function test_purchase_retry_replays_same_header_and_rejects_different_payload(): void
     {
         $warung = Warung::factory()->create();
