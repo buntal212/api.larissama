@@ -1310,6 +1310,7 @@ paths:
         TRANSACTION-LIST-QUERY-REJECTION-001 membuktikan status sale di luar enum dan tanggal malformed/range terbalik
         pada kedua list ditolak dengan HTTP 422 schema-conformant dan error field yang tepat.
         TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
+        TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas awal inklusif dan akhir eksklusif hari lokal Asia/Jakarta pada kedua list; zona lain belum dicakup.
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
@@ -1622,6 +1623,7 @@ paths:
         TRANSACTION-LIST-QUERY-REJECTION-001 membuktikan tanggal malformed/range terbalik ditolak dengan HTTP 422
         schema-conformant dan error field yang tepat.
         TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
+        TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas awal inklusif dan akhir eksklusif hari lokal Asia/Jakarta pada kedua list; zona lain belum dicakup.
         API-END-TO-END-READBACK-001 menguji manager membaca list purchase sesudah pembelian ringkas/rinci dibuat lewat API.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
