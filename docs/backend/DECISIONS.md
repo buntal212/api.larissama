@@ -67,6 +67,8 @@ Rancangan delapan tabel dan skema migration yang sudah diterapkan ada di [databa
 
 Catatan D13 2026-10-05: keenam GET list menerima `page=9223372036854775807` dengan HTTP 200, `data=[]`, dan metadata total/last_page tetap benar setelah pagination bersama menghindari offset untuk page di luar jangkauan (`ACCESS-PAGINATION-LARGE-PAGE-CONFORMANCE-001`). OpenAPI tetap tidak memberi batas maksimum page baru. D13 masih PARTIAL; semua operasi tetap DRAFT sampai seluruh conformance selesai.
 
+Catatan D13 2026-10-05: seluruh 27 operasi yang mewajibkan bearer telah dipanggil tanpa token; semuanya menghasilkan HTTP 401 `UNAUTHENTICATED`, `request_id` non-kosong, dan response yang cocok dengan OpenAPI `Error401` (`PROTECTED-OPERATIONS-401-CONFORMANCE-001`, 27 operasi/783 assertions). Operasi login publik dikecualikan dan tetap punya conformance terpisah. Status sukses serta error lain, request/query lengkap, dan gate T-API masih terbuka; D13 PARTIAL dan seluruh operasi DRAFT.
+
 Catatan D16 2026-10-05: test MySQL langsung membuktikan enam composite FK menolak relasi lintas warung, FK kategori menolak orphan, dan unique kode menu/nomor penjualan/pembelian membolehkan duplikasi antar-warung tetapi menolak duplikasi dalam warung (`TENANT-COMPOSITE-FK-CONSTRAINT-001`). `DATABASE-SCHEMA-MIGRATION-CONFORMANCE-001` juga mengaudit nama/kolom/urutan seluruh 11 FK dan aturan `RESTRICT`, bersama audit seluruh 93 kolom delapan tabel menurut nama/urutan, COLUMN_TYPE lengkap, nullability, default, EXTRA, dan datetime precision (`DATABASE-SCHEMA-COLUMNS-CONFORMANCE-001`). T-DB-01 lulus untuk metadata fresh schema yang diuji; upgrade lama T-DB-02 dan rollback migration tetap terbuka.
 
 ## Batas kontrak draft

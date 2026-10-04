@@ -18,6 +18,8 @@ info:
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; cakupan role owner pada D04 masih terbuka. Request/query operasi lain,
     D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
+    PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 27 operasi yang mewajibkan bearer:
+    HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
