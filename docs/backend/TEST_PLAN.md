@@ -317,6 +317,12 @@ Acceptance: migration melempar pesan preflight yang sudah ditetapkan; seluruh ko
 
 `LEGACY-USER-MIGRATION-SAFETY-001` lulus untuk guard migration. Pint lulus, test terarah 1/4, dan suite penuh 238/26305 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Dengan user tersimpan, pemanggilan migration menghasilkan pesan preflight yang diharapkan; daftar kolom dan row mentah lengkap, termasuk ID, email, password hash dan timestamps, tetap identik. Migration berhenti sebelum DDL. Compose dibersihkan. Cakupan ini tidak membuktikan upgrade schema legacy, pemetaan tenant, backfill, atau rollback; T-DB-02 tetap terbuka. Lihat [artefak run](test-runs/LEGACY-USER-MIGRATION-SAFETY-001.md).
 
+## Pra-implementasi overlap idempotency penjualan T-RET-03
+
+Task BE-304/T-RET-03 dan D09. `IdempotencyConcurrencyTest` sekarang membuktikan dua proses HTTP Kernel menulis satu pembelian untuk key/payload identik, tetapi belum mempunyai skenario penjualan concurrent. Perluas worker test agar secara eksplisit menerima hanya tipe transaksi `penjualan` atau `pembelian` dan payload test terpilih. Tambah case penjualan dengan kasir dan menu fixture, barrier dua proses sebelum request, serta trigger MySQL sementara yang menahan insert header penjualan.
+
+Acceptance: dua request `POST /api/v1/penjualans` benar-benar mencapai barrier (dua file arrival), keduanya mengembalikan 201 untuk ID dan nomor transaksi yang sama, tersimpan tepat satu header dan satu detail, dan waktu run di bawah tiga detik dengan delay satu detik untuk menunjukkan overlap. Worker timeout/503 atau proses serial yang melewati batas gagal. Jalankan ulang test pembelian untuk memastikan worker generik tetap benar. Hanya file test, worker test, dan dokumentasi run yang boleh berubah; tidak mengubah API/runtime/schema bisnis/dependencies. Pint, focused, suite penuh pada MySQL 8.0.40 Compose disposable dan cleanup wajib. D09 scope-key lain dan crash/restart tetap terbuka.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
