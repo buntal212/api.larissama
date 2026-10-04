@@ -9,9 +9,10 @@ info:
     allowlist, dan error code/message/errors/request_id. Slice transaksi dan auth
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
     tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
-    login/me, role context, status akun, expiry/logout, dan rate limit. Admin,
-    katalog, acceptance penuh, serta OpenAPI runtime conformance menyeluruh belum
-    diverifikasi.
+    login/me, role context, status akun, expiry/logout, rate limit, provisioning
+    warung, dan pengelolaan user tenant memiliki acceptance test parsial. GET/PATCH
+    admin warung, profil, katalog, acceptance penuh, serta OpenAPI runtime
+    conformance menyeluruh belum diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -199,7 +200,7 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: implementasi awal tersedia; GET daftar warung belum diuji dengan HTTP acceptance. ADMIN-API-ACCEPTANCE-001 mencakup POST provisioning saja. OpenAPI runtime conformance belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -269,7 +270,7 @@ paths:
       tags:
       - Admin
       summary: Buat warung dan owner awal
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning warung+owner: response 201, owner terikat ke warung, password di-hash/tidak dikirim, penolakan role tenant, dan rollback saat insert owner gagal. Field set sukses/error D13 diperiksa manual; OpenAPI runtime conformance belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -353,7 +354,7 @@ paths:
       tags:
       - Admin
       summary: Detail warung untuk superadmin
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi GET detail warung belum diuji dengan HTTP acceptance atau contract test.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -406,7 +407,7 @@ paths:
       tags:
       - Admin
       summary: Ubah identitas/status/masa aktif warung
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi PATCH warung belum diuji dengan HTTP acceptance atau contract test.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -470,7 +471,7 @@ paths:
       tags:
       - Akses
       summary: Profil warung user aktif
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi profil warung sendiri belum diuji dengan HTTP acceptance atau contract test.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -523,7 +524,7 @@ paths:
       tags:
       - Akses
       summary: Daftar users
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner melihat daftar user tenant sendiri dan metadata total. Parameter pagination/filter/sort serta OpenAPI runtime conformance belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -591,7 +592,7 @@ paths:
       tags:
       - Akses
       summary: Tambah User
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat manager dalam warung sendiri, hash password, resource tanpa password, dan penolakan input warung_id/role superadmin serta aktor non-owner. OpenAPI runtime conformance penuh dan keputusan D12 masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -654,7 +655,7 @@ paths:
       tags:
       - Akses
       summary: Detail User
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membaca user tenant sendiri dan mendapat 404 untuk ID warung lain tanpa mengubah datanya. OpenAPI runtime conformance penuh dan keputusan D12 masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -705,7 +706,7 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji update user dalam tenant sendiri, 404 untuk ID tenant lain, serta penolakan warung_id dan role superadmin. OpenAPI runtime conformance penuh dan keputusan D12 masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
