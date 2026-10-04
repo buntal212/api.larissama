@@ -56,6 +56,134 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertColumn('pembelian_rincis', 'subtotal', 'decimal', null, 15, 2, false);
     }
 
+    public function test_all_business_columns_match_the_expected_mysql_metadata(): void
+    {
+        $expectedColumns = [
+            'warungs' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'kode' => 'varchar(30)|NO|<NULL>|<NONE>|<NULL>',
+                'nama' => 'varchar(150)|NO|<NULL>|<NONE>|<NULL>',
+                'alamat' => 'text|YES|<NULL>|<NONE>|<NULL>',
+                'telepon' => 'varchar(30)|YES|<NULL>|<NONE>|<NULL>',
+                'logo' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'tanggal_mulai' => 'date|YES|<NULL>|<NONE>|<NULL>',
+                'tanggal_berakhir' => 'date|YES|<NULL>|<NONE>|<NULL>',
+                'aktif' => 'tinyint(1)|NO|1|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'timezone' => 'varchar(64)|YES|<NULL>|<NONE>|<NULL>',
+            ],
+            'users' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'nama' => 'varchar(150)|NO|<NULL>|<NONE>|<NULL>',
+                'email' => 'varchar(150)|YES|<NULL>|<NONE>|<NULL>',
+                'email_verified_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'password' => 'varchar(255)|NO|<NULL>|<NONE>|<NULL>',
+                'remember_token' => 'varchar(100)|YES|<NULL>|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'username' => 'varchar(100)|NO|<NULL>|<NONE>|<NULL>',
+                'warung_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'role' => 'varchar(30)|NO|<NULL>|<NONE>|<NULL>',
+                'aktif' => 'tinyint(1)|NO|1|<NONE>|<NULL>',
+            ],
+            'kategori_menus' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'nama' => 'varchar(100)|NO|<NULL>|<NONE>|<NULL>',
+                'urutan' => 'int unsigned|NO|0|<NONE>|<NULL>',
+                'aktif' => 'tinyint(1)|NO|1|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+            'menus' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'kategori_menu_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'kode' => 'varchar(30)|NO|<NULL>|<NONE>|<NULL>',
+                'nama' => 'varchar(150)|NO|<NULL>|<NONE>|<NULL>',
+                'harga' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'harga_modal' => 'decimal(15,2)|YES|<NULL>|<NONE>|<NULL>',
+                'gambar' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'deskripsi' => 'text|YES|<NULL>|<NONE>|<NULL>',
+                'aktif' => 'tinyint(1)|NO|1|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+            'penjualans' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'no_transaksi' => 'varchar(50)|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|NO|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|NO|<NULL>|<NONE>|<NULL>',
+                'tanggal' => 'datetime|NO|<NULL>|<NONE>|0',
+                'subtotal' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'diskon' => 'decimal(15,2)|NO|0.00|<NONE>|<NULL>',
+                'total' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'bayar' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'kembalian' => 'decimal(15,2)|NO|0.00|<NONE>|<NULL>',
+                'metode_pembayaran' => 'varchar(30)|NO|<NULL>|<NONE>|<NULL>',
+                'status' => 'varchar(20)|NO|selesai|<NONE>|<NULL>',
+                'catatan' => 'text|YES|<NULL>|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+            'penjualan_rincis' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'penjualan_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'menu_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'nama_menu' => 'varchar(150)|NO|<NULL>|<NONE>|<NULL>',
+                'harga' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'qty' => 'decimal(10,2)|NO|<NULL>|<NONE>|<NULL>',
+                'diskon' => 'decimal(15,2)|NO|0.00|<NONE>|<NULL>',
+                'subtotal' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'catatan' => 'text|YES|<NULL>|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+            'pembelians' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'no_transaksi' => 'varchar(50)|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|NO|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|NO|<NULL>|<NONE>|<NULL>',
+                'tanggal' => 'datetime|NO|<NULL>|<NONE>|0',
+                'total' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'catatan' => 'text|YES|<NULL>|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+            'pembelian_rincis' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'pembelian_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'nama_item' => 'varchar(150)|NO|<NULL>|<NONE>|<NULL>',
+                'qty' => 'decimal(10,2)|YES|<NULL>|<NONE>|<NULL>',
+                'satuan' => 'varchar(30)|YES|<NULL>|<NONE>|<NULL>',
+                'harga_satuan' => 'decimal(15,2)|YES|<NULL>|<NONE>|<NULL>',
+                'subtotal' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+        ];
+
+        foreach (self::BUSINESS_TABLES as $table) {
+            $expected = collect($expectedColumns[$table])
+                ->map(fn (string $metadata, string $column): string => $column.'|'.$metadata)
+                ->values()
+                ->all();
+
+            $this->assertSame(
+                $expected,
+                $this->businessColumnSignatures($table),
+                "All column metadata must match for {$table}.",
+            );
+        }
+    }
+
     public function test_business_indexes_have_expected_tenant_and_idempotency_columns(): void
     {
         $indexes = [
@@ -229,6 +357,28 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ->where('INDEX_NAME', $index)
             ->orderBy('SEQ_IN_INDEX')
             ->pluck('COLUMN_NAME')
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function businessColumnSignatures(string $table): array
+    {
+        return DB::table('information_schema.COLUMNS')
+            ->select('COLUMN_NAME', 'COLUMN_TYPE', 'IS_NULLABLE', 'COLUMN_DEFAULT', 'EXTRA', 'DATETIME_PRECISION')
+            ->where('TABLE_SCHEMA', DB::connection()->getDatabaseName())
+            ->where('TABLE_NAME', $table)
+            ->orderBy('ORDINAL_POSITION')
+            ->get()
+            ->map(fn ($column): string => implode('|', [
+                $column->COLUMN_NAME,
+                strtolower($column->COLUMN_TYPE),
+                $column->IS_NULLABLE,
+                $column->COLUMN_DEFAULT === null ? '<NULL>' : (string) $column->COLUMN_DEFAULT,
+                $column->EXTRA === '' ? '<NONE>' : strtolower($column->EXTRA),
+                $column->DATETIME_PRECISION === null ? '<NULL>' : (string) $column->DATETIME_PRECISION,
+            ]))
             ->all();
     }
 }
