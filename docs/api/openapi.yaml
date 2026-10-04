@@ -24,6 +24,8 @@ info:
     pemeriksaan ini hanya inventaris, bukan bukti conformance request/response atau kesiapan integrasi.
     API-PATH-ID-POSITIVE-CONFORMANCE-001 membuktikan seluruh sepuluh operasi ber-parameter {id} memakai
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
+    REPORT-RBAC-CONFORMANCE-001 menguji kedua report: manager mendapat akses, kasir dan superadmin mendapat 403;
+    owner belum diberi izin report sampai keputusan D04 ditetapkan. Semua operasi masih DRAFT.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -1884,7 +1886,8 @@ paths:
         timezone warung. Tidak menjumlahkan bayar atau join rincian; masih DRAFT sampai gate lulus.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
-        dan gate penuh masih terbuka.
+        dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
+        superadmin; owner report belum disetujui D04 dan implementasi sementara memberi akses hanya ke manager.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1951,7 +1954,8 @@ paths:
         tidak join rincian atau mengurangi dari pendapatan sebagai laba. Masih DRAFT sampai gate lulus.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
-        dan gate penuh masih terbuka.
+        dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
+        superadmin; owner report belum disetujui D04 dan implementasi sementara memberi akses hanya ke manager.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
