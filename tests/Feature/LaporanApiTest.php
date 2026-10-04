@@ -7,6 +7,7 @@ use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class LaporanApiTest extends TestCase
@@ -34,11 +35,13 @@ class LaporanApiTest extends TestCase
             ]);
         }
 
-        $this->withToken($token)->getJson('/api/v1/laporan/penjualan?date_from=2026-03-08&date_to=2026-03-08')
+        $response = $this->withToken($token)->getJson('/api/v1/laporan/penjualan?date_from=2026-03-08&date_to=2026-03-08')
             ->assertOk()
             ->assertJsonPath('data.jumlah_transaksi', 2)
             ->assertJsonPath('data.total_pendapatan', '5000.00')
             ->assertJsonPath('data.period.timezone', 'America/New_York');
+
+        $this->assertReportSuccessEnvelope($response, 'total_pendapatan');
     }
 
     public function test_purchase_report_uses_new_york_local_day_across_dst_transition(): void
@@ -61,11 +64,13 @@ class LaporanApiTest extends TestCase
             ]);
         }
 
-        $this->withToken($token)->getJson('/api/v1/laporan/pembelian?date_from=2026-03-08&date_to=2026-03-08')
+        $response = $this->withToken($token)->getJson('/api/v1/laporan/pembelian?date_from=2026-03-08&date_to=2026-03-08')
             ->assertOk()
             ->assertJsonPath('data.jumlah_transaksi', 2)
             ->assertJsonPath('data.total_pembelian', '5000.00')
             ->assertJsonPath('data.period.timezone', 'America/New_York');
+
+        $this->assertReportSuccessEnvelope($response, 'total_pembelian');
     }
 
     public function test_empty_reports_return_zero_for_both_transaction_types(): void
@@ -75,16 +80,18 @@ class LaporanApiTest extends TestCase
         $token = $manager->createToken('feature-test')->plainTextToken;
 
         foreach ([
-            ['route' => 'penjualan', 'total_field' => 'data.total_pendapatan'],
-            ['route' => 'pembelian', 'total_field' => 'data.total_pembelian'],
+            ['route' => 'penjualan', 'total_field' => 'total_pendapatan'],
+            ['route' => 'pembelian', 'total_field' => 'total_pembelian'],
         ] as $report) {
-            $this->withToken($token)->getJson(
+            $response = $this->withToken($token)->getJson(
                 "/api/v1/laporan/{$report['route']}?date_from=2026-10-04&date_to=2026-10-04"
             )
                 ->assertOk()
                 ->assertJsonPath('data.jumlah_transaksi', 0)
-                ->assertJsonPath($report['total_field'], '0.00')
+                ->assertJsonPath("data.{$report['total_field']}", '0.00')
                 ->assertJsonPath('data.period.timezone', 'Asia/Jakarta');
+
+            $this->assertReportSuccessEnvelope($response, $report['total_field']);
         }
     }
 
@@ -94,16 +101,71 @@ class LaporanApiTest extends TestCase
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
         $token = $manager->createToken('feature-test')->plainTextToken;
         $invalidPeriods = [
-            ['date_from' => '04-10-2026', 'date_to' => '2026-10-04'],
-            ['date_from' => '2026-10-04'],
-            ['date_from' => '2026-10-05', 'date_to' => '2026-10-04'],
+            [
+                'query' => ['date_from' => '04-10-2026', 'date_to' => '2026-10-04'],
+                'error_field' => 'date_from',
+            ],
+            [
+                'query' => ['date_from' => '2026-10-04'],
+                'error_field' => 'date_to',
+            ],
+            [
+                'query' => ['date_from' => '2026-10-05', 'date_to' => '2026-10-04'],
+                'error_field' => 'date_to',
+            ],
         ];
 
         foreach (['penjualan', 'pembelian'] as $report) {
             foreach ($invalidPeriods as $period) {
-                $this->withToken($token)->getJson(
-                    "/api/v1/laporan/{$report}?".http_build_query($period)
+                $response = $this->withToken($token)->getJson(
+                    "/api/v1/laporan/{$report}?".http_build_query($period['query'])
                 )->assertUnprocessable();
+
+                $this->assertD13ErrorEnvelope($response, $period['error_field']);
+            }
+        }
+    }
+
+    private function assertReportSuccessEnvelope(TestResponse $response, string $totalField): void
+    {
+        $body = $response->json();
+
+        $this->assertEqualsCanonicalizing(['data'], array_keys($body));
+        $this->assertEqualsCanonicalizing(
+            ['period', 'jumlah_transaksi', $totalField],
+            array_keys($body['data']),
+        );
+        $this->assertEqualsCanonicalizing(
+            ['date_from', 'date_to', 'timezone'],
+            array_keys($body['data']['period']),
+        );
+        $this->assertIsInt($body['data']['jumlah_transaksi']);
+        $this->assertIsString($body['data'][$totalField]);
+    }
+
+    private function assertD13ErrorEnvelope(TestResponse $response, string $expectedField): void
+    {
+        $body = $response->json();
+
+        $this->assertEqualsCanonicalizing(
+            ['code', 'message', 'errors', 'request_id'],
+            array_keys($body),
+        );
+        $this->assertSame('VALIDATION_ERROR', $body['code']);
+        $this->assertIsString($body['message']);
+        $this->assertNotEmpty($body['message']);
+        $this->assertArrayHasKey($expectedField, $body['errors']);
+        $this->assertNotEmpty($body['errors'][$expectedField]);
+        $this->assertMatchesRegularExpression(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
+            $body['request_id'],
+        );
+
+        foreach ($body['errors'] as $messages) {
+            $this->assertIsArray($messages);
+
+            foreach ($messages as $message) {
+                $this->assertIsString($message);
             }
         }
     }
