@@ -58,6 +58,7 @@ Boost replaces these bootstrap instructions with guidelines tailored to the appl
 
 ## Backend implementation principles
 
+- Follow [`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md) for cross-repo feature work, milestone order, and acceptance gates.
 - Before non-trivial backend work, identify the action, source of truth, facts being changed, invariants, authorization and tenant scope, transaction boundary, retry/concurrency behavior, API impact, and verification needed. If a business decision is missing, report it instead of inventing a rule or schema.
 - Keep HTTP controllers focused on transport and authorization boundaries. Use explicit application actions for writes and queries for reads when behavior needs orchestration; a query must not change business facts. Do not add repository or domain layers without a concrete need.
 - Put all database changes that must succeed or fail together in one transaction. Keep required business consequences visible in the application action; do not hide them in model observers or listeners.
