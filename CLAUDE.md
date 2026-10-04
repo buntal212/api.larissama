@@ -55,6 +55,7 @@ Boost replaces these bootstrap instructions with guidelines tailored to the appl
 - Enforce each user's active state at login and on every authenticated API request. For tenant users, also check the warung's active state and subscription dates at both points; define superadmin access separately because its `warung_id` is `NULL`.
 - Treat menu names and prices in `penjualan_rincis` as transaction snapshots. Recalculate and validate sale amounts on the backend; do not accept frontend totals as authoritative.
 - Follow [`database/AGENTS.md`](database/AGENTS.md) when creating or changing schema and migrations.
+- Follow [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) for backend milestone order and required API contract handoff to frontend.
 
 ## Backend implementation principles
 
