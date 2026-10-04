@@ -14,6 +14,7 @@ class LaporanController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        $this->authorizeReportAccess($actor);
         $filters = $request->validated();
 
         return response()->json(['data' => $report->penjualan($actor, $filters['date_from'], $filters['date_to'])]);
@@ -23,8 +24,14 @@ class LaporanController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        $this->authorizeReportAccess($actor);
         $filters = $request->validated();
 
         return response()->json(['data' => $report->pembelian($actor, $filters['date_from'], $filters['date_to'])]);
+    }
+
+    private function authorizeReportAccess(User $actor): void
+    {
+        abort_unless($actor->role === 'manager' && $actor->warung_id !== null, 403);
     }
 }

@@ -103,6 +103,42 @@ class LaporanApiTest extends TestCase
         }
     }
 
+    public function test_cashier_and_superadmin_cannot_read_either_report(): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $superadmin = User::factory()->superadmin()->create();
+        $transactionCounts = [
+            Penjualan::query()->count(),
+            Pembelian::query()->count(),
+        ];
+
+        $actors = [
+            ['user' => $cashier, 'name' => 'cashier'],
+            ['user' => $superadmin, 'name' => 'superadmin'],
+        ];
+        $reports = ['penjualan', 'pembelian'];
+
+        foreach ($actors as $actor) {
+            $token = $actor['user']->createToken("report-rbac-{$actor['name']}")->plainTextToken;
+
+            foreach ($reports as $report) {
+                $path = "/laporan/{$report}";
+                $response = $this->withToken($token)
+                    ->getJson("/api/v1{$path}?date_from=2026-10-04&date_to=2026-10-04")
+                    ->assertForbidden()
+                    ->assertJsonPath('code', 'FORBIDDEN');
+
+                $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
+            }
+        }
+
+        $this->assertSame($transactionCounts, [
+            Penjualan::query()->count(),
+            Pembelian::query()->count(),
+        ]);
+    }
+
     public function test_both_reports_reject_invalid_periods_with_422(): void
     {
         $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
