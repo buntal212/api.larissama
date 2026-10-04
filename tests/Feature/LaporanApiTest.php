@@ -7,6 +7,7 @@ use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -123,6 +124,20 @@ class LaporanApiTest extends TestCase
 
                 $this->assertD13ErrorEnvelope($response, $period['error_field']);
             }
+        }
+    }
+
+    public function test_report_transaction_timestamps_use_mysql_second_precision(): void
+    {
+        foreach (['penjualans', 'pembelians'] as $table) {
+            $precision = DB::table('information_schema.columns')
+                ->where('table_schema', DB::connection()->getDatabaseName())
+                ->where('table_name', $table)
+                ->where('column_name', 'tanggal')
+                ->value('datetime_precision');
+
+            $this->assertNotNull($precision, "{$table}.tanggal exists in the test database");
+            $this->assertSame(0, (int) $precision, "{$table}.tanggal uses whole-second precision");
         }
     }
 
