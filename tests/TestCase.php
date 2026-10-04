@@ -88,7 +88,7 @@ abstract class TestCase extends BaseTestCase
         }
 
         $supportedKeywords = [
-            'additionalProperties', 'anyOf', 'const', 'description', 'enum', 'format', 'items', 'maximum',
+            'additionalProperties', 'anyOf', 'const', 'default', 'description', 'enum', 'format', 'items', 'maximum',
             'maxItems', 'maxLength', 'minimum', 'minItems', 'minLength', 'pattern', 'properties',
             'required', 'title', 'type',
         ];

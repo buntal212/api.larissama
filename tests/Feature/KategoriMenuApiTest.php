@@ -39,6 +39,7 @@ class KategoriMenuApiTest extends TestCase
         $created = $this->withToken($token)
             ->postJson('/api/v1/kategori-menus', ['nama' => 'Dessert', 'urutan' => 3])
             ->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($created, '/kategori-menus', 'post');
         $category = $created->json('data');
 
         $this->assertEqualsCanonicalizing(['data'], array_keys($created->json()));
@@ -62,6 +63,7 @@ class KategoriMenuApiTest extends TestCase
         $list = $this->withToken($token)
             ->getJson('/api/v1/kategori-menus?page=1&per_page=1&sort=urutan')
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($list, '/kategori-menus', 'get');
         $this->assertSame([(string) $drinks->id], array_column($list->json('data'), 'id'));
         $this->assertSame(['page' => 1, 'per_page' => 1, 'total' => 3, 'last_page' => 3], $list->json('meta'));
 
@@ -89,11 +91,13 @@ class KategoriMenuApiTest extends TestCase
         $detail = $this->withToken($token)
             ->getJson('/api/v1/kategori-menus/'.$category['id'])
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/kategori-menus/{id}', 'get');
         $this->assertSame($category['id'], $detail->json('data.id'));
 
         $updated = $this->withToken($token)
             ->patchJson('/api/v1/kategori-menus/'.$category['id'], ['nama' => 'Camilan', 'aktif' => false])
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($updated, '/kategori-menus/{id}', 'patch');
         $this->assertSame('Camilan', $updated->json('data.nama'));
         $this->assertFalse($updated->json('data.aktif'));
         $this->assertDatabaseHas('kategori_menus', [
@@ -121,11 +125,13 @@ class KategoriMenuApiTest extends TestCase
         $detail = $this->withToken($token)
             ->getJson('/api/v1/kategori-menus/'.$foreign->id)
             ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/kategori-menus/{id}', 'get');
         $this->assertD13ErrorEnvelope($detail, 'NOT_FOUND');
 
         $update = $this->withToken($token)
             ->patchJson('/api/v1/kategori-menus/'.$foreign->id, ['nama' => 'Diubah Tenant A'])
             ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($update, '/kategori-menus/{id}', 'patch');
         $this->assertD13ErrorEnvelope($update, 'NOT_FOUND');
         $this->assertDatabaseHas('kategori_menus', [
             'id' => $foreign->id,
@@ -145,11 +151,13 @@ class KategoriMenuApiTest extends TestCase
         $list = $this->withToken($token)
             ->getJson('/api/v1/kategori-menus?aktif=false')
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($list, '/kategori-menus', 'get');
         $this->assertSame([(string) $active->id], array_column($list->json('data'), 'id'));
 
         $detail = $this->withToken($token)
             ->getJson('/api/v1/kategori-menus/'.$inactive->id)
             ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/kategori-menus/{id}', 'get');
         $this->assertD13ErrorEnvelope($detail, 'NOT_FOUND');
     }
 
@@ -164,21 +172,25 @@ class KategoriMenuApiTest extends TestCase
         $create = $this->withToken($token)
             ->postJson('/api/v1/kategori-menus', ['nama' => 'Injeksi', 'warung_id' => $warungB->id])
             ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($create, '/kategori-menus', 'post');
         $this->assertD13ErrorEnvelope($create, 'VALIDATION_ERROR', 'warung_id');
 
         $update = $this->withToken($token)
             ->patchJson('/api/v1/kategori-menus/'.$category->id, ['warung_id' => $warungB->id])
             ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($update, '/kategori-menus/{id}', 'patch');
         $this->assertD13ErrorEnvelope($update, 'VALIDATION_ERROR', 'warung_id');
 
         $badPageSize = $this->withToken($token)
             ->getJson('/api/v1/kategori-menus?per_page=101')
             ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($badPageSize, '/kategori-menus', 'get');
         $this->assertD13ErrorEnvelope($badPageSize, 'VALIDATION_ERROR', 'per_page');
 
         $badSort = $this->withToken($token)
             ->getJson('/api/v1/kategori-menus?sort=nama;drop')
             ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($badSort, '/kategori-menus', 'get');
         $this->assertD13ErrorEnvelope($badSort, 'VALIDATION_ERROR', 'sort');
 
         $this->assertSame(1, KategoriMenu::query()->where('warung_id', $warungA->id)->count());
@@ -208,12 +220,14 @@ class KategoriMenuApiTest extends TestCase
         $create = $this->withToken($token)
             ->postJson('/api/v1/kategori-menus', ['nama' => 'Tidak Diizinkan'])
             ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($create, '/kategori-menus', 'post');
         $this->assertD13ErrorEnvelope($create, 'FORBIDDEN');
 
         if ($category !== null) {
             $update = $this->withToken($token)
                 ->patchJson('/api/v1/kategori-menus/'.$category->id, ['nama' => 'Tidak Diubah'])
                 ->assertForbidden();
+            $this->assertOperationResponseMatchesOpenApi($update, '/kategori-menus/{id}', 'patch');
             $this->assertD13ErrorEnvelope($update, 'FORBIDDEN');
             $this->assertDatabaseHas('kategori_menus', ['id' => $category->id, 'nama' => $category->nama]);
         }
