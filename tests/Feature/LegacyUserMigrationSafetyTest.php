@@ -1,0 +1,45 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use App\Models\Warung;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use RuntimeException;
+use Tests\TestCase;
+
+class LegacyUserMigrationSafetyTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_adaptation_migration_aborts_without_mutating_non_empty_users_table(): void
+    {
+        $warung = Warung::factory()->create();
+        $user = User::factory()->create([
+            'warung_id' => $warung->id,
+            'nama' => 'Legacy User',
+            'username' => 'legacy-user',
+            'email' => 'legacy@example.com',
+        ]);
+        $columnsBefore = Schema::getColumnListing('users');
+        $rowBefore = (array) DB::table('users')->where('id', $user->id)->first();
+        $migration = require database_path('migrations/2026_10_04_065854_adapt_users_for_larissama_tenants.php');
+        $exception = null;
+
+        try {
+            $migration->up();
+        } catch (RuntimeException $caught) {
+            $exception = $caught;
+        }
+
+        $this->assertInstanceOf(RuntimeException::class, $exception);
+        $this->assertSame(
+            'Migration users dihentikan: isi username, role, dan warung_id untuk setiap user lama sebelum migrasi.',
+            $exception->getMessage(),
+        );
+        $this->assertSame($columnsBefore, Schema::getColumnListing('users'));
+        $this->assertSame($rowBefore, (array) DB::table('users')->where('id', $user->id)->first());
+    }
+}
