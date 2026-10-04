@@ -18,7 +18,7 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | --- | --- |
 | Base URL | Diserahkan per environment saat handoff. Prefix `/api/v1` sudah ada pada `servers.url`; jangan menggandakannya. |
 | Media | Request/response JSON; kirim `Accept: application/json`, body dengan `Content-Type: application/json`. |
-| Auth | Kandidat bearer token melalui `Authorization: Bearer ...`. Belum dipilih final terhadap cookie SPA. Jangan menganggap token berbentuk JWT. |
+| Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`. Detail expiry, revokasi, CORS, HTTPS dan rate limit masih menunggu D02. Jangan menganggap token berbentuk JWT. |
 | Tenant | User biasa tidak mengirim pemilih warung. Backend menggunakan identitas user; path admin warung hanya untuk superadmin. |
 | ID | String digit, misalnya `"1001"`; jangan konversi BIGINT menjadi Number. |
 | Nominal dan qty | String decimal dua angka pecahan, tanpa pemisah ribuan; contoh `"150000.00"`, `"0.50"`. Format lokal hanya untuk tampilan. Money transaksi mengikuti batas kolom; AggregateMoney laporan dapat melebihi kapasitas satu transaksi dan tetap string eksak. |
@@ -71,7 +71,7 @@ Path berikut relatif terhadap `/api/v1`. Hak akses di tabel adalah kandidat D04.
 
 Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi: hasilnya satu ringkasan periode.
 
-Belum ada kontrak endpoint delete, cancel penjualan, koreksi pembelian, upload gambar, atau transaksi atas nama tenant oleh superadmin. D06/D07/D11 dan schema terkait harus diselesaikan dahulu; kebutuhan frontend untuk aksi tersebut dikembalikan sebagai gap, bukan dibuat route sendiri.
+Belum ada kontrak endpoint delete, cancel penjualan, koreksi pembelian, upload gambar, atau transaksi atas nama tenant oleh superadmin. D06/D11/D14 dan schema terkait harus diselesaikan dahulu; kebutuhan frontend untuk aksi tersebut dikembalikan sebagai gap, bukan dibuat route sendiri. Penjualan hanya memilih menu terdaftar; tidak ada input item bebas.
 
 ## Alur layar dan contoh
 
@@ -83,7 +83,7 @@ Login mengembalikan identitas serta konteks warung. Ambil ulang `/auth/me` saat 
 
 Ambil kategori/menu aktif, pilih menu dan qty, lalu kirim request berdasarkan `PenjualanCreate`. Nama/harga menu bukan input yang dipercaya backend. Form dapat membuat pratinjau, tetapi transaksi sukses menampilkan total dan snapshot dari response.
 
-Contoh sintetis: Nasi `15000.00` × `2.00` dan Teh `5000.00` × `1.00`, diskon header `2000.00`, bayar cash `50000.00`. Kandidat D05 menghasilkan subtotal `35000.00`, total `33000.00`, kembalian `17000.00`. Input serta response lengkap ada pada contoh `menu` di OpenAPI. Cabang luar_menu yang ada di skema lama tetap DRAFT D07.
+Contoh sintetis: Nasi `15000.00` × `2.00` dan Teh `5000.00` × `1.00`, diskon header `2000.00`, bayar cash `50000.00`. Kandidat D05 menghasilkan subtotal `35000.00`, total `33000.00`, kembalian `17000.00`. Input serta response lengkap ada pada contoh `menu` di OpenAPI. Setiap item harus merujuk ke menu aktif di warung yang sama; backend mengambil nama dan harga jual untuk snapshot.
 
 ### Pembelian ringkas
 
