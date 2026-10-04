@@ -129,6 +129,29 @@ class PembelianApiTest extends TestCase
         $this->assertSame(0, Pembelian::query()->count());
     }
 
+    public function test_purchase_rejects_client_warung_id_injection_without_writing(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'manager']);
+        $token = $manager->createToken('feature-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'warung_id' => (string) $warungB->id,
+            'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
+        ];
+
+        $response = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
+            'Idempotency-Key' => 'purchase-tenant-injection-denied',
+        ])->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('warung_id');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+
+        $this->assertDatabaseCount('pembelians', 0);
+        $this->assertDatabaseCount('pembelian_rincis', 0);
+    }
+
     public function test_purchase_report_sums_tenant_headers_without_multiplying_detail_rows(): void
     {
         $warungA = Warung::factory()->create();

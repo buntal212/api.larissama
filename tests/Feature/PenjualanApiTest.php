@@ -120,6 +120,32 @@ class PenjualanApiTest extends TestCase
         $this->assertSame(0, Penjualan::query()->count());
     }
 
+    public function test_sale_rejects_client_warung_id_injection_without_writing(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $cashier = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warungA->id]);
+        $token = $cashier->createToken('feature-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'warung_id' => (string) $warungB->id,
+            'bayar' => '15000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, [
+            'Idempotency-Key' => 'sale-tenant-injection-denied',
+        ])->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('warung_id');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+
+        $this->assertDatabaseCount('penjualans', 0);
+        $this->assertDatabaseCount('penjualan_rincis', 0);
+    }
+
     public function test_manager_can_only_list_sales_from_their_warung(): void
     {
         $warungA = Warung::factory()->create();
