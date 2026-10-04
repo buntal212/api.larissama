@@ -152,6 +152,50 @@ class PembelianApiTest extends TestCase
             ->assertJsonPath('data.period.timezone', 'Asia/Jakarta');
     }
 
+    public function test_purchase_report_aggregate_exceeds_header_capacity_and_ignores_list_pagination(): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('feature-test')->plainTextToken;
+
+        foreach ([
+            ['tanggal' => '2026-10-04 10:00:00', 'total' => '6000000000000.00'],
+            ['tanggal' => '2026-10-04 11:00:00', 'total' => '6000000000000.00'],
+        ] as $purchase) {
+            Pembelian::factory()->create([
+                'warung_id' => $warung->id,
+                'user_id' => $manager->id,
+                'tanggal' => $purchase['tanggal'],
+                'total' => $purchase['total'],
+            ]);
+        }
+
+        $reportUrl = '/api/v1/laporan/pembelian?date_from=2026-10-04&date_to=2026-10-04';
+        $reportBefore = $this->withToken($token)->getJson($reportUrl)
+            ->assertOk()
+            ->assertJsonPath('data.jumlah_transaksi', 2)
+            ->assertJsonPath('data.total_pembelian', '12000000000000.00');
+
+        $firstPage = $this->withToken($token)->getJson('/api/v1/pembelians?page=1&per_page=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.page', 1)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.total', 2);
+        $secondPage = $this->withToken($token)->getJson('/api/v1/pembelians?page=2&per_page=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.page', 2)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.total', 2);
+        $reportAfter = $this->withToken($token)->getJson($reportUrl)->assertOk();
+
+        $this->assertNotSame($firstPage->json('data.0.id'), $secondPage->json('data.0.id'));
+        $this->assertSame($reportBefore->json(), $reportAfter->json());
+        $reportAfter->assertJsonPath('data.jumlah_transaksi', 2)
+            ->assertJsonPath('data.total_pembelian', '12000000000000.00');
+    }
+
     public function test_cashier_cannot_list_or_create_purchases(): void
     {
         $warung = Warung::factory()->create();
