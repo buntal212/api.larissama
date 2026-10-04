@@ -1417,7 +1417,9 @@ paths:
         payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
         ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi manager tanpa write.
         TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
-        schema request melarang field tambahan. Query, body/status lain, serta gate penuh masih terbuka.
+        schema request melarang field tambahan. SALE-DECIMAL-EXACT-CONFORMANCE-001 membuktikan harga 17.25 × qty 3.00
+        menghasilkan subtotal/total 51.75 dan kembalian 8.25 sebagai decimal eksak di response dan MySQL.
+        Query, body/status lain, serta gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
