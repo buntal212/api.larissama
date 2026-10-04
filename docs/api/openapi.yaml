@@ -5,7 +5,7 @@ info:
   description: >-
     Rancangan 2026-10-05; semua operasi tetap DRAFT sampai keputusan dan test
     kontrak/fungsional lulus. User menyetujui baseline wire D13: /api/v1,
-    ID/decimal string, envelope data/meta, page/per_page maksimal 100, sort
+    ID/decimal string, envelope data/meta, page integer >= 1 tanpa batas maksimum dan per_page 1–100, sort
     allowlist, dan error code/message/errors/request_id. Slice transaksi dan auth
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
     tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
@@ -14,7 +14,7 @@ info:
     test parsial. Response runtime auth, admin, katalog, dan transaksi/laporan dicocokkan
     dengan schema untuk subset operasi/status; requestBody POST/PATCH admin/katalog,
     body/header POST sale/purchase, dan query terpilih pada list akses/katalog/transaksi
-    serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`).
+    serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; cakupan role owner pada D04 masih terbuka. Request/query operasi lain,
     D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
@@ -2066,7 +2066,7 @@ components:
         type: integer
         minimum: 1
         default: 1
-      description: Halaman setelah last_page mengembalikan data kosong dan mempertahankan total hasil filter.
+      description: Halaman bilangan bulat positif tanpa batas maksimum. Halaman setelah last_page mengembalikan data kosong dan mempertahankan total hasil filter. Nilai di atas rentang integer PHP tetap diterima dan dikirim sebagai token integer JSON eksak; bukti keenam GET list ada pada UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001.
     PerPage:
       name: per_page
       in: query
@@ -3192,6 +3192,7 @@ components:
         page:
           type: integer
           minimum: 1
+          description: Nomor halaman positif tanpa batas maksimum; dikirim sebagai integer JSON eksak.
         per_page:
           type: integer
           minimum: 1
