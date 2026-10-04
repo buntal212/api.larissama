@@ -78,6 +78,12 @@ Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Pada setiap enam GE
 
 Scope hanya feature conformance/read pada query pagination. Tidak mengubah endpoint, validator, business behavior, tenant/role, schema database, filter/sort, atau dependencies. Acceptance: 12 kasus HTTP dan schema lulus, Pint serta suite penuh lulus pada MySQL 8.0.40 disposable; seluruh operasi tetap DRAFT dan conformance lain masih terbuka.
 
+## Rencana conformance allowlist sort
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Untuk keenam GET list (`/admin/warungs`, `/users`, `/kategori-menus`, `/menus`, `/penjualans`, `/pembelians`), kirim `sort=created_at` yang bukan anggota enum operasi. Pastikan OpenAPI checker menolak enum value dan request aktual merespons 422 sesuai response schema dengan error field `sort`; gunakan role yang sah bagi tiap endpoint.
+
+Scope hanya feature conformance/read terhadap allowlist yang sudah didefinisikan. Tidak mengubah endpoint, validator, sort fields, tenant/role, database, filter behavior, atau dependencies. Acceptance: enam kasus HTTP/schema lulus, Pint dan suite penuh lulus di MySQL 8.0.40 Compose disposable; operasi tetap DRAFT dan gate lain masih terbuka.
+
 ## Conformance request administrasi dan katalog
 
 `ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001` mencocokkan payload sukses yang sama-sama dipakai untuk request feature dengan requestBody OpenAPI pada delapan operasi: `POST /admin/warungs`, `PATCH /admin/warungs/{id}`, `POST/PATCH /users`, `POST/PATCH /kategori-menus`, dan `POST/PATCH /menus`. Create menu mengirim `kategori_menu_id` sebagai string sesuai D13.
