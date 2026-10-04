@@ -14,7 +14,7 @@ Baseline: 2026-10-04. Repository masih starter. Rancangan delapan tabel, desain 
 | M5 Integrasi dan rilis | 4 | 0 | Belum terpenuhi |
 | Total | 29 | 0 | 0% implementasi |
 
-Status awal: **0/28 operasi siap frontend**, **0/45 skenario aplikasi telah dijalankan**. Semua test aplikasi adalah NOT_RUN; tidak ada hasil PASS Laravel yang dicatat. Dua contoh test bawaan bukan bukti fitur bisnis.
+Status awal: **0/28 operasi siap frontend**, **0/45 skenario aplikasi telah dijalankan**. Semua test aplikasi adalah NOT_RUN; tidak ada hasil PASS Laravel yang dicatat. Dua contoh test bawaan bukan bukti fitur bisnis. User telah memilih keluarga database MySQL/MariaDB, Sanctum bearer token, dan penjualan hanya dari menu terdaftar; pilihan itu diperbarui pada register keputusan.
 
 Persentase = jumlah task DONE / jumlah task implementasi aktif × 100. Semua task berbobot sama untuk tracking pekerjaan, bukan estimasi usaha. Dokumen perencanaan tidak masuk pembilang. Bila scope berubah, catat penambahan/pengurangan task dan sumber keputusan; jangan menghapus task gagal agar persentase naik.
 
@@ -34,8 +34,8 @@ Semua bukti `—` berarti belum ada, bukan hilang dari laporan. Kolom test menga
 
 | ID | Dependensi | Deliverable dan acceptance | Test / keputusan | Status | Bukti |
 | --- | --- | --- | --- | --- | --- |
-| BE-001 | — | Runtime/dependencies/toolchain siap; identitas environment dan cara menjalankan backend tercatat. PHP/Composer saat ini tidak ditemukan; ikuti setup lokal dan baca ulang rules jika Boost mengubahnya. | T-ENV-01; D01,D02 | NOT_STARTED | — |
-| BE-002 | — | Tutup keputusan M0/M1 beserta sumbernya; inventaris schema/migration/data users; tidak menebak mapping warung. | D01,D02,D03,D04,D12,D13; D08 untuk masa aktif | NOT_STARTED | — |
+| BE-001 | — | Runtime/dependencies/toolchain siap; identitas environment dan cara menjalankan backend tercatat. PHP/Composer saat ini tidak ditemukan; setup paket sistem perlu persetujuan lingkungan, lalu Boost rules diverifikasi. | T-ENV-01; D01,D02 | BLOCKED | B01 |
+| BE-002 | — | Tutup keputusan M0/M1 beserta sumbernya; inventaris schema/migration/data users; tidak menebak mapping warung. Pilihan keluarga DB/auth dan scope menu-only telah dicatat. | D01,D02,D03,D04,D12,D13,D15; D08 untuk masa aktif | IN_PROGRESS | Pilihan user 2026-10-04; detail tersisa di DECISIONS.md |
 | BE-003 | BE-002 | Finalkan konvensi API dan auth, pilih validator OpenAPI 3.1, tutup gap draft, sediakan pedoman integrasi; kontrak tidak dianggap live hanya karena final draft. | T-API-01; D02,D13 | NOT_STARTED | — |
 | BE-004 | BE-001,BE-002,BE-003 | Harness/unit/feature/integration/contract, DB test aman, fixture dua tenant, command runner/CI terdokumentasi. | T-ENV-01; D01 | NOT_STARTED | — |
 | BE-101 | BE-002,BE-004 | Migration warungs dan adaptasi users aman; model/constraints sesuai schema; upgrade menjaga data lama. | T-DB-01/02/03; D01,D03,D12 | NOT_STARTED | — |
@@ -45,9 +45,9 @@ Semua bukti `—` berarti belum ada, bukan hilang dari laporan. Kolom test menga
 | BE-105 | BE-102,BE-103,BE-104 | Gate G1 dan operasi akses/admin siap frontend; bukti auth/role/kontrak/environment lengkap. | T-API-02/04; G1 | NOT_STARTED | — |
 | BE-201 | BE-105 | Migration kategori/menu, unique per warung, FK dan model siap. | T-DB-01/03; D01,D06 | NOT_STARTED | — |
 | BE-202 | BE-201 | API kategori list/detail/create/update/aktif mengikuti kontrak dan tenant. | T-CAT-01,T-TEN-01/02/03,T-RBAC-01; D06 | NOT_STARTED | — |
-| BE-203 | BE-201,BE-202 | API menu list/detail/create/update/aktif, harga decimal, validasi kategori satu warung. | T-CAT-01/02; D05,D06; D07 bila gambar/harga_modal diaktifkan | NOT_STARTED | — |
+| BE-203 | BE-201,BE-202 | API menu list/detail/create/update/aktif, harga jual decimal, validasi kategori satu warung. Biaya/gambar lama tidak diekspos oleh API MVP. | T-CAT-01/02; D04,D05,D06; D14 hanya jika media masuk scope | NOT_STARTED | — |
 | BE-204 | BE-202,BE-203 | Gate G2, kontrak katalog READY, contoh filter/pagination/errors diserahkan. | T-API-02/03/04; G2 | NOT_STARTED | — |
-| BE-301 | BE-204 | Schema/model header-rincian penjualan dan constraints siap; keputusan nominal/status/luar_menu serta desain nomor/retry durable ditetapkan sebelum action dibuat. | T-DB-01/03; D05,D06,D07,D08,D09 | NOT_STARTED | — |
+| BE-301 | BE-204 | Schema/model header-rincian penjualan dan constraints siap; `menu_id` wajib sesuai D07; keputusan nominal/status serta desain nomor/retry durable ditetapkan sebelum action dibuat. | T-DB-01/03; D05,D06,D08,D09 | NOT_STARTED | — |
 | BE-302 | BE-301 | Action create sale menghitung nominal, snapshot, bayar/kembali serta menjalankan nomor/retry yang disepakati; rollback semua efek ketika detail gagal. | T-SAL-01/02/03/04/05,T-RET-01/02; D05,D09 | NOT_STARTED | — |
 | BE-303 | BE-302 | List/detail penjualan memakai scope role, filter periode/status dan snapshot tersimpan. | T-TEN-01/02,T-API-02/03,T-SAL-04; D04 | NOT_STARTED | — |
 | BE-304 | BE-302 | Buktikan nomor/retry action melalui concurrency/crash; implementasikan cancellation bila masuk scope atau catat defer eksplisit sesuai keputusan. | T-RET-01/02/03/04,T-SAL-06; D06,D09 | NOT_STARTED | — |
@@ -86,8 +86,8 @@ Jika hanya sebagian operasi satu area siap, pecah baris menurut operationId. Jan
 
 | ID | Fakta | Dampak / langkah pembuka |
 | --- | --- | --- |
-| B01 | php dan composer tidak ditemukan pada shell pemeriksaan awal. | BE-001 menyiapkan runtime yang dipilih; hasil pemeriksaan ulang dicatat sebelum test aplikasi. |
-| B02 | D01–D13 belum ditetapkan final. | BE-002/BE-003 dan task fitur menutup keputusan yang dibutuhkan. Tidak memblokir penulisan rancangan. |
+| B01 | php dan composer tidak ditemukan pada shell pemeriksaan awal. | BE-001 perlu PHP 8.3+, Composer, extension SQLite/MySQL serta dependency Laravel. Instalasi paket OS perlu persetujuan escalation; sesudah itu verifikasi ulang runtime. |
+| B02 | Versi tepat MySQL/MariaDB dan detail D02/D03/D04/D05/D06/D08/D09/D10/D11/D12/D13/D14 belum ditetapkan. | Pilihan keluarga DB dan mekanisme Sanctum bearer sudah dibuat; catat detail yang wajib untuk setiap gate. Tetap lanjut pada pekerjaan yang tidak bergantung. |
 | B03 | Schema bisnis, route API, dan test aplikasi belum ada. | Jalankan backlog per dependency; jangan menganggap dokumen ini implementasi. |
 | B04 | Environment/handoff frontend belum tersedia. | Lengkapi BE-502/BE-503 sesudah endpoint dibangun dan diuji. |
 
@@ -111,5 +111,6 @@ Run aplikasi berikutnya wajib memakai format lengkap pada TEST_PLAN. Simpan outp
 | 2026-10-04 | Register keputusan, desain, kontrak dan test plan | `e570f65`, `2df2e17`, `4d6b965`, `25f3dfd`, `293b107`. Implementasi tetap 0/29. |
 | 2026-10-04 | Backlog/gate dan pedoman agent diselaraskan | `bda7024`, `c17b5be`, `b675557`, `cfe161e`, `0145fd7`, `0697609`. Aturan commit per file persisten dan AGENTS/CLAUDE sama. |
 | 2026-10-04 | Review kontrak dan pemeriksaan paket rancangan | `17c6586`, `785a597`, `4b4f7a0`; bukti DOC-002/DOC-003. Tidak ada task implementasi atau operasi live yang dinaikkan statusnya. |
+| 2026-10-04 | Pilihan DB/auth dicatat dan scope penjualan dikunci ke menu terdaftar | `4972b96`, `c7d0127`, `4875172`, `c6575f7`, `88d0886`, `724e837`, `e30c52d`. Migration bisnis masih belum dibuat. |
 
 Saat mulai task, tambahkan log berisi ID task, agent/pelaksana, tujuan, fakta/invariant, scope izin, batas transaksi/retry, file, dan acceptance. Saat selesai, tambahkan perubahan, hasil test, hash tiap file, operasi yang diserahkan, serta task berikutnya.
