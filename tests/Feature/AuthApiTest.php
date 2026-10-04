@@ -38,6 +38,7 @@ class AuthApiTest extends TestCase
             'username' => $user->username,
             'password' => $password,
         ])->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
 
         $loginBody = $login->json();
         $this->assertEqualsCanonicalizing(['data'], array_keys($loginBody));
@@ -64,6 +65,7 @@ class AuthApiTest extends TestCase
         $me = $this->withToken($loginBody['data']['access_token'])
             ->getJson('/api/v1/auth/me')
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($me, '/auth/me', 'get');
 
         $meBody = $me->json();
         $this->assertEqualsCanonicalizing(['data'], array_keys($meBody));
@@ -100,6 +102,7 @@ class AuthApiTest extends TestCase
             'username' => $user->username,
             'password' => 'password',
         ])->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
 
         $this->assertSame($role, $login->json('data.user.role'));
         $this->assertSame(
@@ -111,6 +114,7 @@ class AuthApiTest extends TestCase
         $me = $this->withToken($login->json('data.access_token'))
             ->getJson('/api/v1/auth/me')
             ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($me, '/auth/me', 'get');
 
         $this->assertSame($user->username, $me->json('data.user.username'));
         $this->assertSame($role, $me->json('data.user.role'));
@@ -134,6 +138,8 @@ class AuthApiTest extends TestCase
             'password' => 'wrong-auth-secret',
         ])->assertUnauthorized();
 
+        $this->assertOperationResponseMatchesOpenApi($wrongPassword, '/auth/login', 'post');
+        $this->assertOperationResponseMatchesOpenApi($unknownUsername, '/auth/login', 'post');
         $this->assertD13ErrorEnvelope($wrongPassword, 'UNAUTHENTICATED');
         $this->assertD13ErrorEnvelope($unknownUsername, 'UNAUTHENTICATED');
         $this->assertSame('Username atau password tidak valid.', $wrongPassword->json('message'));
@@ -147,6 +153,7 @@ class AuthApiTest extends TestCase
     {
         $response = $this->postJson('/api/v1/auth/login', [])->assertUnprocessable();
 
+        $this->assertOperationResponseMatchesOpenApi($response, '/auth/login', 'post');
         $this->assertD13ErrorEnvelope($response, 'VALIDATION_ERROR');
         $this->assertArrayHasKey('username', $response->json('errors'));
         $this->assertArrayHasKey('password', $response->json('errors'));
@@ -184,6 +191,8 @@ class AuthApiTest extends TestCase
         $me = $this->withToken($token)->getJson('/api/v1/auth/me')->assertForbidden();
         $protectedResource = $this->withToken($token)->getJson('/api/v1/warung')->assertForbidden();
 
+        $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
+        $this->assertOperationResponseMatchesOpenApi($me, '/auth/me', 'get');
         $this->assertD13ErrorEnvelope($login, 'FORBIDDEN');
         $this->assertD13ErrorEnvelope($me, 'FORBIDDEN');
         $this->assertD13ErrorEnvelope($protectedResource, 'FORBIDDEN');
@@ -230,9 +239,11 @@ class AuthApiTest extends TestCase
 
         if ($expectedAllowed) {
             $response->assertOk();
+            $this->assertOperationResponseMatchesOpenApi($response, '/auth/login', 'post');
             $this->assertSame(1, $user->tokens()->count());
         } else {
             $response->assertForbidden();
+            $this->assertOperationResponseMatchesOpenApi($response, '/auth/login', 'post');
             $this->assertD13ErrorEnvelope($response, 'FORBIDDEN');
             $this->assertSame(0, $user->tokens()->count());
         }
@@ -247,15 +258,18 @@ class AuthApiTest extends TestCase
             'username' => $user->username,
             'password' => 'password',
         ])->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
         $token = $login->json('data.access_token');
 
         $this->travelTo(CarbonImmutable::parse('2026-11-03T02:59:59Z'));
-        $this->withToken($token)->getJson('/api/v1/auth/me')->assertOk();
+        $active = $this->withToken($token)->getJson('/api/v1/auth/me')->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($active, '/auth/me', 'get');
 
         $this->travelTo(CarbonImmutable::parse('2026-11-03T03:00:00Z'));
         Auth::forgetGuards();
         $expired = $this->withToken($token)->getJson('/api/v1/auth/me')->assertUnauthorized();
 
+        $this->assertOperationResponseMatchesOpenApi($expired, '/auth/me', 'get');
         $this->assertD13ErrorEnvelope($expired, 'UNAUTHENTICATED');
     }
 
@@ -269,6 +283,7 @@ class AuthApiTest extends TestCase
             ->postJson('/api/v1/auth/logout')
             ->assertNoContent();
 
+        $this->assertOperationResponseMatchesOpenApi($logout, '/auth/logout', 'post');
         $this->assertSame('', $logout->getContent());
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $firstToken->accessToken->getKey()]);
         $this->assertDatabaseHas('personal_access_tokens', ['id' => $secondToken->accessToken->getKey()]);
@@ -278,10 +293,12 @@ class AuthApiTest extends TestCase
         $revoked = $this->withToken($firstToken->plainTextToken)
             ->getJson('/api/v1/auth/me')
             ->assertUnauthorized();
+        $this->assertOperationResponseMatchesOpenApi($revoked, '/auth/me', 'get');
         $this->assertD13ErrorEnvelope($revoked, 'UNAUTHENTICATED');
 
         Auth::forgetGuards();
-        $this->withToken($secondToken->plainTextToken)->getJson('/api/v1/auth/me')->assertOk();
+        $secondSession = $this->withToken($secondToken->plainTextToken)->getJson('/api/v1/auth/me')->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($secondSession, '/auth/me', 'get');
     }
 
     public function test_login_allows_five_attempts_then_returns_a_d13_rate_limit_error(): void
@@ -294,6 +311,7 @@ class AuthApiTest extends TestCase
                 'password' => 'invalid-rate-limit-secret',
             ])->assertUnauthorized();
 
+            $this->assertOperationResponseMatchesOpenApi($response, '/auth/login', 'post');
             $this->assertD13ErrorEnvelope($response, 'UNAUTHENTICATED');
         }
 
@@ -302,6 +320,7 @@ class AuthApiTest extends TestCase
             'password' => 'invalid-rate-limit-secret',
         ])->assertTooManyRequests();
 
+        $this->assertOperationResponseMatchesOpenApi($limited, '/auth/login', 'post');
         $this->assertD13ErrorEnvelope($limited, 'RATE_LIMITED');
         $this->assertStringNotContainsString('invalid-rate-limit-secret', $limited->getContent());
 
@@ -312,6 +331,7 @@ class AuthApiTest extends TestCase
             ])
             ->assertUnauthorized();
 
+        $this->assertOperationResponseMatchesOpenApi($otherIp, '/auth/login', 'post');
         $this->assertD13ErrorEnvelope($otherIp, 'UNAUTHENTICATED');
     }
 

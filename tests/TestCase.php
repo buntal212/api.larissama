@@ -23,7 +23,14 @@ abstract class TestCase extends BaseTestCase
             $responseDefinition = $this->resolveOpenApiReference($document, $responseDefinition['$ref']);
         }
 
-        $schema = $responseDefinition['content']['application/json']['schema'] ?? null;
+        $content = $responseDefinition['content'] ?? null;
+        if ($content === null) {
+            $this->assertSame('', $response->getContent(), "OpenAPI response for {$method} {$path} has no body schema, so its HTTP body must be empty.");
+
+            return;
+        }
+
+        $schema = $content['application/json']['schema'] ?? null;
         $this->assertIsArray($schema, "OpenAPI must define an application/json schema for HTTP {$response->getStatusCode()} on {$method} {$path}.");
         $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
         $errors = $this->collectOpenApiSchemaErrors($payload, $schema, $document, '$');
@@ -81,7 +88,7 @@ abstract class TestCase extends BaseTestCase
         }
 
         $supportedKeywords = [
-            'additionalProperties', 'anyOf', 'description', 'enum', 'format', 'items', 'maximum',
+            'additionalProperties', 'anyOf', 'const', 'description', 'enum', 'format', 'items', 'maximum',
             'maxItems', 'maxLength', 'minimum', 'minItems', 'minLength', 'pattern', 'properties',
             'required', 'title', 'type',
         ];
@@ -101,6 +108,10 @@ abstract class TestCase extends BaseTestCase
             }
 
             return ["{$path} must match one of its OpenAPI anyOf schemas: ".implode(' | ', $branchErrors)];
+        }
+
+        if (array_key_exists('const', $schema) && $value !== $schema['const']) {
+            return ["{$path} does not match OpenAPI const"];
         }
 
         if (isset($schema['type'])) {
