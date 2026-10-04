@@ -81,7 +81,17 @@ class ApiRouteOpenApiConformanceTest extends TestCase
         }
 
         $duplicates = array_filter($runtimeOperations, fn (array $routes): bool => count($routes) !== 1);
-        $this->assertSame([], $duplicates, 'Each API method/path pair must be registered exactly once.');
+        $duplicateDescriptions = [];
+        foreach ($duplicates as $key => $routes) {
+            $operationId = $contractOperations[$key] ?? 'undocumented';
+            $duplicateDescriptions[] = $operationId.' ['.$key.']: '.implode(', ', $routes);
+        }
+
+        $this->assertSame(
+            [],
+            $duplicateDescriptions,
+            'Each API method/path pair must be registered exactly once: '.implode('; ', $duplicateDescriptions),
+        );
 
         $contractKeys = array_keys($contractOperations);
         $runtimeKeys = array_keys($runtimeOperations);
