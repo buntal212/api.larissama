@@ -22,6 +22,12 @@ M0 memilih validator OpenAPI 3.1 yang sesuai lalu mencatat versi/command di trac
 
 `assertOperationResponseMatchesOpenApi()` memeriksa subset schema yang didukung helper, bukan validator OpenAPI umum. Hasil run: Pint lulus, terarah 22 test/2591 assertions, suite penuh 81 test/9069 assertions pada MySQL 8.0.40 disposable; checker tidak menemukan mismatch. Request schema, status lain, aturan uang/retry/authorization di luar skenario, dan keputusan D04/D05/D06/D08/D09/D10/D11 belum tertutup. Semua operasi tetap `DRAFT`; run ini tidak menyelesaikan T-API-02/G3/G4.
 
+## Slice request create transaksi
+
+Task berikutnya `TRANSACTION-REQUEST-CONFORMANCE-001` memvalidasi payload JSON dan parameter header yang dikirim oleh feature test untuk `POST /penjualans` dan `POST /pembelians` terhadap `requestBody` serta parameter operasi di OpenAPI. Cakupan positif: request create ringkas/rinci, replay, konflik 409 dengan body schema-valid, dan validasi tenant-crossing sale dengan body schema-valid. ID `menu_id` pada request sale dikirim sebagai string sesuai D13. Request purchase yang sengaja melanggar oneOf D10 tetap diuji sebagai 422, tetapi tidak dinyatakan cocok schema.
+
+Helper bersama harus mendukung `oneOf` dengan tepat satu cabang cocok, `$ref` lokal, tipe dan batas yang sudah dipakai schema ini, serta header wajib `Idempotency-Key`. Checker hanya memeriksa bentuk request dari fixture test, bukan membuktikan seluruh kemungkinan runtime; tidak mengubah controller/business rule, status, skema DB, retry, atau keputusan D10. Jalankan Pint, tiga feature test transaksi/laporan, dan suite penuh di MySQL disposable. Semua operasi tetap `DRAFT`; query schema, status lain, dan gate penuh tetap terbuka.
+
 Sebelum test DB, pastikan APP_ENV=testing, koneksi dan nama database adalah target test terisolasi, serta bukan data bersama/produksi. Jangan menjalankan refresh/wipe pada koneksi yang belum diketahui. `phpunit.xml` memakai SQLite memory sebagai default, tetapi gate FK/concurrency/migration memerlukan engine target D01. `compose.test.yaml` menyediakan project tersendiri dengan MySQL 8.0.40, DB `larissama_test`, tanpa port host dan tanpa volume data persisten; jangan mengganti host/database dengan konfigurasi development. Fake clock, dua tenant, dan koneksi terpisah membuat skenario dapat diulang.
 
 ## Fixture sintetis dan expected result
