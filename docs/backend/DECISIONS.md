@@ -16,7 +16,7 @@ Status awal: 2026-10-04. Dokumen ini membedakan kebutuhan yang sudah disepakati 
 | K08 | File-file yang saling terkait dikomit bersama sebagai satu kelompok perubahan. | Izin commit sudah diberikan; review diff lengkap, stage path spesifik, cek whitespace, catat hash. Push memerlukan instruksi tersendiri. |
 | K09 | User memilih MySQL 8.0.40 untuk database produksi dan Sanctum bearer token dengan masa berlaku 30 hari. | Transisi schema/data dan konfigurasi deployment yang masih terbuka dicatat sebelum gate terkait. |
 
-Rancangan delapan tabel ada di [database/README.md](../../database/README.md). Pilihan di bawah belum mengubah skema tersebut.
+Rancangan delapan tabel dan skema migration yang sudah diterapkan ada di [database/README.md](../../database/README.md). Perubahan provisional `warungs.timezone` untuk mendukung D08 sudah memiliki migration; keputusan bisnis lain tidak dianggap mengubah schema sebelum dicatat dan dimigrasikan.
 
 ## Keputusan terbuka dan usulan
 

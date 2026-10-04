@@ -14,9 +14,9 @@ Status: rancangan pelaksanaan, 2026-10-04. Tugas saat ini menghasilkan desain, k
 | [panduan API](docs/api/README.md) | Petunjuk AI frontend, alur integrasi, null/decimal/errors, dan changelog kontrak. |
 | [TEST_PLAN.md](docs/backend/TEST_PLAN.md) | 45 skenario, fixture sintetis, expected result, gate, dan format bukti test. |
 | [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 29 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
-| [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Proses kerja per slice dan aturan commit per file. |
+| [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Proses kerja per slice dan aturan commit berdasarkan kelompok perubahan terkait. |
 
-Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah catatan progres; keputusan berada di register; payload berada di OpenAPI. Jika salah satu berubah, perbarui artefak terkait secara eksplisit dan commit setiap file sebelum lanjut file berikutnya.
+Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah catatan progres; keputusan berada di register; payload berada di OpenAPI. Jika salah satu berubah, perbarui artefak terkait secara eksplisit dan commit file yang saling terkait sebagai satu kelompok.
 
 ## Scope dan hasil yang dituju
 
@@ -68,9 +68,9 @@ Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang be
 2. Catat tujuan, sumber aturan, fakta yang dibaca/diubah, invariant, auth/tenant, transaksi/retry, file, API, acceptance, dan test yang akan membuktikannya.
 3. Tetapkan keputusan yang memblokir. Perbarui schema/kontrak kandidat lebih dulu bila diperlukan; belum menandai READY.
 4. Implementasikan slice: migration aman → model/validasi/policy → action/query → controller/resource. Baca flow Laravel aktual sebelum mengubah bootstrap/route atau package.
-5. Setelah mengedit satu file, cek diff dan staged path, commit file itu, catat hash, kemudian lanjut file berikutnya. Checkpoint per file boleh belum memenuhi gate slice.
+5. Setelah mengedit kelompok file terkait, review diff lengkap, stage path yang termasuk task, jalankan `git diff --cached --check`, commit kelompok itu, lalu catat hash. Commit checkpoint boleh belum memenuhi gate slice.
 6. Jalankan test penting untuk perubahan, lalu suite yang relevan setelah komponennya lengkap. Rekam commit yang diuji dan hasil; skipped/not-run tidak menjadi pass.
-7. Cocokkan respons runtime dengan OpenAPI, contoh sukses/error dan dokumentasi. Update per file dan commit sesuai aturan yang sama.
+7. Cocokkan respons runtime dengan OpenAPI, contoh sukses/error dan dokumentasi. Commit perubahan kontrak dan dokumentasi bersama file terkait dalam kelompok perubahan yang sama.
 8. Penuhi gate, ubah status task berdasarkan bukti, lalu serahkan operasi yang siap dengan versi spec, environment, auth, dan run test.
 
 ## Kriteria selesai

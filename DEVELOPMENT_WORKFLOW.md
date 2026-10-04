@@ -108,11 +108,11 @@ Jangan menaikkan status milestone hanya karena dokumen atau migration selesai. O
 ## Disiplin perubahan dan commit
 
 - Backend dan frontend adalah repo Git terpisah. Periksa status serta diff repo yang dikerjakan; scope saat ini backend dan dokumentasinya.
-- Pengguna sudah memberikan instruksi berkelanjutan: **setelah mengedit satu file, commit file itu sebelum mengedit file berikutnya**. Tidak perlu meminta izin commit ulang untuk perubahan dalam tugas yang telah diotorisasi.
-- Sebelum commit: review diff, stage path file itu saja, pastikan staged names sesuai, dan jalankan git diff --cached --check. Jangan menyertakan perubahan pengguna/tim yang tidak terkait.
+- Pengguna meminta **file yang saling terkait dikomit bersama sebagai satu kelompok perubahan**, bukan satu file per commit. Tidak perlu meminta izin commit ulang untuk perubahan dalam tugas yang telah diotorisasi.
+- Sebelum commit: review diff lengkap, stage hanya path yang terkait tugas, pastikan staged names sesuai, dan jalankan `git diff --cached --check`. Jangan menyertakan perubahan pengguna/tim yang tidak terkait.
 - Sesudah commit: catat hash dan periksa status. Jangan melakukan push, amend, atau rewrite commit bersama tanpa instruksi yang mengotorisasinya.
-- Satu slice dapat mempunyai beberapa commit file. Catat semuanya di tracker, lalu jalankan verifikasi slice yang lengkap. Commit checkpoint tidak berarti slice telah lulus test atau siap rilis.
-- Perubahan kontrak dan test yang diperlukan tetap bagian dari slice, walaupun commit dilakukan satu file sekali. Pertahankan urutan dependency agar penerus memahami checkpoint yang belum lengkap.
+- Satu slice dapat mempunyai beberapa commit untuk kelompok perubahan yang berbeda. Catat semuanya di tracker, lalu jalankan verifikasi slice yang lengkap. Commit checkpoint tidak berarti slice telah lulus test atau siap rilis.
+- Perubahan implementasi, kontrak, dokumentasi, dan test yang diperlukan dikelompokkan menurut fitur dan dependency. Pertahankan urutan dependency agar penerus memahami checkpoint yang belum lengkap.
 
 ## Kondisi untuk berhenti dan meminta keputusan
 
