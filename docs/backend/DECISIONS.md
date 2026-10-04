@@ -14,7 +14,7 @@ Status awal: 2026-10-04. Dokumen ini membedakan kebutuhan yang sudah disepakati 
 | K06 | Pengguna memperoleh pendapatan penjualan dan total pembelian pada periode tertentu. | Keduanya agregasi terpisah; selisihnya tidak otomatis menjadi laba/HPP. |
 | K07 | Pekerjaan tim ini adalah backend beserta dokumentasi dan API contract. | AI frontend memakai kontrak yang telah dinyatakan siap, bukan menebak tabel atau route. |
 | K08 | Setelah mengedit satu file, commit file itu sebelum mengedit file berikutnya. | Izin commit sudah diberikan; stage path spesifik, review diff, cek whitespace, catat hash. Push memerlukan instruksi tersendiri. |
-| K09 | User memilih MySQL/MariaDB untuk database produksi dan Sanctum bearer token untuk autentikasi. | Versi database serta lifecycle/config token dicatat sebagai detail yang perlu difinalkan sebelum gate terkait. |
+| K09 | User memilih MySQL/MariaDB untuk database produksi dan Sanctum bearer token dengan masa berlaku 30 hari. | Versi database dan konfigurasi deployment yang masih terbuka dicatat sebelum gate terkait. |
 
 Rancangan delapan tabel ada di [database/README.md](../../database/README.md). Pilihan di bawah belum mengubah skema tersebut.
 
@@ -23,9 +23,9 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 | ID | Keputusan | Usulan untuk ditinjau / informasi yang dibutuhkan | Blokir |
 | --- | --- | --- | --- |
 | D01 | Versi database produksi dan transisi schema awal | User memilih keluarga MySQL/MariaDB. Tetapkan vendor/version tepat sesuai deployment dan inventaris migration/isi tabel users sebelum menentukan migration maju. Test integrasi harus memakai versi target; SQLite default bukan keputusan produksi. | M0 setup DB, seluruh migration |
-| D02 | Detail konfigurasi auth Sanctum bearer yang dipilih user | `laravel/sanctum` v4.3.3 sudah dipasang dan migration `personal_access_tokens` dicatat sebagai infrastruktur. Tetapkan expiry/revokasi token, CORS frontend, HTTPS dan rate limit sebelum route auth digunakan. | M1 login dan route terproteksi |
-| D03 | Arti tanggal masa aktif warung yang NULL | Pilih apakah NULL berarti tanpa batas atau belum dikonfigurasi. Batas tanggal terisi tetap inklusif. Uji masing-masing kombinasi NULL; jangan menganggap user aktif jika status belum dapat ditentukan. | M1 middleware/login |
-| D04 | Matriks role dan operasi superadmin | Kandidat di DESIGN.md: superadmin mengelola warung dan owner awal; owner mengelola user warung; manager mengelola katalog/pembelian/laporan; kasir mencatat penjualan. Superadmin tidak otomatis memperoleh hak transaksi tenant. Finalkan juga cakupan riwayat kasir dan akses owner/manager. | M1 policies, semua endpoint berizin |
+| D02 | Detail konfigurasi auth Sanctum bearer yang dipilih user | User menetapkan masa berlaku bearer token 30 hari dan login ulang setelah kedaluwarsa. Set `sanctum.expiration` ke 30 hari; logout mencabut token yang dipakai. Tetapkan CORS frontend, HTTPS, dan rate limit sebelum route auth digunakan. | M1 login dan route terproteksi |
+| D03 | Arti tanggal masa aktif warung yang NULL — DIPUTUSKAN | `tanggal_mulai = NULL` tidak membatasi tanggal mulai; `tanggal_berakhir = NULL` tidak membatasi tanggal akhir. Nilai terisi tetap berlaku inklusif. Periksa status aktif user dan warung secara terpisah. | Selesai untuk M1 middleware/login |
+| D04 | Matriks role inti dan operasi superadmin — DISETUJUI | User menyetujui pembagian inti: superadmin mengelola warung dan owner awal melalui jalur admin; owner mengelola user warungnya; manager menangani katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak pada tenant. Detail izin baca/ubah yang tidak disebut dan cakupan riwayat kasir tetap harus ditetapkan sebelum policy terkait dibuat. | M1 policies dan endpoint berizin; detail policy tersisa |
 | D05 | Nominal, qty, diskon, pembayaran, pembulatan | Kandidat: string decimal dua angka pecahan; qty > 0; uang >= 0; round half-up per rincian; diskon nominal; total = subtotal - diskon header; cash bayar >= total. Putuskan QRIS/transfer, harga nol, batas angka, mata uang tampilan, dan apakah qty penjualan boleh pecahan. | M3 calculator dan M4 nominal |
 | D06 | Arsip master dan riwayat transaksi | Kandidat master menggunakan aktif=false, FK RESTRICT, tanpa hard-delete riwayat. Pembatalan penjualan perlu izin, state transition, metadata audit/alasan, dan semantik laporan sebelum endpoint cancel dipublikasikan. | M2 arsip, M3 cancellation |
 | D07 | Scope rincian penjualan, pembelian, stok, dan dapur | **Diputuskan user 2026-10-04:** setiap rincian penjualan wajib berasal dari menu; tidak ada item bebas, pesanan dapur, hubungan pembelian/menu/resep, atau pengelolaan stok. Pembelian dan pendapatan penjualan dilaporkan terpisah. `harga_modal` bukan dasar perhitungan HPP/laba. Hapus cabang `luar_menu` dan `jenis_item` dari rancangan sebelum migration bisnis. | Selesai; tidak memblokir implementasi katalog/penjualan dalam scope yang disepakati |
@@ -48,11 +48,13 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 | ID | Status saat ini | Pilihan final | Sumber / tanggal |
 | --- | --- | --- | --- |
 | D01 | PARTIAL | Keluarga MySQL/MariaDB | Pilihan user, 2026-10-04; D15 tersisa |
-| D02 | PARTIAL | Sanctum bearer token; `laravel/sanctum` v4.3.3 | Pilihan user dan package terpasang, 2026-10-04; lifecycle/deployment tersisa |
-| D03–D06 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
+| D02 | PARTIAL | Sanctum bearer token, kedaluwarsa setelah 30 hari; logout mencabut token aktif | Pilihan user, 2026-10-04; CORS/HTTPS/rate limit tersisa |
+| D03 | DECIDED | NULL berarti tanpa batas; tanggal terisi inklusif | Jawaban user, 2026-10-04 |
+| D04 | PARTIAL | Pembagian tugas inti role dan batas superadmin disetujui | Persetujuan user, 2026-10-04; detail policy baca/ubah dan riwayat tersisa |
+| D05–D06 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
 | D07 | DECIDED | Menu terdaftar saja; pembelian terpisah; tanpa stok/dapur/resep | Klarifikasi eksplisit user, 2026-10-04 |
 | D08–D15 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
 
 ## Batas kontrak draft
 
-[OpenAPI](../api/openapi.yaml) adalah kandidat konkret untuk review dan mock terlabel. Seluruh operasi awal berstatus DRAFT dan NOT_STARTED. Bearer Sanctum sudah dipilih, sedangkan role, tanggal, nominal, error, dan detail auth mengikuti D03–D06/D08/D12/D13. Belum boleh diklaim tersedia di server. D09 sengaja belum mempunyai header atau mekanisme retry. AI frontend harus memeriksa status handoff di [tracker](../../IMPLEMENTATION_PROGRESS.md) sebelum integrasi live.
+[OpenAPI](../api/openapi.yaml) adalah kandidat konkret untuk review dan mock terlabel. Seluruh operasi awal berstatus DRAFT dan NOT_STARTED. Bearer Sanctum, expiry 30 hari, batas tanggal NULL, dan pembagian role inti telah dipilih; detail policy, nominal, error, dan deployment mengikuti D02/D04–D06/D08/D12/D13. Belum boleh diklaim tersedia di server. D09 sengaja belum mempunyai header atau mekanisme retry. AI frontend harus memeriksa status handoff di [tracker](../../IMPLEMENTATION_PROGRESS.md) sebelum integrasi live.
