@@ -16,6 +16,12 @@ Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant IN
 
 M0 memilih validator OpenAPI 3.1 yang sesuai lalu mencatat versi/command di tracker. Jangan mengunci package hanya karena dipakai App POS. PHPUnit sudah ada di composer.json; struktur folder baru belum dibuat pada tahap rancangan.
 
+## Rencana conformance request login
+
+Task BE-102, subset T-AUTH-01 dan T-API-02/D13: gunakan `assertOperationRequestMatchesOpenApi()` untuk mencocokkan body JSON login yang sama dengan map pada feature test `POST /auth/login` terhadap `LoginRequest` di OpenAPI. Cakupan mencakup request valid untuk login sukses dan kredensial salah yang menghasilkan 401. Body kosong pada skenario 422 memang invalid dan tidak diklaim schema-conformant.
+
+Tidak mengubah controller, autentikasi, token, limiter, database, role/tenant policy, atau keputusan D08/D12. Helper memeriksa fixture yang dikirim feature test, bukan mengintersep HTTP. Acceptance: body sukses dan 401 yang diuji sesuai request schema; perilaku dan response assertions yang ada tetap lulus; Pint, `AuthApiTest`, serta suite penuh lulus di MySQL 8.0.40 Compose disposable. Auth tetap DRAFT sampai status/request lain, D08/D12, dan gate penuh selesai.
+
 ## Slice conformance response transaksi dan laporan
 
 `TRANSACTION-CONFORMANCE-001` membandingkan response HTTP feature test dengan schema response di `docs/api/openapi.yaml` untuk list/create/detail penjualan, list/create/detail pembelian, dan kedua laporan. Status tercakup: sale list 200; sale create 201/403/409/422; sale detail 200/404; purchase list 200/403; purchase create 201/403/409/422; purchase detail 200/404; kedua laporan 200/422. GET detail sukses pembelian berjalan pada header/detail fixture test create ringkas.
