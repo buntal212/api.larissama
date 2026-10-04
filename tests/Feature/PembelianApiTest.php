@@ -20,11 +20,14 @@ class PembelianApiTest extends TestCase
         $warung = Warung::factory()->create();
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
         $token = $manager->createToken('feature-test')->plainTextToken;
-
-        $response = $this->withToken($token)->postJson('/api/v1/pembelians', [
+        $payload = [
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
-        ], ['Idempotency-Key' => 'purchase-summary-001']);
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-summary-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers);
 
         $response->assertCreated()
             ->assertJsonPath('data.total', '150000.00')
@@ -60,14 +63,17 @@ class PembelianApiTest extends TestCase
         $warung = Warung::factory()->create();
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
         $token = $manager->createToken('feature-test')->plainTextToken;
-
-        $response = $this->withToken($token)->postJson('/api/v1/pembelians', [
+        $payload = [
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'rincian' => [
                 ['nama_item' => 'Beras', 'qty' => '5.00', 'satuan' => 'kg', 'harga_satuan' => '15000.00', 'subtotal' => '75000.00'],
                 ['nama_item' => 'Cabai', 'qty' => '0.50', 'satuan' => 'kg', 'harga_satuan' => '40000.00', 'subtotal' => '20000.00'],
             ],
-        ], ['Idempotency-Key' => 'purchase-detail-001']);
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-detail-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers);
 
         $response->assertCreated()
             ->assertJsonPath('data.total', '95000.00')
@@ -86,22 +92,22 @@ class PembelianApiTest extends TestCase
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
         ];
+        $headers = ['Idempotency-Key' => 'purchase-retry-001'];
 
-        $first = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
-            'Idempotency-Key' => 'purchase-retry-001',
-        ])->assertCreated();
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $first = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers)->assertCreated();
         $this->assertOperationResponseMatchesOpenApi($first, '/pembelians', 'post');
         $purchaseId = $first->json('data.id');
 
-        $replay = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
-            'Idempotency-Key' => 'purchase-retry-001',
-        ])->assertCreated()->assertJsonPath('data.id', $purchaseId);
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $replay = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers)
+            ->assertCreated()->assertJsonPath('data.id', $purchaseId);
         $this->assertOperationResponseMatchesOpenApi($replay, '/pembelians', 'post');
 
         $payload['rincian'][0]['subtotal'] = '151000.00';
-        $conflict = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
-            'Idempotency-Key' => 'purchase-retry-001',
-        ])->assertStatus(409)->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $conflict = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers)
+            ->assertStatus(409)->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
         $this->assertOperationResponseMatchesOpenApi($conflict, '/pembelians', 'post');
 
         $this->assertSame(1, Pembelian::query()->where('warung_id', $warung->id)->count());

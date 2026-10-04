@@ -38,6 +38,62 @@ abstract class TestCase extends BaseTestCase
         $this->assertSame([], $errors, implode("\n", $errors));
     }
 
+    /**
+     * @param  array<string, mixed>  $body
+     * @param  array<string, mixed>  $headers
+     */
+    protected function assertOperationRequestMatchesOpenApi(array $body, array $headers, string $path, string $method): void
+    {
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path][strtolower($method)] ?? null;
+        $this->assertIsArray($operation, "OpenAPI operation {$method} {$path} must exist.");
+
+        $requestBody = $operation['requestBody'] ?? null;
+        $this->assertIsArray($requestBody, "OpenAPI must define a requestBody for {$method} {$path}.");
+        $schema = $requestBody['content']['application/json']['schema'] ?? null;
+        $this->assertIsArray($schema, "OpenAPI must define an application/json request schema for {$method} {$path}.");
+
+        $payload = json_decode(json_encode((object) $body, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
+        $errors = $this->collectOpenApiSchemaErrors($payload, $schema, $document, '$');
+        $this->assertSame([], $errors, implode("\n", $errors));
+
+        foreach ($operation['parameters'] ?? [] as $parameter) {
+            if (isset($parameter['$ref'])) {
+                $parameter = $this->resolveOpenApiReference($document, $parameter['$ref']);
+            }
+
+            if (($parameter['in'] ?? null) !== 'header') {
+                continue;
+            }
+
+            $headerKey = null;
+            foreach (array_keys($headers) as $candidate) {
+                if (strcasecmp($candidate, $parameter['name']) === 0) {
+                    $headerKey = $candidate;
+                    break;
+                }
+            }
+
+            if ($headerKey === null) {
+                $this->assertFalse(
+                    $parameter['required'] ?? false,
+                    "Required OpenAPI header {$parameter['name']} must be supplied for {$method} {$path}.",
+                );
+
+                continue;
+            }
+
+            $parameterSchema = $parameter['schema'] ?? null;
+            if ($parameterSchema === null) {
+                continue;
+            }
+
+            $headerValue = json_decode(json_encode($headers[$headerKey], JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
+            $parameterErrors = $this->collectOpenApiSchemaErrors($headerValue, $parameterSchema, $document, "header.{$parameter['name']}");
+            $this->assertSame([], $parameterErrors, implode("\n", $parameterErrors));
+        }
+    }
+
     /** @return array<string, mixed> */
     protected function openApiDocument(): array
     {
@@ -90,11 +146,24 @@ abstract class TestCase extends BaseTestCase
         $supportedKeywords = [
             'additionalProperties', 'anyOf', 'const', 'default', 'description', 'enum', 'format', 'items', 'maximum',
             'maxItems', 'maxLength', 'minimum', 'minItems', 'minLength', 'pattern', 'properties',
-            'required', 'title', 'type',
+            'oneOf', 'required', 'title', 'type',
         ];
         $unsupportedKeywords = array_diff(array_keys($schema), $supportedKeywords);
         if ($unsupportedKeywords !== []) {
             return ["{$path} uses unsupported OpenAPI schema keywords: ".implode(', ', $unsupportedKeywords)];
+        }
+
+        if (isset($schema['oneOf'])) {
+            $matchingBranches = 0;
+            foreach ($schema['oneOf'] as $branch) {
+                if ($this->collectOpenApiSchemaErrors($value, $branch, $document, $path) === []) {
+                    $matchingBranches++;
+                }
+            }
+
+            return $matchingBranches === 1
+                ? []
+                : ["{$path} must match exactly one of its OpenAPI oneOf schemas; matched {$matchingBranches}"];
         }
 
         if (isset($schema['anyOf'])) {

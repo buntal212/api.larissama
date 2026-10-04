@@ -23,14 +23,17 @@ class PenjualanApiTest extends TestCase
             'harga' => '15000.00',
         ]);
         $token = $kasir->createToken('feature-test')->plainTextToken;
-
-        $response = $this->withToken($token)->postJson('/api/v1/penjualans', [
+        $payload = [
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'diskon' => '2000.00',
             'bayar' => '50000.00',
             'metode_pembayaran' => 'cash',
-            'rincian' => [['menu_id' => $menu->id, 'qty' => '2.00']],
-        ], ['Idempotency-Key' => 'sale-snapshot-001']);
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '2.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-snapshot-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers);
 
         $response->assertCreated()
             ->assertJsonPath('data.subtotal', '30000.00')
@@ -70,24 +73,24 @@ class PenjualanApiTest extends TestCase
             'bayar' => '15000.00',
             'metode_pembayaran' => 'cash',
             'catatan' => 'Meja satu',
-            'rincian' => [['menu_id' => $menu->id, 'qty' => '1.00']],
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
         ];
+        $headers = ['Idempotency-Key' => 'sale-retry-001'];
 
-        $first = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, [
-            'Idempotency-Key' => 'sale-retry-001',
-        ])->assertCreated();
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $first = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)->assertCreated();
         $this->assertOperationResponseMatchesOpenApi($first, '/penjualans', 'post');
         $saleId = $first->json('data.id');
 
-        $replay = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, [
-            'Idempotency-Key' => 'sale-retry-001',
-        ])->assertCreated()->assertJsonPath('data.id', $saleId);
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $replay = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertCreated()->assertJsonPath('data.id', $saleId);
         $this->assertOperationResponseMatchesOpenApi($replay, '/penjualans', 'post');
 
         $payload['catatan'] = 'Meja dua';
-        $conflict = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, [
-            'Idempotency-Key' => 'sale-retry-001',
-        ])->assertStatus(409)->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $conflict = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertStatus(409)->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
         $this->assertOperationResponseMatchesOpenApi($conflict, '/penjualans', 'post');
 
         $sale = Penjualan::query()->whereKey($saleId)->firstOrFail();
@@ -103,12 +106,15 @@ class PenjualanApiTest extends TestCase
         $menuB = Menu::factory()->create(['warung_id' => $warungB->id]);
         $token = $kasir->createToken('feature-test')->plainTextToken;
 
-        $response = $this->withToken($token)->postJson('/api/v1/penjualans', [
+        $payload = [
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'bayar' => '15000.00',
             'metode_pembayaran' => 'cash',
-            'rincian' => [['menu_id' => $menuB->id, 'qty' => '1.00']],
-        ], ['Idempotency-Key' => 'sale-cross-tenant-001'])->assertUnprocessable();
+            'rincian' => [['menu_id' => (string) $menuB->id, 'qty' => '1.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-cross-tenant-001'];
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)->assertUnprocessable();
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
 
         $this->assertSame(0, Penjualan::query()->count());
@@ -143,12 +149,15 @@ class PenjualanApiTest extends TestCase
         ]);
         $token = $cashier->createToken('feature-test')->plainTextToken;
 
-        $created = $this->withToken($token)->postJson('/api/v1/penjualans', [
+        $payload = [
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'bayar' => '15000.00',
             'metode_pembayaran' => 'cash',
-            'rincian' => [['menu_id' => $menu->id, 'qty' => '1.00']],
-        ], ['Idempotency-Key' => 'sale-history-snapshot-001'])->assertCreated();
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-history-snapshot-001'];
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $created = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)->assertCreated();
         $saleId = (int) $created->json('data.id');
 
         $menu->update(['nama' => 'Nasi Goreng Baru', 'harga' => '20000.00']);
