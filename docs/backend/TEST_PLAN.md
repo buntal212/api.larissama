@@ -73,7 +73,7 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 | T-RET-03 | Dua koneksi bersamaan | Request duplikat menghasilkan satu transaksi; request berbeda punya nomor unik dalam tenant; scope tenant retry tidak saling bertabrakan. Gunakan barrier agar benar-benar overlap. | D01,D09 |
 | T-RET-04 | Crash sebelum/sesudah commit dan restart worker | State retry serta fakta transaksi tetap konsisten setelah koneksi/proses baru; tidak hanya mengandalkan cache lokal/memori worker. | D09 |
 | T-REP-01 | Pendapatan Oktober A | Count 1 dan 33000.00; tidak memasukkan batal, B, September, bayar 50000.00, atau pembelian. | D06,D08 |
-| T-REP-02 | Total pembelian Oktober A | Count 2 dan 245000.00; 3 detail tidak menggandakan total/count. Halaman list yang berbeda tidak mengubah summary. | D08,D11 |
+| T-REP-02 | Total pembelian Oktober A dan kapasitas agregasi | Count 2 dan 245000.00; 3 detail tidak menggandakan total/count. Halaman list yang berbeda tidak mengubah summary. Dataset batas terpisah: dua header masing-masing 6000000000000.00 menghasilkan AggregateMoney 12000000000000.00 secara eksak, tanpa batas kapasitas satu header. | D05,D08,D11 |
 | T-REP-03 | Batas hari dan timezone | Kandidat Asia/Jakarta 2026-10-04: UTC mulai 2026-10-03T17:00:00Z masuk; sebelum itu keluar; tepat 2026-10-04T17:00:00Z keluar. Uji presisi akhir yang didukung DB. | D08 |
 | T-REP-04 | Periode kosong dan filter invalid | Periode sah kosong memberi count=0/nominal 0.00; tanggal cacat, pasangan hilang, atau awal>akhir mendapat 422, bukan total nol palsu. | D08,D13 |
 | T-API-01 | Lint spec/ref/contoh | OpenAPI 3.1 valid di validator M0; semua ref resolve, operationId unik, contoh request/response cocok schema; tidak mengklaim DRAFT sebagai live. | D13 |
@@ -89,7 +89,7 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 
 | Gate | Test wajib dan hasil yang diterima |
 | --- | --- |
-| G0 / M0 | T-ENV-01 dan T-API-01 lulus; D01/D02/D03/D04/D12/D13 yang dibutuhkan M1 ditetapkan; harness dan DB test siap. |
+| G0 / M0 | T-ENV-01 dan T-API-01 lulus; D01/D02/D03/D04/D08/D12/D13 yang dibutuhkan M1 ditetapkan; harness dan DB test siap. |
 | G1 / M1 | T-DB-01/02/03 untuk warung/users, T-AUTH-01–05, T-TEN-01–03, T-RBAC-01, T-ADM-01–02, T-API-02/04 untuk operasi M1 semuanya lulus. |
 | G2 / M2 | T-DB-01/03 untuk katalog, T-CAT-01–02, T-TEN-01–03, T-RBAC-01, T-API-02/03/04 untuk katalog lulus. |
 | G3 / M3 | T-SAL-01–05, T-RET-01–04 untuk penjualan, T-REP-01/03/04, test DB/tenant/role/contract slice lulus. T-SAL-06 lulus atau scope defer telah diputuskan eksplisit. |
