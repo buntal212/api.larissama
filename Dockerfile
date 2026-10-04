@@ -5,6 +5,7 @@ RUN apt-get update \
         libcurl4-openssl-dev \
         libicu-dev \
         libonig-dev \
+        libsqlite3-dev \
         libxml2-dev \
         libzip-dev \
         unzip \
