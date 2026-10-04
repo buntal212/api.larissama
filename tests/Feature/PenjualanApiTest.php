@@ -62,6 +62,50 @@ class PenjualanApiTest extends TestCase
         ]);
     }
 
+    public function test_sale_calculates_exact_decimal_subtotal_total_and_change(): void
+    {
+        $warung = Warung::factory()->create();
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '17.25']);
+        $token = $cashier->createToken('feature-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'bayar' => '60.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '3.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-decimal-exact-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.subtotal', '51.75')
+            ->assertJsonPath('data.diskon', '0.00')
+            ->assertJsonPath('data.total', '51.75')
+            ->assertJsonPath('data.bayar', '60.00')
+            ->assertJsonPath('data.kembalian', '8.25')
+            ->assertJsonPath('data.rincian.0.qty', '3.00')
+            ->assertJsonPath('data.rincian.0.harga', '17.25')
+            ->assertJsonPath('data.rincian.0.subtotal', '51.75');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+
+        $saleId = (int) $response->json('data.id');
+        $this->assertDatabaseHas('penjualans', [
+            'id' => $saleId,
+            'subtotal' => '51.75',
+            'total' => '51.75',
+            'bayar' => '60.00',
+            'kembalian' => '8.25',
+        ]);
+        $this->assertDatabaseHas('penjualan_rincis', [
+            'penjualan_id' => $saleId,
+            'menu_id' => $menu->id,
+            'harga' => '17.25',
+            'qty' => '3.00',
+            'subtotal' => '51.75',
+        ]);
+    }
+
     public function test_sale_retry_replays_same_transaction_and_rejects_different_payload(): void
     {
         $warung = Warung::factory()->create();
