@@ -1313,6 +1313,7 @@ paths:
         TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas hari Asia/Jakarta, dan TRANSACTION-LIST-DST-CONFORMANCE-001 membuktikan batas hari DST 23 jam di America/New_York pada kedua list.
         SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; keputusan role lain tetap DRAFT.
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
+        CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan list kasir hanya berisi transaksi miliknya dengan meta.total tepat 1.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1530,7 +1531,7 @@ paths:
       - Penjualan
       summary: Detail Penjualan dan rincian
       description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna dan untuk
-        kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji manager membaca detail sale yang dibuat kasir. Request schema, status lain, dan gate penuh masih terbuka.'
+        kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji manager membaca detail sale yang dibuat kasir. CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan kasir mendapat 200 untuk detail miliknya dan 404 untuk detail kasir lain pada tenant yang sama. Request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
