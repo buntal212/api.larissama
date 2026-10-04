@@ -283,6 +283,12 @@ Addendum pra-implementasi: audit metadata T-DB-01 juga harus mencocokkan seluruh
 
 Run 2026-10-05: Pint lulus; focused `BusinessSchemaMigrationConformanceTest` 4/210; suite penuh `php artisan test --display-warnings` 229/25821 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Compose dibersihkan. T-DB-01 lulus untuk kriteria fresh-schema yang direncanakan dan diuji di sini. T-DB-02 (upgrade/backfill data lama), rollback migration, serta seluruh gate milestone tetap terbuka. Rincian batas audit ada di [artefak run](test-runs/DATABASE-SCHEMA-MIGRATION-CONFORMANCE-001.md).
 
+## Pra-implementasi koreksi authorization profil warung
+
+Task BE-104/T-ADM-04, D02/D04/D13. Acceptance awal menemukan manager dan kasir mendapat 403 dari `GET /api/v1/warung`. Pemeriksaan Laravel terpasang menunjukkan `Gate::authorize('viewCurrent', $user)` memilih `UserPolicy`, sedangkan ability `viewCurrent` didefinisikan pada `WarungPolicy`. Perbaikan yang direncanakan hanya mengirim `Warung::class` sebagai subject Gate agar policy yang sudah ada dipilih; kondisi role pada policy tidak berubah.
+
+Acceptance tetap memeriksa manager/kasir membaca data warung dari token, body 200 cocok `WarungResponse`, superadmin mendapat 403, dan tanpa token mendapat 401 dengan error envelope D13. Owner tidak termasuk kandidat contract sampai cakupan role diputuskan di D04. Tidak ada perubahan schema/data bisnis. Jalankan focused dan full test di MySQL 8.0.40 Compose disposable, Pint, lalu cleanup.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
