@@ -1,6 +1,6 @@
 # Tracker Implementasi Backend LarisSama
 
-Baseline: 2026-10-04. Backend masih tahap awal; schema `warungs`/`users`, fondasi Sanctum, dan implementasi awal login/me/logout tersedia. Enam tabel bisnis dan endpoint bisnis belum tersedia. Rancangan delapan tabel, desain backend, draft OpenAPI, dan rencana test tidak berarti seluruh backend telah diimplementasikan. Source roadmap: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Detail gate/test: [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
+Baseline: 2026-10-04. Backend masih tahap awal; schema `warungs`/`users`, fondasi Sanctum, dan implementasi awal akses/admin M1 tersedia. Enam tabel bisnis dan endpoint katalog, transaksi, serta laporan belum tersedia. Rancangan delapan tabel, desain backend, draft OpenAPI, dan rencana test tidak berarti seluruh backend telah diimplementasikan. Source roadmap: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Detail gate/test: [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
 
 ## Ringkasan pelaksanaan
 
@@ -40,8 +40,8 @@ Semua bukti `—` berarti belum ada, bukan hilang dari laporan. Kolom test menga
 | BE-004 | BE-001,BE-002,BE-003 | Harness/unit/feature/integration/contract, DB test aman, fixture dua tenant, command runner/CI terdokumentasi. | T-ENV-01; D01 | NOT_STARTED | — |
 | BE-101 | BE-002,BE-004 | Migration warungs dan adaptasi users aman; model/constraints sesuai schema; upgrade menjaga data lama. Migration timezone juga diterapkan pada DB lokal MySQL 8.0.40 dan kolom nullable terverifikasi. Upgrade database lama berisi user belum dapat dijalankan karena pemetaan identitas/tenant belum tersedia; preflight migration menolak keadaan itu sebelum DDL. | T-DB-01/02/03; D01,D03,D12 | IN_PROGRESS | `ce2d529`, `9fadf12`, `0f457df`, `4528150`, `8654281`, `edba741`, `b1653cf`, `bdb4b73`, `2cafc46`; DB-MIGRATION-001/002/003, DB-LINT-003/004 |
 | BE-102 | BE-101,BE-003 | Login/me/logout, batas login 5 percobaan/menit per username+IP, pemeriksaan user/warung aktif dan token 30 hari. Implementasi awal tersedia; wajib menuntaskan T-AUTH dan conformance sebelum DRAFT diubah. Aplikasi dan koneksi MySQL memakai UTC, sedangkan tanggal masa aktif dihitung menurut timezone warung. Kolom timezone nullable tanpa default dan larangan login saat kosong adalah kebijakan sementara, menunggu konfirmasi perlakuan zona kosong. | T-AUTH-01/02/03/04/05; D02,D03,D08,D12,D13 | IN_PROGRESS | `0938f13`, `f8baae9`, `2cafc46`; AUTH-RATE-LIMIT-001/AUTH-API-001; T-AUTH-01–05 belum dijalankan |
-| BE-103 | BE-101,BE-102 | Tenant context, route lookup ter-scope, policy semua role; superadmin jalur terpisah. | T-TEN-01/02/03,T-RBAC-01; D04 | NOT_STARTED | — |
-| BE-104 | BE-103 | Administrasi warung, owner awal, user tenant, profil warung; provisioning atomik dan tanpa eskalasi. | T-ADM-01/02,T-TEN-01/02/03; D04,D12 | NOT_STARTED | — |
+| BE-103 | BE-101,BE-102 | Tenant context, route lookup ter-scope, policy semua role; superadmin jalur terpisah. Fondasi policy admin dan lookup tenant sudah diimplementasikan; matriks detail role masih harus ditutup dan diuji. | T-TEN-01/02/03,T-RBAC-01; D04 | IN_PROGRESS | Implementasi slice admin; test tenant/role belum dijalankan |
+| BE-104 | BE-103 | Administrasi warung, owner awal, user tenant, profil warung; provisioning atomik dan tanpa eskalasi. Implementasi awal tersedia; test atomisitas/tenant/validasi belum dijalankan. | T-ADM-01/02,T-TEN-01/02/03; D04,D12 | IN_PROGRESS | Implementasi slice admin; contract dan feature test belum dijalankan |
 | BE-105 | BE-102,BE-103,BE-104 | Gate G1 dan operasi akses/admin siap frontend; bukti auth/role/kontrak/environment lengkap. | T-API-02/04; G1 | NOT_STARTED | — |
 | BE-201 | BE-105 | Migration kategori/menu, unique per warung, FK dan model siap. | T-DB-01/03; D01,D06 | NOT_STARTED | — |
 | BE-202 | BE-201 | API kategori list/detail/create/update/aktif mengikuti kontrak dan tenant. | T-CAT-01,T-TEN-01/02/03,T-RBAC-01; D06 | NOT_STARTED | — |
@@ -73,8 +73,8 @@ Roadmap default M0 → M1 → M2 → M3 → M4 → M5. M4 hanya bergantung fonda
 | Area | Jumlah operasi | Versi | Status kontrak | Implementasi | Commit diuji / run / environment |
 | --- | --- | --- | --- | --- | --- |
 | Auth | 3 | 0.1.0-draft | DRAFT | IN_PROGRESS | `2cafc46`, AUTH-API-001; route/PHP/config diperiksa di Docker PHP 8.3.35 + MySQL 8.0.40 lokal. T-AUTH dan contract test belum dijalankan; base URL belum tersedia |
-| Admin warung | 4 | 0.1.0-draft | DRAFT | NOT_STARTED | — |
-| Profil warung dan user | 5 | 0.1.0-draft | DRAFT | NOT_STARTED | — |
+| Admin warung | 4 | 0.1.0-draft | DRAFT | IN_PROGRESS | Implementasi awal; verifikasi route/static dan kontrak menyusul. DRAFT, belum siap frontend |
+| Profil warung dan user | 5 | 0.1.0-draft | DRAFT | IN_PROGRESS | Implementasi awal; verifikasi route/static dan kontrak menyusul. DRAFT, belum siap frontend |
 | Katalog | 8 | 0.1.0-draft | DRAFT | NOT_STARTED | — |
 | Penjualan | 3 | 0.1.0-draft | DRAFT | NOT_STARTED | — |
 | Pembelian | 3 | 0.1.0-draft | DRAFT | NOT_STARTED | — |

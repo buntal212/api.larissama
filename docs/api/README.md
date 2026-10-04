@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Login/me/logout dan middleware akses sudah diimplementasikan, tetapi masih `DRAFT` karena test aplikasi dan contract test belum dijalankan; endpoint bisnis belum tersedia. File ini dapat dipakai untuk review dan mock yang diberi label, bukan bukti integrasi live sudah dapat berjalan.
+Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Login/me/logout, administrasi warung + owner awal, profil warung, dan pengelolaan user tenant sudah memiliki implementasi awal, tetapi masih `DRAFT` karena test aplikasi dan contract test belum dijalankan. Katalog, transaksi, serta laporan belum tersedia. File ini dapat dipakai untuk review dan mock yang diberi label, bukan bukti integrasi live sudah dapat berjalan.
 
 ## Urutan baca untuk AI frontend
 

@@ -6,7 +6,7 @@ Status: implementasi backend sedang berjalan. Migration `warungs` dan adaptasi `
 
 - composer.json meminta PHP ^8.3 dan Laravel ^13.17; itu constraint proyek, bukan bukti runtime terpasang.
 - Schema `users` sudah memakai `nama`, `username`, `email` nullable unik, `warung_id`, `role`, dan `aktif`; model memiliki relasi ke `Warung`. Migration `warungs` juga berhasil diterapkan pada clean-install lokal. Enam tabel bisnis lain belum ada. Migration cache/jobs dan `personal_access_tokens` adalah infrastruktur.
-- `bootstrap/app.php` mendaftarkan API. `routes/api.php` sekarang menyediakan login, profil, dan logout; endpoint bisnis masih belum tersedia.
+- `bootstrap/app.php` mendaftarkan API. `routes/api.php` menyediakan login, profil, logout, administrasi warung + owner awal, profil warung sendiri, dan pengelolaan user warung. Katalog, transaksi, serta laporan belum tersedia.
 - Test yang tersedia hanya contoh Unit dan Feature. Tidak ada bukti tenant, nominal, transaksi, atau kontrak bisnis sudah lulus.
 - Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia di host, tetapi image Docker opsional menyediakan PHP 8.3.35 dan Composer 2.10.3. Clean-install migrations berjalan di MySQL 8.0.40 lokal; harness test dan upgrade data lama belum diverifikasi (lihat `DB-MIGRATION-001`).
 
@@ -39,7 +39,7 @@ Urutan aktual middleware/binding harus memastikan resource tenant lain tidak dap
 
 ```text
 routes/api.php
-app/Http/Controllers/Api/V1/{Auth,Admin,KategoriMenu,Menu,Penjualan,Pembelian,Laporan}Controller.php
+app/Http/Controllers/Api/V1/{Auth,AdminWarung,CurrentWarung,User,KategoriMenu,Menu,Penjualan,Pembelian,Laporan}Controller.php
 app/Http/Requests/                      validasi struktur dan field
 app/Http/Resources/                     serialisasi sesuai kontrak
 app/Http/Middleware/                    auth, status aktif, tenant context

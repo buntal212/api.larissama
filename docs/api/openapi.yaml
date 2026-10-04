@@ -184,9 +184,9 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -254,9 +254,9 @@ paths:
       tags:
       - Admin
       summary: Buat warung dan owner awal
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -265,6 +265,7 @@ paths:
       - D13
       - D01
       - D12
+      - D08
       responses:
         '201':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -337,9 +338,9 @@ paths:
       tags:
       - Admin
       summary: Detail warung untuk superadmin
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -390,9 +391,9 @@ paths:
       tags:
       - Admin
       summary: Ubah identitas/status/masa aktif warung
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -454,9 +455,9 @@ paths:
       tags:
       - Akses
       summary: Profil warung user aktif
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - owner
       - manager
@@ -508,9 +509,9 @@ paths:
       tags:
       - Akses
       summary: Daftar users
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - owner
       x-blocked-by:
@@ -576,9 +577,9 @@ paths:
       tags:
       - Akses
       summary: Tambah User
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - owner
       x-blocked-by:
@@ -639,9 +640,9 @@ paths:
       tags:
       - Akses
       summary: Detail User
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - owner
       x-blocked-by:
@@ -690,9 +691,9 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi awal tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - owner
       x-blocked-by:
