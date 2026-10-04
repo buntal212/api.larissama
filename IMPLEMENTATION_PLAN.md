@@ -26,7 +26,7 @@ Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah cata
 - Pembelian bahan: header-rincian, mendukung input lengkap maupun satu baris seperti “Belanja di pasar” dan nominal. Total pembelian periode berdiri sendiri dari penjualan.
 - API yang terdokumentasi untuk akses, administrasi, katalog, penjualan, pembelian dan laporan; test membuktikan izin, angka, integritas, serta kontrak.
 
-Aplikasi tidak memerlukan workflow dapur, resep, stok, atau perhitungan HPP/laba. Field lama `harga_modal`, role `koki`, dan cabang `luar_menu` memerlukan keputusan D07 jika hendak digunakan atau diubah; keberadaannya tidak mengotorisasi fitur tambahan.
+Aplikasi tidak memerlukan workflow dapur, resep, stok, item penjualan bebas, atau perhitungan HPP/laba. D07 telah diputuskan: semua baris penjualan memilih menu terdaftar, sedangkan pembelian tidak ditautkan ke menu. Field schema lama seperti `harga_modal` dan role `koki` tidak membuat fitur biaya/dapur; bila dipakai perlu keputusan dan kontrak tersendiri.
 
 ## Milestone dan gate
 
@@ -56,11 +56,11 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 ## Keputusan yang ditutup sebelum coding terkait
 
 1. M0/M1: D01 engine/transisi data, D02 auth, D03 tanggal nullable, D04 role/superadmin, D12 identitas/email, D13 HTTP; bagian D08 yang diperlukan untuk tanggal masa aktif.
-2. M2: D05 untuk representasi harga, D06 arsip/hapus; D07 bila field/fitur legacy atau gambar digunakan.
-3. M3: D05 rumus dan pembayaran, D06 cancellation/history, D07 luar_menu, D08 periode, D09 penomoran/retry durable.
+2. M2: D05 untuk representasi harga, D06 arsip/hapus; D14 hanya bila media gambar menu masuk scope.
+3. M3: D05 rumus dan pembayaran, D06 cancellation/history, D08 periode, D09 penomoran/retry durable. Setiap item wajib dari menu sesuai D07 yang telah diputuskan.
 4. M4: D05 nominal, D08 periode, D09 nomor/retry, D10 rincian sebagian, D11 koreksi pembelian.
 
-Rekomendasi sudah tersedia di register agar pembahasan terarah. Agent tidak boleh mengubah PROPOSED menjadi DECIDED tanpa sumber keputusan. Pekerjaan yang tidak bergantung keputusan itu dapat diteruskan; jangan menghentikan seluruh perencanaan hanya karena engine atau auth belum dipilih.
+Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Agent tidak boleh menandai D01 atau D02 final sebelum versi engine dan detail konfigurasi auth dicatat. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.
 
 ## Urutan kerja satu task
 
