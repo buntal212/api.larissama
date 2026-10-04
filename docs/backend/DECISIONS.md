@@ -23,7 +23,7 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 | ID | Keputusan | Usulan untuk ditinjau / informasi yang dibutuhkan | Blokir |
 | --- | --- | --- | --- |
 | D01 | Versi database produksi dan transisi schema awal | User memilih keluarga MySQL/MariaDB. Tetapkan vendor/version tepat sesuai deployment dan inventaris migration/isi tabel users sebelum menentukan migration maju. Test integrasi harus memakai versi target; SQLite default bukan keputusan produksi. | M0 setup DB, seluruh migration |
-| D02 | Detail konfigurasi auth Sanctum bearer yang dipilih user | Mekanisme Sanctum bearer diputuskan user. Tetapkan versi package yang kompatibel dengan Laravel, expiry/revokasi token, CORS frontend, HTTPS dan rate limit. Tabel personal access token adalah infrastruktur auth dan harus dicatat pada schema/migration. | M0 kontrak auth, M1 login |
+| D02 | Detail konfigurasi auth Sanctum bearer yang dipilih user | `laravel/sanctum` v4.3.3 sudah dipasang dan migration `personal_access_tokens` dicatat sebagai infrastruktur. Tetapkan expiry/revokasi token, CORS frontend, HTTPS dan rate limit sebelum route auth digunakan. | M1 login dan route terproteksi |
 | D03 | Arti tanggal masa aktif warung yang NULL | Pilih apakah NULL berarti tanpa batas atau belum dikonfigurasi. Batas tanggal terisi tetap inklusif. Uji masing-masing kombinasi NULL; jangan menganggap user aktif jika status belum dapat ditentukan. | M1 middleware/login |
 | D04 | Matriks role dan operasi superadmin | Kandidat di DESIGN.md: superadmin mengelola warung dan owner awal; owner mengelola user warung; manager mengelola katalog/pembelian/laporan; kasir mencatat penjualan. Superadmin tidak otomatis memperoleh hak transaksi tenant. Finalkan juga cakupan riwayat kasir dan akses owner/manager. | M1 policies, semua endpoint berizin |
 | D05 | Nominal, qty, diskon, pembayaran, pembulatan | Kandidat: string decimal dua angka pecahan; qty > 0; uang >= 0; round half-up per rincian; diskon nominal; total = subtotal - diskon header; cash bayar >= total. Putuskan QRIS/transfer, harga nol, batas angka, mata uang tampilan, dan apakah qty penjualan boleh pecahan. | M3 calculator dan M4 nominal |
@@ -48,7 +48,7 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 | ID | Status saat ini | Pilihan final | Sumber / tanggal |
 | --- | --- | --- | --- |
 | D01 | PARTIAL | Keluarga MySQL/MariaDB | Pilihan user, 2026-10-04; D15 tersisa |
-| D02 | PARTIAL | Sanctum bearer token | Pilihan user, 2026-10-04; detail package/lifecycle/deployment tersisa |
+| D02 | PARTIAL | Sanctum bearer token; `laravel/sanctum` v4.3.3 | Pilihan user dan package terpasang, 2026-10-04; lifecycle/deployment tersisa |
 | D03–D06 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
 | D07 | DECIDED | Menu terdaftar saja; pembelian terpisah; tanpa stok/dapur/resep | Klarifikasi eksplisit user, 2026-10-04 |
 | D08–D15 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
