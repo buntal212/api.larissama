@@ -43,6 +43,7 @@ class LaporanApiTest extends TestCase
             ->assertJsonPath('data.period.timezone', 'America/New_York');
 
         $this->assertReportSuccessEnvelope($response, 'total_pendapatan');
+        $this->assertOperationResponseMatchesOpenApi($response, '/laporan/penjualan', 'get');
     }
 
     public function test_purchase_report_uses_new_york_local_day_across_dst_transition(): void
@@ -72,6 +73,7 @@ class LaporanApiTest extends TestCase
             ->assertJsonPath('data.period.timezone', 'America/New_York');
 
         $this->assertReportSuccessEnvelope($response, 'total_pembelian');
+        $this->assertOperationResponseMatchesOpenApi($response, '/laporan/pembelian', 'get');
     }
 
     public function test_empty_reports_return_zero_for_both_transaction_types(): void
@@ -93,6 +95,7 @@ class LaporanApiTest extends TestCase
                 ->assertJsonPath('data.period.timezone', 'Asia/Jakarta');
 
             $this->assertReportSuccessEnvelope($response, $report['total_field']);
+            $this->assertOperationResponseMatchesOpenApi($response, "/laporan/{$report['route']}", 'get');
         }
     }
 
@@ -123,6 +126,7 @@ class LaporanApiTest extends TestCase
                 )->assertUnprocessable();
 
                 $this->assertD13ErrorEnvelope($response, $period['error_field']);
+                $this->assertOperationResponseMatchesOpenApi($response, "/laporan/{$report}", 'get');
             }
         }
     }

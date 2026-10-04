@@ -32,8 +32,14 @@ class PembelianApiTest extends TestCase
             ->assertJsonPath('data.rincian.0.qty', null)
             ->assertJsonPath('data.rincian.0.satuan', null)
             ->assertJsonPath('data.rincian.0.harga_satuan', null);
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
 
         $purchaseId = (int) $response->json('data.id');
+        $detail = $this->withToken($token)->getJson("/api/v1/pembelians/{$purchaseId}")
+            ->assertOk()
+            ->assertJsonPath('data.rincian.0.nama_item', 'Belanja di pasar');
+        $this->assertOperationResponseMatchesOpenApi($detail, '/pembelians/{id}', 'get');
+
         $this->assertDatabaseHas('pembelians', [
             'id' => $purchaseId,
             'warung_id' => $warung->id,
@@ -68,6 +74,7 @@ class PembelianApiTest extends TestCase
             ->assertJsonCount(2, 'data.rincian')
             ->assertJsonPath('data.rincian.0.subtotal', '75000.00')
             ->assertJsonPath('data.rincian.1.subtotal', '20000.00');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
     }
 
     public function test_purchase_retry_replays_same_header_and_rejects_different_payload(): void
@@ -83,16 +90,19 @@ class PembelianApiTest extends TestCase
         $first = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
             'Idempotency-Key' => 'purchase-retry-001',
         ])->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($first, '/pembelians', 'post');
         $purchaseId = $first->json('data.id');
 
-        $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
+        $replay = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
             'Idempotency-Key' => 'purchase-retry-001',
         ])->assertCreated()->assertJsonPath('data.id', $purchaseId);
+        $this->assertOperationResponseMatchesOpenApi($replay, '/pembelians', 'post');
 
         $payload['rincian'][0]['subtotal'] = '151000.00';
-        $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
+        $conflict = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
             'Idempotency-Key' => 'purchase-retry-001',
         ])->assertStatus(409)->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+        $this->assertOperationResponseMatchesOpenApi($conflict, '/pembelians', 'post');
 
         $this->assertSame(1, Pembelian::query()->where('warung_id', $warung->id)->count());
         $this->assertSame('150000.00', Pembelian::query()->whereKey($purchaseId)->value('total'));
@@ -104,10 +114,11 @@ class PembelianApiTest extends TestCase
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
         $token = $manager->createToken('feature-test')->plainTextToken;
 
-        $this->withToken($token)->postJson('/api/v1/pembelians', [
+        $response = $this->withToken($token)->postJson('/api/v1/pembelians', [
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'rincian' => [['nama_item' => 'Gula', 'qty' => '2.00', 'subtotal' => '30000.00']],
         ], ['Idempotency-Key' => 'purchase-invalid-pair'])->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
 
         $this->assertSame(0, Pembelian::query()->count());
     }
@@ -182,6 +193,7 @@ class PembelianApiTest extends TestCase
             ->assertJsonPath('meta.page', 1)
             ->assertJsonPath('meta.per_page', 1)
             ->assertJsonPath('meta.total', 2);
+        $this->assertOperationResponseMatchesOpenApi($firstPage, '/pembelians', 'get');
         $secondPage = $this->withToken($token)->getJson('/api/v1/pembelians?page=2&per_page=1')
             ->assertOk()
             ->assertJsonCount(1, 'data')
@@ -202,10 +214,12 @@ class PembelianApiTest extends TestCase
         $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
         $token = $cashier->createToken('feature-test')->plainTextToken;
 
-        $this->withToken($token)->getJson('/api/v1/pembelians')->assertForbidden();
-        $this->withToken($token)->postJson('/api/v1/pembelians', [], [
+        $list = $this->withToken($token)->getJson('/api/v1/pembelians')->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($list, '/pembelians', 'get');
+        $create = $this->withToken($token)->postJson('/api/v1/pembelians', [], [
             'Idempotency-Key' => 'purchase-cashier-denied',
         ])->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($create, '/pembelians', 'post');
         $this->assertSame(0, Pembelian::query()->count());
     }
 
@@ -218,7 +232,8 @@ class PembelianApiTest extends TestCase
         $purchaseB = Pembelian::factory()->create(['warung_id' => $warungB->id, 'user_id' => $managerB->id]);
         $token = $managerA->createToken('feature-test')->plainTextToken;
 
-        $this->withToken($token)->getJson("/api/v1/pembelians/{$purchaseB->id}")->assertNotFound();
+        $response = $this->withToken($token)->getJson("/api/v1/pembelians/{$purchaseB->id}")->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians/{id}', 'get');
 
         $this->assertDatabaseHas('pembelians', [
             'id' => $purchaseB->id,
