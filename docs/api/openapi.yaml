@@ -1,0 +1,3386 @@
+openapi: 3.1.0
+info:
+  title: LarisSama Backend API — Draft
+  version: 0.1.0-draft
+  description: Rancangan 2026-10-04; semua operasi DRAFT/NOT_STARTED. Bukan bukti server telah tersedia. Kandidat
+    auth bearer (D02), role D04, nominal D05, periode D08, HTTP D13. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md.
+    D09 belum menentukan mekanisme/header retry. Contoh sintetis; nomor contoh bukan format penomoran final.
+servers:
+- url: /api/v1
+  description: Prefix kandidat; base URL environment belum ditetapkan.
+security:
+- bearerAuth: []
+tags:
+- name: Auth
+- name: Admin
+- name: Akses
+- name: Katalog
+- name: Penjualan
+- name: Pembelian
+- name: Laporan
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      tags:
+      - Auth
+      summary: Login user
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles: []
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D03
+      - D12
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResultResponse'
+              example:
+                data:
+                  access_token: contoh-token-bukan-kredensial
+                  token_type: Bearer
+                  expires_at: null
+                  user:
+                    id: '11'
+                    warung_id: '1'
+                    nama: Pemilik A
+                    username: owner_a
+                    email: null
+                    role: owner
+                    aktif: true
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+                  warung:
+                    id: '1'
+                    kode: W-A
+                    nama: Warung A
+                    alamat: null
+                    telepon: null
+                    logo: null
+                    tanggal_mulai: '2026-10-01'
+                    tanggal_berakhir: '2026-10-31'
+                    aktif: true
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              login:
+                value:
+                  username: owner_a
+                  password: contoh-password
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags:
+      - Auth
+      summary: Identitas dan konteks akses aktif
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - superadmin
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D03
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserResponse'
+              example:
+                data:
+                  user:
+                    id: '11'
+                    warung_id: '1'
+                    nama: Pemilik A
+                    username: owner_a
+                    email: null
+                    role: owner
+                    aktif: true
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+                  warung:
+                    id: '1'
+                    kode: W-A
+                    nama: Warung A
+                    alamat: null
+                    telepon: null
+                    logo: null
+                    tanggal_mulai: '2026-10-01'
+                    tanggal_berakhir: '2026-10-31'
+                    aktif: true
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /auth/logout:
+    post:
+      operationId: logout
+      tags:
+      - Auth
+      summary: Cabut sesi/token aktif
+      description: 'Kandidat D02: cabut sesi/token aktif. Tetap mengikuti pemeriksaan status user/warung. Jika server
+        menolak akses, frontend dapat menghapus sesi lokal; itu tidak dianggap bukti revokasi server berhasil.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - superadmin
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      responses:
+        '204':
+          description: Berhasil; tanpa body.
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /admin/warungs:
+    get:
+      operationId: listWarungs
+      tags:
+      - Admin
+      summary: Daftar warung untuk superadmin
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - superadmin
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarungListResponse'
+              example:
+                data:
+                - id: '1'
+                  kode: W-A
+                  nama: Warung A
+                  alamat: null
+                  telepon: null
+                  logo: null
+                  tanggal_mulai: '2026-10-01'
+                  tanggal_berakhir: '2026-10-31'
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                meta:
+                  page: 1
+                  per_page: 20
+                  total: 1
+                  last_page: 1
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - nama
+          - -nama
+          default: nama
+        description: Allowlist urutan; backend menambah id sebagai tie-breaker agar stabil.
+      - $ref: '#/components/parameters/Q'
+      - $ref: '#/components/parameters/Active'
+    post:
+      operationId: createWarung
+      tags:
+      - Admin
+      summary: Buat warung dan owner awal
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - superadmin
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D01
+      - D03
+      - D12
+      responses:
+        '201':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarungProvisionedResponse'
+              example:
+                data:
+                  warung:
+                    id: '1'
+                    kode: W-A
+                    nama: Warung A
+                    alamat: null
+                    telepon: null
+                    logo: null
+                    tanggal_mulai: '2026-10-01'
+                    tanggal_berakhir: '2026-10-31'
+                    aktif: true
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+                  owner:
+                    id: '11'
+                    warung_id: '1'
+                    nama: Pemilik A
+                    username: owner_a
+                    email: null
+                    role: owner
+                    aktif: true
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarungCreate'
+            examples:
+              warung_dan_owner:
+                value:
+                  kode: W-A
+                  nama: Warung A
+                  tanggal_mulai: '2026-10-01'
+                  tanggal_berakhir: '2026-10-31'
+                  owner:
+                    nama: Pemilik A
+                    username: owner_a
+                    password: contoh-password
+  /admin/warungs/{id}:
+    get:
+      operationId: getWarung
+      tags:
+      - Admin
+      summary: Detail warung untuk superadmin
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - superadmin
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarungResponse'
+              example:
+                data:
+                  id: '1'
+                  kode: W-A
+                  nama: Warung A
+                  alamat: null
+                  telepon: null
+                  logo: null
+                  tanggal_mulai: '2026-10-01'
+                  tanggal_berakhir: '2026-10-31'
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      operationId: updateWarung
+      tags:
+      - Admin
+      summary: Ubah identitas/status/masa aktif warung
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - superadmin
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D03
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarungResponse'
+              example:
+                data:
+                  id: '1'
+                  kode: W-A
+                  nama: Warung A
+                  alamat: null
+                  telepon: null
+                  logo: null
+                  tanggal_mulai: '2026-10-01'
+                  tanggal_berakhir: '2026-10-31'
+                  aktif: false
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WarungUpdate'
+            examples:
+              ubah_status:
+                value:
+                  aktif: false
+  /warung:
+    get:
+      operationId: getCurrentWarung
+      tags:
+      - Akses
+      summary: Profil warung user aktif
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D03
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarungResponse'
+              example:
+                data:
+                  id: '1'
+                  kode: W-A
+                  nama: Warung A
+                  alamat: null
+                  telepon: null
+                  logo: null
+                  tanggal_mulai: '2026-10-01'
+                  tanggal_berakhir: '2026-10-31'
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+  /users:
+    get:
+      operationId: listUsers
+      tags:
+      - Akses
+      summary: Daftar users
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D12
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+              example:
+                data:
+                - id: '11'
+                  warung_id: '1'
+                  nama: Pemilik A
+                  username: owner_a
+                  email: null
+                  role: owner
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                meta:
+                  page: 1
+                  per_page: 20
+                  total: 1
+                  last_page: 1
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - nama
+          - -nama
+          default: nama
+        description: Allowlist urutan; backend menambah id sebagai tie-breaker agar stabil.
+      - $ref: '#/components/parameters/Q'
+      - $ref: '#/components/parameters/Active'
+    post:
+      operationId: createUser
+      tags:
+      - Akses
+      summary: Tambah User
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D12
+      responses:
+        '201':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                data:
+                  id: '12'
+                  warung_id: '1'
+                  nama: Kasir A
+                  username: kasir_a
+                  email: null
+                  role: kasir
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+            examples:
+              kasir:
+                value:
+                  nama: Kasir A
+                  username: kasir_a
+                  password: contoh-password
+                  role: kasir
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags:
+      - Akses
+      summary: Detail User
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D12
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                data:
+                  id: '12'
+                  warung_id: '1'
+                  nama: Kasir A
+                  username: kasir_a
+                  email: null
+                  role: kasir
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      operationId: updateUser
+      tags:
+      - Akses
+      summary: Ubah User
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D12
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                data:
+                  id: '12'
+                  warung_id: '1'
+                  nama: Kasir A
+                  username: kasir_a
+                  email: null
+                  role: kasir
+                  aktif: false
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+            examples:
+              ubah_status:
+                value:
+                  aktif: false
+  /kategori-menus:
+    get:
+      operationId: listKategoriMenus
+      tags:
+      - Katalog
+      summary: Daftar kategori-menus
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D06
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KategoriMenuListResponse'
+              example:
+                data:
+                - id: '101'
+                  warung_id: '1'
+                  nama: Makanan
+                  urutan: 0
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                meta:
+                  page: 1
+                  per_page: 20
+                  total: 1
+                  last_page: 1
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - urutan
+          - -urutan
+          - nama
+          - -nama
+          default: urutan
+        description: Allowlist urutan; backend menambah id sebagai tie-breaker agar stabil.
+      - $ref: '#/components/parameters/Q'
+      - $ref: '#/components/parameters/Active'
+    post:
+      operationId: createKategoriMenu
+      tags:
+      - Katalog
+      summary: Tambah KategoriMenu
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D06
+      responses:
+        '201':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KategoriMenuResponse'
+              example:
+                data:
+                  id: '101'
+                  warung_id: '1'
+                  nama: Makanan
+                  urutan: 0
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KategoriMenuCreate'
+            examples:
+              kategori:
+                value:
+                  nama: Makanan
+                  urutan: 0
+  /kategori-menus/{id}:
+    get:
+      operationId: getKategoriMenu
+      tags:
+      - Katalog
+      summary: Detail KategoriMenu
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D06
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KategoriMenuResponse'
+              example:
+                data:
+                  id: '101'
+                  warung_id: '1'
+                  nama: Makanan
+                  urutan: 0
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      operationId: updateKategoriMenu
+      tags:
+      - Katalog
+      summary: Ubah KategoriMenu
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D06
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KategoriMenuResponse'
+              example:
+                data:
+                  id: '101'
+                  warung_id: '1'
+                  nama: Makanan utama
+                  urutan: 0
+                  aktif: true
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KategoriMenuUpdate'
+            examples:
+              ubah_nama:
+                value:
+                  nama: Makanan utama
+  /menus:
+    get:
+      operationId: listMenus
+      tags:
+      - Katalog
+      summary: Daftar menus
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D06
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuListResponse'
+              example:
+                data:
+                - id: '1001'
+                  warung_id: '1'
+                  kategori_menu_id: '101'
+                  kode: NASI
+                  nama: Nasi
+                  harga: '15000.00'
+                  deskripsi: null
+                  aktif: true
+                  harga_modal: null
+                  gambar: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                meta:
+                  page: 1
+                  per_page: 20
+                  total: 1
+                  last_page: 1
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - nama
+          - -nama
+          default: nama
+        description: Allowlist urutan; backend menambah id sebagai tie-breaker agar stabil.
+      - $ref: '#/components/parameters/Q'
+      - $ref: '#/components/parameters/Active'
+      - name: kategori_menu_id
+        in: query
+        schema:
+          $ref: '#/components/schemas/Id'
+        description: Kategori dari warung aktif; referensi tenant lain ditolak.
+    post:
+      operationId: createMenu
+      tags:
+      - Katalog
+      summary: Tambah Menu
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D06
+      responses:
+        '201':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+              example:
+                data:
+                  id: '1001'
+                  warung_id: '1'
+                  kategori_menu_id: '101'
+                  kode: NASI
+                  nama: Nasi
+                  harga: '15000.00'
+                  deskripsi: null
+                  aktif: true
+                  harga_modal: null
+                  gambar: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuCreate'
+            examples:
+              menu:
+                value:
+                  kategori_menu_id: '101'
+                  kode: NASI
+                  nama: Nasi
+                  harga: '15000.00'
+  /menus/{id}:
+    get:
+      operationId: getMenu
+      tags:
+      - Katalog
+      summary: Detail Menu
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D06
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+              example:
+                data:
+                  id: '1001'
+                  warung_id: '1'
+                  kategori_menu_id: '101'
+                  kode: NASI
+                  nama: Nasi
+                  harga: '15000.00'
+                  deskripsi: null
+                  aktif: true
+                  harga_modal: null
+                  gambar: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      operationId: updateMenu
+      tags:
+      - Katalog
+      summary: Ubah Menu
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D06
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+              example:
+                data:
+                  id: '1001'
+                  warung_id: '1'
+                  kategori_menu_id: '101'
+                  kode: NASI
+                  nama: Nasi
+                  harga: '17000.00'
+                  deskripsi: null
+                  aktif: true
+                  harga_modal: null
+                  gambar: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuUpdate'
+            examples:
+              ubah_harga:
+                value:
+                  harga: '17000.00'
+  /penjualans:
+    get:
+      operationId: listPenjualans
+      tags:
+      - Penjualan
+      summary: Riwayat Penjualan
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D07
+      - D08
+      - D09
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PenjualanSummaryListResponse'
+              example:
+                data:
+                - id: '501'
+                  warung_id: '1'
+                  user_id: '11'
+                  no_transaksi: PJ-CONTOH-001
+                  tanggal: '2026-10-04T03:00:00Z'
+                  subtotal: '35000.00'
+                  diskon: '2000.00'
+                  total: '33000.00'
+                  bayar: '50000.00'
+                  kembalian: '17000.00'
+                  metode_pembayaran: cash
+                  status: selesai
+                  catatan: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                meta:
+                  page: 1
+                  per_page: 20
+                  total: 1
+                  last_page: 1
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - -tanggal
+          - tanggal
+          default: -tanggal
+        description: Allowlist urutan; backend menambah id sebagai tie-breaker agar stabil.
+      - name: date_from
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        required: false
+      - name: date_to
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        required: false
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - selesai
+          - batal
+        description: Filter riwayat; jika kosong semua status yang diizinkan. Endpoint laporan tetap menghitung
+          selesai menurut D08.
+    post:
+      operationId: createPenjualan
+      tags:
+      - Penjualan
+      summary: Catat Penjualan
+      description: 'Header dan rincian disimpan atomik; warung/user/nomor/total dari backend. D09 belum menetapkan
+        retry: jangan retry otomatis. DRAFT, belum dapat dipakai live.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D07
+      - D08
+      - D09
+      responses:
+        '201':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PenjualanResponse'
+              examples:
+                menu:
+                  value:
+                    data:
+                      id: '501'
+                      warung_id: '1'
+                      user_id: '11'
+                      no_transaksi: PJ-CONTOH-001
+                      tanggal: '2026-10-04T03:00:00Z'
+                      subtotal: '35000.00'
+                      diskon: '2000.00'
+                      total: '33000.00'
+                      bayar: '50000.00'
+                      kembalian: '17000.00'
+                      metode_pembayaran: cash
+                      status: selesai
+                      catatan: null
+                      created_at: '2026-10-04T03:00:00Z'
+                      updated_at: '2026-10-04T03:00:00Z'
+                      rincian:
+                      - id: '5001'
+                        penjualan_id: '501'
+                        menu_id: '1001'
+                        jenis_item: menu
+                        nama_menu: Nasi
+                        harga: '15000.00'
+                        qty: '2.00'
+                        diskon: '0.00'
+                        subtotal: '30000.00'
+                        catatan: null
+                        created_at: '2026-10-04T03:00:00Z'
+                        updated_at: '2026-10-04T03:00:00Z'
+                      - id: '5002'
+                        penjualan_id: '501'
+                        menu_id: '1002'
+                        jenis_item: menu
+                        nama_menu: Teh
+                        harga: '5000.00'
+                        qty: '1.00'
+                        diskon: '0.00'
+                        subtotal: '5000.00'
+                        catatan: null
+                        created_at: '2026-10-04T03:00:00Z'
+                        updated_at: '2026-10-04T03:00:00Z'
+                luar_menu_draft_D07:
+                  value:
+                    data:
+                      id: '502'
+                      warung_id: '1'
+                      user_id: '11'
+                      no_transaksi: PJ-CONTOH-002
+                      tanggal: '2026-10-04T03:00:00Z'
+                      subtotal: '10000.00'
+                      diskon: '0.00'
+                      total: '10000.00'
+                      bayar: '10000.00'
+                      kembalian: '0.00'
+                      metode_pembayaran: cash
+                      status: selesai
+                      catatan: null
+                      created_at: '2026-10-04T03:00:00Z'
+                      updated_at: '2026-10-04T03:00:00Z'
+                      rincian:
+                      - id: '5003'
+                        penjualan_id: '502'
+                        menu_id: null
+                        jenis_item: luar_menu
+                        nama_menu: Item bebas
+                        harga: '10000.00'
+                        qty: '1.00'
+                        diskon: '0.00'
+                        subtotal: '10000.00'
+                        catatan: null
+                        created_at: '2026-10-04T03:00:00Z'
+                        updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenjualanCreate'
+            examples:
+              menu:
+                value:
+                  tanggal: '2026-10-04T03:00:00Z'
+                  diskon: '2000.00'
+                  bayar: '50000.00'
+                  metode_pembayaran: cash
+                  rincian:
+                  - jenis_item: menu
+                    menu_id: '1001'
+                    qty: '2.00'
+                  - jenis_item: menu
+                    menu_id: '1002'
+                    qty: '1.00'
+              luar_menu_draft_D07:
+                summary: Jangan aktifkan sebelum D07 selesai
+                value:
+                  tanggal: '2026-10-04T03:00:00Z'
+                  bayar: '10000.00'
+                  metode_pembayaran: cash
+                  rincian:
+                  - jenis_item: luar_menu
+                    menu_id: null
+                    nama_menu: Item bebas
+                    harga: '10000.00'
+                    qty: '1.00'
+  /penjualans/{id}:
+    get:
+      operationId: getPenjualan
+      tags:
+      - Penjualan
+      summary: Detail Penjualan dan rincian
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      - kasir
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D07
+      - D08
+      - D09
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PenjualanResponse'
+              example:
+                data:
+                  id: '501'
+                  warung_id: '1'
+                  user_id: '11'
+                  no_transaksi: PJ-CONTOH-001
+                  tanggal: '2026-10-04T03:00:00Z'
+                  subtotal: '35000.00'
+                  diskon: '2000.00'
+                  total: '33000.00'
+                  bayar: '50000.00'
+                  kembalian: '17000.00'
+                  metode_pembayaran: cash
+                  status: selesai
+                  catatan: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                  rincian:
+                  - id: '5001'
+                    penjualan_id: '501'
+                    menu_id: '1001'
+                    jenis_item: menu
+                    nama_menu: Nasi
+                    harga: '15000.00'
+                    qty: '2.00'
+                    diskon: '0.00'
+                    subtotal: '30000.00'
+                    catatan: null
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+                  - id: '5002'
+                    penjualan_id: '501'
+                    menu_id: '1002'
+                    jenis_item: menu
+                    nama_menu: Teh
+                    harga: '5000.00'
+                    qty: '1.00'
+                    diskon: '0.00'
+                    subtotal: '5000.00'
+                    catatan: null
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+  /pembelians:
+    get:
+      operationId: listPembelians
+      tags:
+      - Pembelian
+      summary: Riwayat Pembelian
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D08
+      - D09
+      - D10
+      - D11
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PembelianSummaryListResponse'
+              example:
+                data:
+                - id: '601'
+                  warung_id: '1'
+                  user_id: '11'
+                  no_transaksi: PB-CONTOH-001
+                  tanggal: '2026-10-04T03:00:00Z'
+                  total: '150000.00'
+                  catatan: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                meta:
+                  page: 1
+                  per_page: 20
+                  total: 1
+                  last_page: 1
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PerPage'
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - -tanggal
+          - tanggal
+          default: -tanggal
+        description: Allowlist urutan; backend menambah id sebagai tie-breaker agar stabil.
+      - name: date_from
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        required: false
+      - name: date_to
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        required: false
+    post:
+      operationId: createPembelian
+      tags:
+      - Pembelian
+      summary: Catat Pembelian
+      description: 'Header dan rincian disimpan atomik; warung/user/nomor/total dari backend. D09 belum menetapkan
+        retry: jangan retry otomatis. DRAFT, belum dapat dipakai live.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D08
+      - D09
+      - D10
+      - D11
+      responses:
+        '201':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PembelianResponse'
+              examples:
+                ringkas:
+                  value:
+                    data:
+                      id: '601'
+                      warung_id: '1'
+                      user_id: '11'
+                      no_transaksi: PB-CONTOH-001
+                      tanggal: '2026-10-04T03:00:00Z'
+                      total: '150000.00'
+                      catatan: null
+                      created_at: '2026-10-04T03:00:00Z'
+                      updated_at: '2026-10-04T03:00:00Z'
+                      rincian:
+                      - id: '6001'
+                        pembelian_id: '601'
+                        nama_item: Belanja di pasar
+                        qty: null
+                        satuan: null
+                        harga_satuan: null
+                        subtotal: '150000.00'
+                        created_at: '2026-10-04T03:00:00Z'
+                        updated_at: '2026-10-04T03:00:00Z'
+                rinci:
+                  value:
+                    data:
+                      id: '602'
+                      warung_id: '1'
+                      user_id: '11'
+                      no_transaksi: PB-CONTOH-002
+                      tanggal: '2026-10-04T03:00:00Z'
+                      total: '95000.00'
+                      catatan: null
+                      created_at: '2026-10-04T03:00:00Z'
+                      updated_at: '2026-10-04T03:00:00Z'
+                      rincian:
+                      - id: '6002'
+                        pembelian_id: '602'
+                        nama_item: Beras
+                        qty: '5.00'
+                        satuan: kg
+                        harga_satuan: '15000.00'
+                        subtotal: '75000.00'
+                        created_at: '2026-10-04T03:00:00Z'
+                        updated_at: '2026-10-04T03:00:00Z'
+                      - id: '6003'
+                        pembelian_id: '602'
+                        nama_item: Cabai
+                        qty: '0.50'
+                        satuan: kg
+                        harga_satuan: '40000.00'
+                        subtotal: '20000.00'
+                        created_at: '2026-10-04T03:00:00Z'
+                        updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PembelianCreate'
+            examples:
+              ringkas:
+                value:
+                  tanggal: '2026-10-04T03:00:00Z'
+                  rincian:
+                  - nama_item: Belanja di pasar
+                    subtotal: '150000.00'
+              rinci:
+                value:
+                  tanggal: '2026-10-04T03:00:00Z'
+                  rincian:
+                  - nama_item: Beras
+                    qty: '5.00'
+                    satuan: kg
+                    harga_satuan: '15000.00'
+                  - nama_item: Cabai
+                    qty: '0.50'
+                    satuan: kg
+                    harga_satuan: '40000.00'
+  /pembelians/{id}:
+    get:
+      operationId: getPembelian
+      tags:
+      - Pembelian
+      summary: Detail Pembelian dan rincian
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D08
+      - D09
+      - D10
+      - D11
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PembelianResponse'
+              example:
+                data:
+                  id: '601'
+                  warung_id: '1'
+                  user_id: '11'
+                  no_transaksi: PB-CONTOH-001
+                  tanggal: '2026-10-04T03:00:00Z'
+                  total: '150000.00'
+                  catatan: null
+                  created_at: '2026-10-04T03:00:00Z'
+                  updated_at: '2026-10-04T03:00:00Z'
+                  rincian:
+                  - id: '6001'
+                    pembelian_id: '601'
+                    nama_item: Belanja di pasar
+                    qty: null
+                    satuan: null
+                    harga_satuan: null
+                    subtotal: '150000.00'
+                    created_at: '2026-10-04T03:00:00Z'
+                    updated_at: '2026-10-04T03:00:00Z'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - $ref: '#/components/parameters/Id'
+  /laporan/penjualan:
+    get:
+      operationId: getLaporanPenjualan
+      tags:
+      - Laporan
+      summary: Pendapatan penjualan pada periode
+      description: 'Kandidat D08: SUM(total) dan COUNT(header) untuk penjualan selesai. Tidak menjumlahkan bayar,
+        tidak terpengaruh pagination atau jumlah rincian.'
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D06
+      - D08
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LaporanPenjualanResponse'
+              example:
+                data:
+                  period:
+                    date_from: '2026-10-01'
+                    date_to: '2026-10-31'
+                    timezone: Asia/Jakarta
+                  jumlah_transaksi: 1
+                  total_pendapatan: '33000.00'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - name: date_from
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        required: true
+      - name: date_to
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        required: true
+  /laporan/pembelian:
+    get:
+      operationId: getLaporanPembelian
+      tags:
+      - Laporan
+      summary: Total pembelian pada periode
+      description: SUM(total) dan COUNT(header) pembelian pada periode; tidak join rincian untuk agregasi nominal
+        header. Tidak dikurangi dari pendapatan sebagai laba.
+      x-contract-status: DRAFT
+      x-implementation-status: NOT_STARTED
+      x-candidate-roles:
+      - owner
+      - manager
+      x-blocked-by:
+      - D02
+      - D04
+      - D13
+      - D05
+      - D08
+      - D11
+      responses:
+        '200':
+          description: Kandidat hasil sukses; contoh sintetis, bukan data server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LaporanPembelianResponse'
+              example:
+                data:
+                  period:
+                    date_from: '2026-10-01'
+                    date_to: '2026-10-31'
+                    timezone: Asia/Jakarta
+                  jumlah_transaksi: 2
+                  total_pembelian: '245000.00'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+      parameters:
+      - name: date_from
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        required: true
+      - name: date_to
+        in: query
+        schema:
+          $ref: '#/components/schemas/Date'
+        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        required: true
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Kandidat D02; belum tersedia. Jangan menganggap token/JWT atau lifecycle final.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Id'
+      description: ID resource; lookup selalu mengikuti scope operasi.
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PerPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Active:
+      name: aktif
+      in: query
+      schema:
+        type: boolean
+      description: Bila tidak dikirim, semua status yang boleh dibaca; kasir memilih menu aktif.
+    Q:
+      name: q
+      in: query
+      schema:
+        type: string
+        maxLength: 150
+      description: Cari nama; menu juga kode, user juga username, warung juga kode.
+    DateFrom:
+      name: date_from
+      in: query
+      schema:
+        $ref: '#/components/schemas/Date'
+      description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+    DateTo:
+      name: date_to
+      in: query
+      schema:
+        $ref: '#/components/schemas/Date'
+      description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+  responses:
+    Error400:
+      description: JSON request tidak dapat dibaca.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: BAD_REQUEST
+            message: JSON request tidak dapat dibaca.
+            errors: {}
+            request_id: req-contoh-001
+    Error401:
+      description: Login diperlukan atau kredensial/token tidak valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: UNAUTHENTICATED
+            message: Login diperlukan atau kredensial/token tidak valid.
+            errors: {}
+            request_id: req-contoh-001
+    Error403:
+      description: Role tidak diizinkan; user/warung nonaktif atau masa aktif tidak memenuhi D03.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: FORBIDDEN
+            message: Role tidak diizinkan; user/warung nonaktif atau masa aktif tidak memenuhi D03.
+            errors: {}
+            request_id: req-contoh-001
+    Error404:
+      description: Resource tidak ada dalam scope yang boleh diakses.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: NOT_FOUND
+            message: Resource tidak ada dalam scope yang boleh diakses.
+            errors: {}
+            request_id: req-contoh-001
+    Error409:
+      description: Konflik keunikan atau state yang sudah disepakati; belum menetapkan perilaku retry D09.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: CONFLICT
+            message: Konflik keunikan atau state yang sudah disepakati; belum menetapkan perilaku retry D09.
+            errors: {}
+            request_id: req-contoh-001
+    Error422:
+      description: Field tidak valid, referensi tenant tidak sah, nominal/rentang tanggal salah.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: VALIDATION_ERROR
+            message: Field tidak valid, referensi tenant tidak sah, nominal/rentang tanggal salah.
+            errors:
+              rincian.0.nama_item:
+              - Wajib diisi.
+            request_id: req-contoh-001
+    Error429:
+      description: Terlalu banyak request menurut batas yang ditetapkan D02.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: RATE_LIMITED
+            message: Terlalu banyak request menurut batas yang ditetapkan D02.
+            errors: {}
+            request_id: req-contoh-001
+    Error500:
+      description: Kesalahan server; response tidak mengungkap detail SQL/rahasia.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: INTERNAL_ERROR
+            message: Kesalahan server; response tidak mengungkap detail SQL/rahasia.
+            errors: {}
+            request_id: req-contoh-001
+  schemas:
+    Id:
+      type: string
+      pattern: ^[1-9][0-9]*$
+      description: ID BIGINT dikirim sebagai string agar tidak kehilangan presisi di JavaScript.
+    Money:
+      type: string
+      pattern: ^(0|[1-9][0-9]{0,12})\.[0-9]{2}$
+      description: 'Kandidat D05: decimal nonnegatif berskala dua, batas DECIMAL(15,2); jangan memakai float.'
+    Quantity:
+      type: string
+      pattern: ^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$
+      description: 'Kandidat D05: > 0 sampai 99999999.99; string dua angka pecahan.'
+    Timestamp:
+      type: string
+      format: date-time
+      description: RFC3339 dengan offset; kandidat response UTC. Zona bisnis dan backdate menunggu D08.
+    Date:
+      type: string
+      format: date
+    Note:
+      type:
+      - string
+      - 'null'
+      description: Catatan bebas, null jika tidak diisi.
+    Role:
+      type: string
+      enum:
+      - superadmin
+      - owner
+      - manager
+      - kasir
+      - koki
+      description: Nilai pada rancangan DB; izin final D04. Koki tidak menyiratkan adanya workflow dapur.
+    Warung:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        kode:
+          type: string
+          minLength: 1
+          maxLength: 30
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        alamat:
+          $ref: '#/components/schemas/Note'
+        telepon:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 30
+          - type: 'null'
+        logo:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 255
+          - type: 'null'
+        tanggal_mulai:
+          anyOf:
+          - $ref: '#/components/schemas/Date'
+          - type: 'null'
+        tanggal_berakhir:
+          anyOf:
+          - $ref: '#/components/schemas/Date'
+          - type: 'null'
+        aktif:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - kode
+      - nama
+      - alamat
+      - telepon
+      - logo
+      - tanggal_mulai
+      - tanggal_berakhir
+      - aktif
+      - created_at
+      - updated_at
+    User:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        warung_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type:
+          - string
+          - 'null'
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
+        aktif:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - warung_id
+      - nama
+      - username
+      - email
+      - role
+      - aktif
+      - created_at
+      - updated_at
+    CurrentUser:
+      type: object
+      additionalProperties: false
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        warung:
+          anyOf:
+          - $ref: '#/components/schemas/Warung'
+          - type: 'null'
+      required:
+      - user
+      - warung
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - username
+      - password
+    LoginResult:
+      type: object
+      additionalProperties: false
+      properties:
+        access_token:
+          type: string
+          description: Token kandidat D02; tidak boleh dicatat dalam log.
+        token_type:
+          type: string
+          const: Bearer
+        expires_at:
+          anyOf:
+          - $ref: '#/components/schemas/Timestamp'
+          - type: 'null'
+        user:
+          $ref: '#/components/schemas/User'
+        warung:
+          anyOf:
+          - $ref: '#/components/schemas/Warung'
+          - type: 'null'
+      required:
+      - access_token
+      - token_type
+      - expires_at
+      - user
+      - warung
+    OwnerCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type:
+          - string
+          - 'null'
+          format: email
+          maxLength: 150
+        password:
+          type: string
+          minLength: 8
+          writeOnly: true
+          description: Panjang minimum kandidat D12; kebijakan final harus ditetapkan sebelum READY.
+      required:
+      - nama
+      - username
+      - password
+      description: Role owner dan warung_id ditentukan action admin, tidak menerima role dari client.
+    WarungCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        kode:
+          type: string
+          minLength: 1
+          maxLength: 30
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        alamat:
+          $ref: '#/components/schemas/Note'
+        telepon:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 30
+          - type: 'null'
+        tanggal_mulai:
+          anyOf:
+          - $ref: '#/components/schemas/Date'
+          - type: 'null'
+        tanggal_berakhir:
+          anyOf:
+          - $ref: '#/components/schemas/Date'
+          - type: 'null'
+        aktif:
+          type: boolean
+          default: true
+        owner:
+          $ref: '#/components/schemas/OwnerCreate'
+      required:
+      - kode
+      - nama
+      - tanggal_mulai
+      - tanggal_berakhir
+      - owner
+      description: 'Kandidat D04: warung dan owner awal dibuat atomik; NULL tanggal menunggu D03.'
+    WarungUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        kode:
+          type: string
+          minLength: 1
+          maxLength: 30
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        alamat:
+          $ref: '#/components/schemas/Note'
+        telepon:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 30
+          - type: 'null'
+        tanggal_mulai:
+          anyOf:
+          - $ref: '#/components/schemas/Date'
+          - type: 'null'
+        tanggal_berakhir:
+          anyOf:
+          - $ref: '#/components/schemas/Date'
+          - type: 'null'
+        aktif:
+          type: boolean
+          default: true
+      minProperties: 1
+    WarungProvisioned:
+      type: object
+      additionalProperties: false
+      properties:
+        warung:
+          $ref: '#/components/schemas/Warung'
+        owner:
+          $ref: '#/components/schemas/User'
+      required:
+      - warung
+      - owner
+    UserCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type:
+          - string
+          - 'null'
+          format: email
+          maxLength: 150
+        password:
+          type: string
+          minLength: 8
+          writeOnly: true
+          description: Panjang minimum kandidat D12; kebijakan final harus ditetapkan sebelum READY.
+        role:
+          type: string
+          enum:
+          - manager
+          - kasir
+          description: Kandidat hak owner D04; tidak bisa membuat superadmin/owner melalui jalur tenant.
+        aktif:
+          type: boolean
+          default: true
+      required:
+      - nama
+      - username
+      - password
+      - role
+    UserUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        username:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type:
+          - string
+          - 'null'
+          format: email
+          maxLength: 150
+        password:
+          type: string
+          minLength: 8
+          writeOnly: true
+          description: Panjang minimum kandidat D12; kebijakan final harus ditetapkan sebelum READY.
+        role:
+          type: string
+          enum:
+          - manager
+          - kasir
+          description: Kandidat hak owner D04; tidak bisa membuat superadmin/owner melalui jalur tenant.
+        aktif:
+          type: boolean
+          default: true
+      minProperties: 1
+    KategoriMenuCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 100
+        urutan:
+          type: integer
+          minimum: 0
+          default: 0
+        aktif:
+          type: boolean
+          default: true
+      required:
+      - nama
+    KategoriMenuUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 100
+        urutan:
+          type: integer
+          minimum: 0
+          default: 0
+        aktif:
+          type: boolean
+          default: true
+      minProperties: 1
+    KategoriMenu:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        warung_id:
+          $ref: '#/components/schemas/Id'
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 100
+        urutan:
+          type: integer
+          minimum: 0
+          default: 0
+        aktif:
+          type: boolean
+          default: true
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - warung_id
+      - nama
+      - urutan
+      - aktif
+      - created_at
+      - updated_at
+    MenuCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        kategori_menu_id:
+          $ref: '#/components/schemas/Id'
+        kode:
+          type: string
+          minLength: 1
+          maxLength: 30
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        harga:
+          $ref: '#/components/schemas/Money'
+        deskripsi:
+          $ref: '#/components/schemas/Note'
+        aktif:
+          type: boolean
+          default: true
+      required:
+      - kategori_menu_id
+      - kode
+      - nama
+      - harga
+    MenuUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        kategori_menu_id:
+          $ref: '#/components/schemas/Id'
+        kode:
+          type: string
+          minLength: 1
+          maxLength: 30
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        harga:
+          $ref: '#/components/schemas/Money'
+        deskripsi:
+          $ref: '#/components/schemas/Note'
+        aktif:
+          type: boolean
+          default: true
+      minProperties: 1
+    Menu:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        warung_id:
+          $ref: '#/components/schemas/Id'
+        kategori_menu_id:
+          $ref: '#/components/schemas/Id'
+        kode:
+          type: string
+          minLength: 1
+          maxLength: 30
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+        harga:
+          $ref: '#/components/schemas/Money'
+        deskripsi:
+          $ref: '#/components/schemas/Note'
+        aktif:
+          type: boolean
+          default: true
+        harga_modal:
+          anyOf:
+          - $ref: '#/components/schemas/Money'
+          - type: 'null'
+        gambar:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 255
+          - type: 'null'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - warung_id
+      - kategori_menu_id
+      - kode
+      - nama
+      - harga
+      - deskripsi
+      - aktif
+      - harga_modal
+      - gambar
+      - created_at
+      - updated_at
+      description: harga_modal/gambar boleh null. Draft belum membuka penulisan kedua field ini; penetapan fungsi/upload
+        melalui D07.
+    SaleMenuLineInput:
+      type: object
+      additionalProperties: false
+      properties:
+        jenis_item:
+          type: string
+          const: menu
+        menu_id:
+          $ref: '#/components/schemas/Id'
+        qty:
+          $ref: '#/components/schemas/Quantity'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+      required:
+      - jenis_item
+      - menu_id
+      - qty
+      description: Nama/harga berasal dari master yang dibaca backend; tidak menerima harga kiriman untuk item menu.
+    SaleFreeLineInput:
+      type: object
+      additionalProperties: false
+      properties:
+        jenis_item:
+          type: string
+          const: luar_menu
+        menu_id:
+          type: 'null'
+        nama_menu:
+          type: string
+          minLength: 1
+          maxLength: 150
+        harga:
+          $ref: '#/components/schemas/Money'
+        qty:
+          $ref: '#/components/schemas/Quantity'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+      required:
+      - jenis_item
+      - menu_id
+      - nama_menu
+      - harga
+      - qty
+      description: Cabang rancangan lama; jangan aktifkan UI item bebas sebelum D07 diputuskan.
+    PenjualanCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        bayar:
+          $ref: '#/components/schemas/Money'
+        metode_pembayaran:
+          type: string
+          enum:
+          - cash
+          - qris
+          - transfer
+          description: Nilai dan perlakuan bayar/kembalian kandidat D05.
+        catatan:
+          $ref: '#/components/schemas/Note'
+        rincian:
+          type: array
+          items:
+            oneOf:
+            - $ref: '#/components/schemas/SaleMenuLineInput'
+            - $ref: '#/components/schemas/SaleFreeLineInput'
+          minItems: 1
+      required:
+      - tanggal
+      - bayar
+      - metode_pembayaran
+      - rincian
+      description: diskon yang tidak dikirim berarti 0.00 pada kandidat D05. total/subtotal/kembalian/user_id/warung_id/no_transaksi/status
+        ditetapkan backend.
+    PenjualanSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        warung_id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        no_transaksi:
+          type: string
+          minLength: 1
+          maxLength: 50
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        total:
+          $ref: '#/components/schemas/Money'
+        bayar:
+          $ref: '#/components/schemas/Money'
+        kembalian:
+          $ref: '#/components/schemas/Money'
+        metode_pembayaran:
+          type: string
+          enum:
+          - cash
+          - qris
+          - transfer
+          description: Nilai dan perlakuan bayar/kembalian kandidat D05.
+        status:
+          type: string
+          enum:
+          - selesai
+          - batal
+        catatan:
+          $ref: '#/components/schemas/Note'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - warung_id
+      - user_id
+      - no_transaksi
+      - tanggal
+      - subtotal
+      - diskon
+      - total
+      - bayar
+      - kembalian
+      - metode_pembayaran
+      - status
+      - catatan
+      - created_at
+      - updated_at
+    PenjualanRinci:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        penjualan_id:
+          $ref: '#/components/schemas/Id'
+        menu_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        jenis_item:
+          type: string
+          enum:
+          - menu
+          - luar_menu
+        nama_menu:
+          type: string
+          minLength: 1
+          maxLength: 150
+        harga:
+          $ref: '#/components/schemas/Money'
+        qty:
+          $ref: '#/components/schemas/Quantity'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - penjualan_id
+      - menu_id
+      - jenis_item
+      - nama_menu
+      - harga
+      - qty
+      - diskon
+      - subtotal
+      - catatan
+      - created_at
+      - updated_at
+    Penjualan:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        warung_id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        no_transaksi:
+          type: string
+          minLength: 1
+          maxLength: 50
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        total:
+          $ref: '#/components/schemas/Money'
+        bayar:
+          $ref: '#/components/schemas/Money'
+        kembalian:
+          $ref: '#/components/schemas/Money'
+        metode_pembayaran:
+          type: string
+          enum:
+          - cash
+          - qris
+          - transfer
+          description: Nilai dan perlakuan bayar/kembalian kandidat D05.
+        status:
+          type: string
+          enum:
+          - selesai
+          - batal
+        catatan:
+          $ref: '#/components/schemas/Note'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+        rincian:
+          type: array
+          items:
+            $ref: '#/components/schemas/PenjualanRinci'
+          minItems: 1
+      required:
+      - id
+      - warung_id
+      - user_id
+      - no_transaksi
+      - tanggal
+      - subtotal
+      - diskon
+      - total
+      - bayar
+      - kembalian
+      - metode_pembayaran
+      - status
+      - catatan
+      - created_at
+      - updated_at
+      - rincian
+    PurchaseNominalLineInput:
+      type: object
+      additionalProperties: false
+      properties:
+        nama_item:
+          type: string
+          minLength: 1
+          maxLength: 150
+        qty:
+          type: 'null'
+        satuan:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 30
+          - type: 'null'
+        harga_satuan:
+          type: 'null'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+      required:
+      - nama_item
+      - subtotal
+      description: 'Minimal sah K05: keterangan dan nominal. qty/harga_satuan boleh dihilangkan atau null.'
+    PurchaseCalculatedLineInput:
+      type: object
+      additionalProperties: false
+      properties:
+        nama_item:
+          type: string
+          minLength: 1
+          maxLength: 150
+        qty:
+          $ref: '#/components/schemas/Quantity'
+        satuan:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 30
+          - type: 'null'
+        harga_satuan:
+          $ref: '#/components/schemas/Money'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+      required:
+      - nama_item
+      - qty
+      - harga_satuan
+      description: 'Kandidat D10: subtotal dihitung backend; jika dikirim, harus cocok dengan hasil hitung D05,
+        jika tidak 422.'
+    PembelianCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        catatan:
+          $ref: '#/components/schemas/Note'
+        rincian:
+          type: array
+          items:
+            oneOf:
+            - $ref: '#/components/schemas/PurchaseNominalLineInput'
+            - $ref: '#/components/schemas/PurchaseCalculatedLineInput'
+          minItems: 1
+      required:
+      - tanggal
+      - rincian
+      description: Header.total/user_id/warung_id/no_transaksi berasal dari backend. Tidak ada menu_id atau master
+        bahan.
+    PembelianSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        warung_id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        no_transaksi:
+          type: string
+          minLength: 1
+          maxLength: 50
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        total:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - warung_id
+      - user_id
+      - no_transaksi
+      - tanggal
+      - total
+      - catatan
+      - created_at
+      - updated_at
+    PembelianRinci:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        pembelian_id:
+          $ref: '#/components/schemas/Id'
+        nama_item:
+          type: string
+          minLength: 1
+          maxLength: 150
+        qty:
+          anyOf:
+          - $ref: '#/components/schemas/Quantity'
+          - type: 'null'
+        satuan:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 30
+          - type: 'null'
+        harga_satuan:
+          anyOf:
+          - $ref: '#/components/schemas/Money'
+          - type: 'null'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+      required:
+      - id
+      - pembelian_id
+      - nama_item
+      - qty
+      - satuan
+      - harga_satuan
+      - subtotal
+      - created_at
+      - updated_at
+    Pembelian:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        warung_id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        no_transaksi:
+          type: string
+          minLength: 1
+          maxLength: 50
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        total:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+        rincian:
+          type: array
+          items:
+            $ref: '#/components/schemas/PembelianRinci'
+          minItems: 1
+      required:
+      - id
+      - warung_id
+      - user_id
+      - no_transaksi
+      - tanggal
+      - total
+      - catatan
+      - created_at
+      - updated_at
+      - rincian
+    Period:
+      type: object
+      additionalProperties: false
+      properties:
+        date_from:
+          $ref: '#/components/schemas/Date'
+        date_to:
+          $ref: '#/components/schemas/Date'
+        timezone:
+          type: string
+          description: Timezone bisnis yang dipakai server (D08); bukan pemilih tenant.
+      required:
+      - date_from
+      - date_to
+      - timezone
+    LaporanPenjualan:
+      type: object
+      additionalProperties: false
+      properties:
+        period:
+          $ref: '#/components/schemas/Period'
+        jumlah_transaksi:
+          type: integer
+          minimum: 0
+        total_pendapatan:
+          $ref: '#/components/schemas/Money'
+      required:
+      - period
+      - jumlah_transaksi
+      - total_pendapatan
+    LaporanPembelian:
+      type: object
+      additionalProperties: false
+      properties:
+        period:
+          $ref: '#/components/schemas/Period'
+        jumlah_transaksi:
+          type: integer
+          minimum: 0
+        total_pembelian:
+          $ref: '#/components/schemas/Money'
+      required:
+      - period
+      - jumlah_transaksi
+      - total_pembelian
+    Pagination:
+      type: object
+      additionalProperties: false
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        last_page:
+          type: integer
+          minimum: 1
+      required:
+      - page
+      - per_page
+      - total
+      - last_page
+    ApiError:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        request_id:
+          type: string
+      required:
+      - code
+      - message
+      - errors
+      - request_id
+    LoginResultResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/LoginResult'
+      required:
+      - data
+    CurrentUserResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/CurrentUser'
+      required:
+      - data
+    WarungListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warung'
+        meta:
+          $ref: '#/components/schemas/Pagination'
+      required:
+      - data
+      - meta
+    WarungProvisionedResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/WarungProvisioned'
+      required:
+      - data
+    WarungResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/Warung'
+      required:
+      - data
+    UserListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        meta:
+          $ref: '#/components/schemas/Pagination'
+      required:
+      - data
+      - meta
+    UserResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+      required:
+      - data
+    KategoriMenuListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/KategoriMenu'
+        meta:
+          $ref: '#/components/schemas/Pagination'
+      required:
+      - data
+      - meta
+    KategoriMenuResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/KategoriMenu'
+      required:
+      - data
+    MenuListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Menu'
+        meta:
+          $ref: '#/components/schemas/Pagination'
+      required:
+      - data
+      - meta
+    MenuResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/Menu'
+      required:
+      - data
+    PenjualanSummaryListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PenjualanSummary'
+        meta:
+          $ref: '#/components/schemas/Pagination'
+      required:
+      - data
+      - meta
+    PenjualanResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/Penjualan'
+      required:
+      - data
+    PembelianSummaryListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PembelianSummary'
+        meta:
+          $ref: '#/components/schemas/Pagination'
+      required:
+      - data
+      - meta
+    PembelianResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/Pembelian'
+      required:
+      - data
+    LaporanPenjualanResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/LaporanPenjualan'
+      required:
+      - data
+    LaporanPembelianResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/LaporanPembelian'
+      required:
+      - data
