@@ -101,6 +101,34 @@ class ApiPaginationQueryConformanceTest extends TestCase
         $response->assertInvalid(['per_page' => '100']);
     }
 
+    #[DataProvider('paginationLowerBoundOperations')]
+    public function test_returns_422_when_pagination_parameter_is_below_openapi_minimum(
+        string $path,
+        string $role,
+        string $parameter,
+    ): void {
+        $warung = Warung::factory()->create();
+        $user = $role === 'superadmin'
+            ? User::factory()->superadmin()->create()
+            : User::factory()->create([
+                'warung_id' => $warung->id,
+                'role' => $role,
+            ]);
+        $token = $user->createToken('pagination-lower-bound-test')->plainTextToken;
+        $query = [$parameter => '0'];
+
+        $this->assertOpenApiRejectsPaginationMinimum($path, $parameter);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1'.$path.'?'.http_build_query($query))
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
+        $response->assertJsonPath('code', 'VALIDATION_ERROR');
+        $response->assertJsonPath('message', 'Data belum valid.');
+        $response->assertInvalid([$parameter => '1']);
+    }
+
     /**
      * @return array<string, array{string, string}>
      */
@@ -114,6 +142,22 @@ class ApiPaginationQueryConformanceTest extends TestCase
             'sales as manager' => ['/penjualans', 'manager'],
             'purchases as manager' => ['/pembelians', 'manager'],
         ];
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function paginationLowerBoundOperations(): array
+    {
+        $operations = [];
+
+        foreach (self::listOperations() as $name => [$path, $role]) {
+            foreach (['page', 'per_page'] as $parameter) {
+                $operations["{$name} with {$parameter}=0"] = [$path, $role, $parameter];
+            }
+        }
+
+        return $operations;
     }
 
     private function assertOpenApiRejectsPerPageOverflow(string $path): void
@@ -139,5 +183,30 @@ class ApiPaginationQueryConformanceTest extends TestCase
 
         $errors = $this->collectOpenApiSchemaErrors(101, $perPageSchema, $document, 'query.per_page');
         $this->assertContains('query.per_page is above OpenAPI maximum', $errors);
+    }
+
+    private function assertOpenApiRejectsPaginationMinimum(string $path, string $parameter): void
+    {
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path]['get'] ?? null;
+        $this->assertIsArray($operation, "OpenAPI GET {$path} must exist.");
+
+        $schema = null;
+        foreach ($operation['parameters'] ?? [] as $operationParameter) {
+            if (isset($operationParameter['$ref'])) {
+                $operationParameter = $this->resolveOpenApiReference($document, $operationParameter['$ref']);
+            }
+
+            if (($operationParameter['in'] ?? null) === 'query' && ($operationParameter['name'] ?? null) === $parameter) {
+                $schema = $operationParameter['schema'] ?? null;
+                break;
+            }
+        }
+
+        $this->assertIsArray($schema, "OpenAPI GET {$path} must define a {$parameter} query schema.");
+        $this->assertSame(1, $schema['minimum'] ?? null, "OpenAPI GET {$path} must set {$parameter} minimum to 1.");
+
+        $errors = $this->collectOpenApiSchemaErrors(0, $schema, $document, "query.{$parameter}");
+        $this->assertContains("query.{$parameter} is below OpenAPI minimum", $errors);
     }
 }
