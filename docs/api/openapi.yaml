@@ -10,9 +10,9 @@ info:
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
     tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
     login/me, role context, status akun, expiry/logout, rate limit, provisioning
-    warung, dan pengelolaan user tenant memiliki acceptance test parsial. GET/PATCH
-    admin warung, profil, katalog, acceptance penuh, serta OpenAPI runtime
-    conformance menyeluruh belum diverifikasi.
+    warung, pengelolaan user tenant, dan katalog memiliki acceptance test parsial.
+    GET/PATCH admin warung, profil, D06 untuk transaksi atas menu nonaktif,
+    acceptance penuh, serta OpenAPI runtime conformance menyeluruh belum diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -768,7 +768,7 @@ paths:
       tags:
       - Katalog
       summary: Daftar kategori-menus
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Manager dan kasir dapat membaca. Kasir selalu hanya melihat kategori aktif.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar tenant manager, pencarian/filter/sort/pagination, serta kategori aktif untuk kasir meskipun filter meminta aktif=false. Daftar hanya subset; seluruh query/schema belum dicocokkan otomatis dengan OpenAPI.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -838,7 +838,7 @@ paths:
       tags:
       - Katalog
       summary: Tambah KategoriMenu
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Hanya manager yang dapat membuat kategori.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji create kategori oleh manager, resource tenant-scoped, dan penolakan warung_id/aktor selain manager. OpenAPI runtime conformance penuh dan role matrix semua operasi masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -898,7 +898,7 @@ paths:
       tags:
       - Katalog
       summary: Detail KategoriMenu
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Kasir hanya dapat membaca kategori aktif milik warungnya.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji detail kategori manager dalam tenant sendiri; kasir membaca kategori aktif dan mendapat 404 untuk kategori nonaktif; ID tenant lain memberi 404. Conformance OpenAPI penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -949,7 +949,7 @@ paths:
       tags:
       - Katalog
       summary: Ubah KategoriMenu
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Hanya manager yang dapat mengubah kategori.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update kategori oleh manager dalam tenant sendiri, penolakan warung_id, 404 tenant lain, dan 403 role lain. Perubahan status tersedia; aturan transaksi untuk katalog nonaktif mengikuti D06 yang belum final.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1010,7 +1010,7 @@ paths:
       tags:
       - Katalog
       summary: Daftar menus
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Manager dan kasir dapat membaca. Kasir selalu hanya melihat menu aktif dari kategori aktif.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar manager/kasir, pencarian/filter kategori/sort/pagination, dan visibilitas kasir yang memaksa menu aktif dalam kategori aktif termasuk saat filter meminta aktif=false. Conformance OpenAPI penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1087,7 +1087,7 @@ paths:
       tags:
       - Katalog
       summary: Tambah Menu
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Hanya manager yang dapat membuat menu.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji create menu oleh manager dengan harga decimal string, kode unik per warung, dan kategori tenant sendiri. Kategori tenant lain, warung_id, harga_modal, gambar, dan format harga invalid ditolak. Conformance OpenAPI penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1153,7 +1153,7 @@ paths:
       tags:
       - Katalog
       summary: Detail Menu
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Kasir hanya dapat membaca menu aktif dari kategori aktif milik warungnya.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji detail dalam tenant sendiri, 404 untuk ID tenant lain, dan batas kasir pada menu/kategori nonaktif. Apakah transaksi boleh memakai katalog nonaktif masih mengikuti D06 dan belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1208,7 +1208,7 @@ paths:
       tags:
       - Katalog
       summary: Ubah Menu
-      description: 'DRAFT: implementasi awal tersedia; belum ada HTTP/contract test. Hanya manager yang dapat mengubah menu.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update nama/harga/status oleh manager dalam tenant sendiri, kategori silang ditolak, 404 tenant lain, dan 403 role lain. Perilaku transaksi terhadap menu nonaktif belum ditetapkan D06.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
