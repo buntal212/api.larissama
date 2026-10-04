@@ -274,6 +274,8 @@ Audit metadata tabel `warungs`, `users`, `kategori_menus`, `menus`, `penjualans`
 
 Scope hanya observasi schema/DB disposable dan insert fixture round-trip; tidak mengubah migration, schema, data bersama, API/business rules, atau dependensi. Acceptance semua delapan tabel dan metadata yang dinyatakan cocok migration, indeks yang diwajibkan punya susunan kolom tepat, sesi/time round-trip UTC terbukti, Pint/focused/full suite MySQL 8.0.40 lulus dan Compose dibersihkan. Upgrade users legacy T-DB-02 serta rollback migration tetap terpisah.
 
+Addendum pra-implementasi: audit metadata T-DB-01 juga harus mencocokkan seluruh FK pada `information_schema.KEY_COLUMN_USAGE` (nama constraint, kolom lokal, tabel/kolom referensi, dan urutan composite) serta `DELETE_RULE=RESTRICT`, termasuk FK `warung_id` induk dan FK gabungan D16. File tetap `BusinessSchemaMigrationConformanceTest.php`; ini hanya memperluas assertion read-only sebelum status T-DB-01 diringkas.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
