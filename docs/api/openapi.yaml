@@ -6,11 +6,12 @@ info:
     Rancangan 2026-10-04; semua operasi tetap DRAFT sampai keputusan dan test
     kontrak/fungsional lulus. User menyetujui baseline wire D13: /api/v1,
     ID/decimal string, envelope data/meta, page/per_page maksimal 100, sort
-    allowlist, dan error code/message/errors/request_id. Slice transaksi
+    allowlist, dan error code/message/errors/request_id. Slice transaksi dan auth
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
     tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
-    dan sebagian envelope D13 untuk dua report; auth, admin, katalog, acceptance
-    penuh, serta OpenAPI runtime conformance menyeluruh belum diverifikasi.
+    login/me, role context, status akun, expiry/logout, dan rate limit. Admin,
+    katalog, acceptance penuh, serta OpenAPI runtime conformance menyeluruh belum
+    diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -37,7 +38,7 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'DRAFT: implementasi tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test. Maksimum 5 percobaan login per menit untuk kombinasi username dan IP.'
+      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji sebagian login, error, expiry, limiter, dan field set D13. Conformance semua schema serta keputusan D08/D12 masih terbuka. Maksimum 5 percobaan login per menit untuk username lowercase-normalized dan IP.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles: []
@@ -110,7 +111,7 @@ paths:
       tags:
       - Auth
       summary: Identitas dan konteks akses aktif
-      description: 'DRAFT: implementasi tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
+      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji sebagian identitas login/me, konteks role, akun aktif, token expired, serta field set D13; schema dan conformance OpenAPI penuh belum diverifikasi.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -167,10 +168,10 @@ paths:
       tags:
       - Auth
       summary: Cabut sesi/token aktif
-      description: Implementasi tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.
-        Mencabut token Sanctum aktif setelah pemeriksaan user/warung. Jika server menolak akses karena
-        akun dinonaktifkan/kedaluwarsa, frontend tetap dapat membersihkan salinan token lokal; itu tidak membuktikan
-        token server tercabut.
+      description: AUTH-API-ACCEPTANCE-001 membuktikan 204 tanpa body dan hanya token bearer yang dikirim dicabut.
+        Operasi tetap DRAFT sampai seluruh schema/conformance dan keputusan pemblokir selesai. Middleware memeriksa
+        user/warung sebelum logout; jika akun sudah nonaktif atau kedaluwarsa, frontend tetap dapat menghapus token
+        lokal, tetapi request logout tidak mencabut record token di server.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -2289,8 +2290,8 @@ components:
       properties:
         access_token:
           type: string
-          description: Sanctum bearer token opaque; endpoint belum diimplementasikan. Jangan dicatat dalam log atau
-            parsing sebagai JWT.
+          description: Sanctum bearer token opaque; jangan dicatat dalam log atau parsing sebagai JWT. Test auth
+            memeriksa bahwa password dan bearer token tidak masuk record log saat login.
         token_type:
           type: string
           const: Bearer
