@@ -183,6 +183,33 @@ class ApiPaginationQueryConformanceTest extends TestCase
         $this->assertNotEmpty($response->json('errors.sort'));
     }
 
+    #[DataProvider('allowedSortOperations')]
+    public function test_accepts_each_sort_value_declared_by_openapi(string $path, string $role, string $sort): void
+    {
+        $warung = Warung::factory()->create();
+        $user = $role === 'superadmin'
+            ? User::factory()->superadmin()->create()
+            : User::factory()->create([
+                'warung_id' => $warung->id,
+                'role' => $role,
+            ]);
+        $token = $user->createToken('sort-valid-enum-test')->plainTextToken;
+        $query = ['sort' => $sort];
+
+        $this->assertOperationQueryMatchesOpenApi($query, $path, 'get');
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1'.$path.'?'.http_build_query($query));
+
+        $this->assertSame(
+            200,
+            $response->getStatusCode(),
+            "GET {$path} rejected documented sort {$sort}: {$response->getContent()}",
+        );
+        $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
+        $this->assertSame(1, $response->json('meta.page'));
+    }
+
     /**
      * @return array<string, array{string, string}>
      */
@@ -242,6 +269,29 @@ class ApiPaginationQueryConformanceTest extends TestCase
             'menus as manager' => ['/menus', 'manager'],
             'sales as manager' => ['/penjualans', 'manager'],
             'purchases as manager' => ['/pembelians', 'manager'],
+        ];
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function allowedSortOperations(): array
+    {
+        return [
+            'admin warungs by name ascending' => ['/admin/warungs', 'superadmin', 'nama'],
+            'admin warungs by name descending' => ['/admin/warungs', 'superadmin', '-nama'],
+            'users by name ascending' => ['/users', 'owner', 'nama'],
+            'users by name descending' => ['/users', 'owner', '-nama'],
+            'categories by order ascending' => ['/kategori-menus', 'manager', 'urutan'],
+            'categories by order descending' => ['/kategori-menus', 'manager', '-urutan'],
+            'categories by name ascending' => ['/kategori-menus', 'manager', 'nama'],
+            'categories by name descending' => ['/kategori-menus', 'manager', '-nama'],
+            'menus by name ascending' => ['/menus', 'manager', 'nama'],
+            'menus by name descending' => ['/menus', 'manager', '-nama'],
+            'sales by date descending' => ['/penjualans', 'manager', '-tanggal'],
+            'sales by date ascending' => ['/penjualans', 'manager', 'tanggal'],
+            'purchases by date descending' => ['/pembelians', 'manager', '-tanggal'],
+            'purchases by date ascending' => ['/pembelians', 'manager', 'tanggal'],
         ];
     }
 
