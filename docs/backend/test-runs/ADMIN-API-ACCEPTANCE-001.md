@@ -2,9 +2,12 @@
 
 Tanggal: 2026-10-04 (Asia/Jakarta)
 
-Task: BE-103/BE-104  
-Test ID: T-ADM-01/02; subset T-TEN-01/02/03, T-RBAC-01, T-API-02/04  
-Commit yang diuji: `7fed9ae0cb7807da9a203c738a9b0f74bdf34d1e`  
+Task: BE-103/BE-104
+
+Test ID: T-ADM-01/02; subset T-TEN-01/02/03, T-RBAC-01, T-API-02/04
+
+Commit yang diuji: `7fed9ae0cb7807da9a203c738a9b0f74bdf34d1e`
+
 Status run: **PASS untuk cakupan acceptance yang dicatat di bawah**
 
 ## Environment
