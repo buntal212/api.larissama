@@ -8,9 +8,10 @@ info:
     ID/decimal string, envelope data/meta, page/per_page maksimal 100, sort
     allowlist, dan error code/message/errors/request_id. Slice transaksi
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
-    tenant scope, snapshot, retry, atomicity, batas DST, serta periode kosong
-    dan invalid; auth, admin, katalog, acceptance penuh, dan OpenAPI runtime
-    conformance belum diverifikasi. Sanctum bearer 30 hari, timezone tenant,
+    tenant scope, snapshot, retry, atomicity, batas DST, periode kosong/invalid,
+    dan sebagian envelope D13 untuk dua report; auth, admin, katalog, acceptance
+    penuh, serta OpenAPI runtime conformance menyeluruh belum diverifikasi.
+    Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
     Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh
