@@ -445,3 +445,9 @@ Acceptance: inventaris 28 operasi pada 18 path cocok dua arah tanpa route hilang
 ## Hasil sinkronisasi operasi OpenAPI dengan route Laravel
 
 `API-ROUTE-INVENTORY-CONFORMANCE-001` lulus: `ApiRouteOpenApiConformanceTest` terarah 1 test / 5 assertions, seluruh 28 method/path pada 18 path cocok dua arah, tidak ada pasangan route ganda, operasi OpenAPI tanpa route, atau route API tanpa dokumentasi. Test focused tidak mengakses DB. Pint dan suite penuh lulus; suite penuh 282 test / 27262 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Service database dan network dibersihkan. Ini hanya sinkronisasi inventaris method/path; controller/action, authorization, request/response, dan seluruh status/runtime masih di luar cakupan. Semua operasi DRAFT dan gate T-API masih terbuka. Bukti: [artefak run](test-runs/API-ROUTE-INVENTORY-CONFORMANCE-001.md).
+
+## Rencana validasi format ID pada path
+
+`API-PATH-ID-POSITIVE-CONFORMANCE-001`, BE-003 dan operasi detail/update dengan `{id}`, D13. OpenAPI mendefinisikan parameter path `Id` sebagai string dengan pola `^[1-9][0-9]*$`; route Laravel saat ini menggunakan `whereNumber()`. Tambahkan feature test provider dari setiap operasi OpenAPI yang path-nya memiliki `{id}`. Periksa referensi parameter/path ke schema `Id`, lalu panggil tiap method tanpa bearer dengan ID `1` (harus mencapai middleware auth dan memberi 401) serta ID `0`, `01`, dan `abc` (harus tidak cocok route dan memberi 404). Jika probe gagal, ganti constraint ID route dengan pola positif yang sama.
+
+Acceptance: seluruh 10 operasi detail/update membuktikan pola schema dan perilaku route yang selaras; request invalid tidak mencapai controller/DB; Pint, focused test dan suite penuh lulus di MySQL 8.0.40 Compose disposable lalu cleanup. Perubahan hanya constraint format path dan test; tidak mengubah tenant, role, payload atau schema DB. Semua operasi tetap DRAFT.
