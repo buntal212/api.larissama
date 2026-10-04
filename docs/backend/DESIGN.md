@@ -1,14 +1,14 @@
 # Rancangan Backend LarisSama
 
-Status: rancangan, belum implementasi. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K08 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx masih menunggu penetapan. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
+Status: rancangan backend; fondasi Laravel dan Sanctum sudah dipasang, tetapi migration bisnis dan endpoint belum diimplementasikan. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K09 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx masih menunggu penetapan. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
 
 ## Kondisi awal yang diamati
 
 - composer.json meminta PHP ^8.3 dan Laravel ^13.17; itu constraint proyek, bukan bukti runtime terpasang.
-- Model User masih bawaan (`name`, `email`, `password`); migration bisnis belum ada. Migration users/cache/jobs adalah infrastruktur awal.
-- bootstrap/app.php mendaftarkan web, console, dan health /up; routes/api.php belum ada.
+- Kolom User masih bawaan (`name`, `email`, `password`); trait Sanctum sudah ditambahkan, migration bisnis belum ada. Migration users/cache/jobs dan `personal_access_tokens` adalah infrastruktur.
+- `bootstrap/app.php` mendaftarkan API; `routes/api.php` masih kosong dan belum menyediakan endpoint.
 - Test yang tersedia hanya contoh Unit dan Feature. Tidak ada bukti tenant, nominal, transaksi, atau kontrak bisnis sudah lulus.
-- Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia dalam shell sesi ini. Setup runtime dicatat sebagai task M0; penulisan rancangan dapat berjalan.
+- Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia di host, tetapi image Docker opsional berhasil menyediakan PHP 8.3.35 dan Composer 2.10.3. Harness dan database test terisolasi belum diverifikasi.
 
 ## Modul dan hasil bagi pengguna
 
@@ -53,20 +53,17 @@ tests/{Unit,Feature,Integration,Contract}/
 
 Nama class adalah usulan organisasi; tidak perlu membuat semua folder atau menambahkan repository abstraction lebih dulu. Controller hanya menghubungkan HTTP, authorization, action/query, dan resource. Efek wajib tidak disembunyikan dalam observer/listener. Framework/package API diverifikasi saat implementasi terhadap versi yang terpasang.
 
-## Matriks izin kandidat (D04)
+## Pembagian peran yang disetujui (D04)
 
-| Operasi | superadmin | owner | manager | kasir | koki |
-| --- | --- | --- | --- | --- | --- |
-| Kelola warung dan owner awal | Ya, jalur admin | Tidak | Tidak | Tidak | Tidak |
-| Lihat profil warung sendiri | Tidak melalui jalur tenant | Ya | Ya | Ya | Belum ditetapkan |
-| Kelola user warung | Tidak melalui jalur tenant | Ya | Tidak | Tidak | Tidak |
-| Baca katalog | Tidak melalui jalur tenant | Ya | Ya | Ya | Tidak |
-| Ubah katalog | Tidak melalui jalur tenant | Ya | Ya | Tidak | Tidak |
-| Buat penjualan | Tidak melalui jalur tenant | Ya | Ya | Ya | Tidak |
-| Riwayat penjualan | Tidak melalui jalur tenant | Semua di warung | Semua di warung | Milik sendiri, kandidat | Tidak |
-| Pembelian dan laporan periode | Tidak melalui jalur tenant | Ya | Ya | Tidak | Tidak |
+| Tanggung jawab inti | superadmin | owner | manager | kasir |
+| --- | --- | --- | --- | --- |
+| Mengelola warung dan membuat owner awal melalui jalur admin | Ya | Tidak | Tidak | Tidak |
+| Mengelola user pada warung sendiri | Tidak melalui jalur tenant | Ya | Tidak | Tidak |
+| Mengelola katalog, pembelian, dan laporan | Tidak melalui jalur tenant | Belum ditetapkan | Ya | Tidak |
+| Menangani penjualan | Tidak melalui jalur tenant | Belum ditetapkan | Belum ditetapkan | Ya |
+| Bertindak sebagai user tenant tanpa autentikasi tenant | Tidak | — | — | — |
 
-Matriks ini belum menjadi izin final. Field role dari client tidak boleh menaikkan hak tanpa policy. Jalur pengelolaan user tenant tidak boleh membuat superadmin; provisioning owner awal memakai tindakan admin tersendiri. Perubahan email/username tetap tunduk pada D12.
+User menyetujui tanggung jawab inti ini pada 2026-10-04. Izin baca versus ubah di tiap modul, akses owner ke selain user, dan cakupan riwayat penjualan kasir masih menunggu rincian. Sampai diputuskan, policy mengikuti default deny. Superadmin memakai jalur administrasi terpisah dan tidak memperoleh akses transaksi tenant. Request tidak boleh menaikkan role; pengelolaan user tenant tidak boleh membuat superadmin. Perubahan email/username tetap tunduk pada D12.
 
 ## Integritas data dan migration
 
@@ -84,7 +81,7 @@ Matriks ini belum menjadi izin final. Field role dari client tidak boleh menaikk
 | --- | --- | --- |
 | INV01 | Warung biasa berasal dari user terautentikasi. | Abaikan sebagai otoritas dan tolak field tenant yang tidak didukung pada request; filter setiap query/route lookup. |
 | INV02 | Semua referensi milik warung yang sama. | Validasi tenant dan FK sesuai engine; detail dibaca melalui header terscope. |
-| INV03 | User aktif dan warung aktif dalam masa berlaku. | Periksa login serta setiap request; token lama tidak melewati penonaktifan/kedaluwarsa. |
+| INV03 | User aktif dan warung aktif dalam masa berlaku. | Periksa login serta setiap request; `tanggal_mulai` NULL tidak membatasi awal, `tanggal_berakhir` NULL tidak membatasi akhir, dan tanggal terisi inklusif; token kedaluwarsa atau status nonaktif tidak boleh diterima. |
 | INV04 | Header memiliki >= 1 detail, tanpa penyimpanan sebagian. | Validasi array dan DB transaction; kegagalan detail me-rollback header, total, nomor, serta efek retry. |
 | INV05 | Nominal eksak dan dihitung backend. | Decimal, validasi batas/rounding D05; total dari detail, bukan total client. |
 | INV06 | Setiap penjualan memilih menu terdaftar pada warung yang sama; riwayat menyimpan nama/harga jual saat transaksi. | `menu_id` wajib pada detail, menu di-resolve di scope warung dan snapshot disimpan dalam action; perubahan master tidak menulis ulang rincian. |
@@ -119,7 +116,7 @@ Kandidat D08: query `tanggal >= start_of_day(date_from, zone)` dan `tanggal < st
 
 ## Keamanan, operasional, dan handoff
 
-Password/token tidak keluar resource atau log. Sanctum bearer token sudah dipilih dan package v4.3.3 terpasang; rate limit login, token expiry/revokasi, HTTPS/CORS, penyimpanan rahasia, dan detail deployment masih perlu ditetapkan di D02 sebelum BE-102/BE-502 selesai. Error JSON tidak menampilkan SQL atau kredensial; request ID membantu penelusuran. Halaman di luar scope menggunakan respons yang konsisten menurut D13.
+Password/token tidak keluar resource atau log. Sanctum bearer token dengan masa berlaku 30 hari sudah dipilih dan package v4.3.3 terpasang; konfigurasi kedaluwarsa dan logout harus menerapkan keputusan ini. Rate limit login, HTTPS/CORS, penyimpanan rahasia, dan detail deployment masih perlu ditetapkan sebelum BE-102/BE-502 selesai. Error JSON tidak menampilkan SQL atau kredensial; request ID membantu penelusuran. Halaman di luar scope menggunakan respons yang konsisten menurut D13.
 
 Runbook rilis yang dibuat pada BE-502 harus berisi prasyarat versi, konfigurasi tanpa rahasia, migrasi upgrade, backup/restore yang diuji pada salinan, rollback aplikasi, endpoint health, log, dan keterbatasan. Hindari migration destruktif pada data bersama.
 
