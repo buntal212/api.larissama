@@ -2,6 +2,15 @@
 
 Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Login/me/logout, administrasi warung + owner awal, profil warung, dan pengelolaan user tenant sudah memiliki implementasi awal, tetapi masih `DRAFT` karena test aplikasi dan contract test belum dijalankan. Katalog, transaksi, serta laporan belum tersedia. File ini dapat dipakai untuk review dan mock yang diberi label, bukan bukti integrasi live sudah dapat berjalan.
 
+## Status implementasi yang tersedia
+
+| Slice | Commit | Pemeriksaan lokal | Handoff |
+| --- | --- | --- | --- |
+| Auth dan akses | `2cafc46` | Pint/PHP lint, 3 route, timezone sesi MySQL, migration timezone (`AUTH-API-001`, `DB-MIGRATION-003`) | Belum ada HTTP/app/contract test; DRAFT |
+| Administrasi warung dan user tenant | `0f7e39c` | Pint/PHP lint, 9 route, YAML parse (`ADMIN-API-001`) | Belum ada HTTP/app/contract test; DRAFT |
+
+Rincian hasil dan batas pemeriksaan ada di [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md). Jangan arahkan frontend ke server live sampai kontrak operasi berstatus `READY_FOR_FRONTEND`.
+
 ## Urutan baca untuk AI frontend
 
 1. Baca panduan ini untuk istilah, bentuk data, alur, dan batas integrasi.
