@@ -34,10 +34,12 @@ class AuthApiTest extends TestCase
         $logHandler = new TestHandler;
         Log::getLogger()->pushHandler($logHandler);
 
-        $login = $this->postJson('/api/v1/auth/login', [
+        $loginRequest = [
             'username' => $user->username,
             'password' => $password,
-        ])->assertOk();
+        ];
+        $this->assertOperationRequestMatchesOpenApi($loginRequest, [], '/auth/login', 'post');
+        $login = $this->postJson('/api/v1/auth/login', $loginRequest)->assertOk();
         $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
 
         $loginBody = $login->json();
@@ -98,10 +100,12 @@ class AuthApiTest extends TestCase
             'role' => $role,
         ]);
 
-        $login = $this->postJson('/api/v1/auth/login', [
+        $loginRequest = [
             'username' => $user->username,
             'password' => 'password',
-        ])->assertOk();
+        ];
+        $this->assertOperationRequestMatchesOpenApi($loginRequest, [], '/auth/login', 'post');
+        $login = $this->postJson('/api/v1/auth/login', $loginRequest)->assertOk();
         $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
 
         $this->assertSame($role, $login->json('data.user.role'));
@@ -129,14 +133,19 @@ class AuthApiTest extends TestCase
     {
         $user = User::factory()->create(['username' => 'known-auth-user']);
 
-        $wrongPassword = $this->postJson('/api/v1/auth/login', [
+        $wrongPasswordRequest = [
             'username' => $user->username,
             'password' => 'wrong-auth-secret',
-        ])->assertUnauthorized();
-        $unknownUsername = $this->postJson('/api/v1/auth/login', [
+        ];
+        $unknownUsernameRequest = [
             'username' => 'unknown-auth-user',
             'password' => 'wrong-auth-secret',
-        ])->assertUnauthorized();
+        ];
+        $this->assertOperationRequestMatchesOpenApi($wrongPasswordRequest, [], '/auth/login', 'post');
+        $this->assertOperationRequestMatchesOpenApi($unknownUsernameRequest, [], '/auth/login', 'post');
+
+        $wrongPassword = $this->postJson('/api/v1/auth/login', $wrongPasswordRequest)->assertUnauthorized();
+        $unknownUsername = $this->postJson('/api/v1/auth/login', $unknownUsernameRequest)->assertUnauthorized();
 
         $this->assertOperationResponseMatchesOpenApi($wrongPassword, '/auth/login', 'post');
         $this->assertOperationResponseMatchesOpenApi($unknownUsername, '/auth/login', 'post');
