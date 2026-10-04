@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\WarungResource;
 use App\Models\User;
+use App\Models\Warung;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -16,7 +17,7 @@ class CurrentWarungController extends Controller
         $user = $request->user();
 
         abort_unless($user instanceof User, 401);
-        Gate::authorize('viewCurrent', $user);
+        Gate::authorize('viewCurrent', Warung::class);
 
         $warung = $user->warung;
         abort_if($warung === null, 404);
