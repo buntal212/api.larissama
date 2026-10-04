@@ -23,7 +23,7 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 | ID | Keputusan | Usulan untuk ditinjau / informasi yang dibutuhkan | Blokir |
 | --- | --- | --- | --- |
 | D01 | Versi database produksi dan transisi schema awal | User memilih MySQL 8.0.40 sebagai target. Inventaris migration/isi tabel users tetap harus dilakukan sebelum perubahan users; validasi integrasi memakai versi ini, bukan SQLite default. | M0 setup DB, transisi users |
-| D02 | Detail konfigurasi auth Sanctum bearer yang dipilih user | User menetapkan masa berlaku bearer token 30 hari dan login ulang setelah kedaluwarsa. Set `sanctum.expiration` ke 30 hari; logout mencabut token yang dipakai. Tetapkan CORS frontend, HTTPS, dan rate limit sebelum route auth digunakan. | M1 login dan route terproteksi |
+| D02 | Detail konfigurasi auth Sanctum bearer yang dipilih user | User menetapkan masa berlaku bearer token 30 hari, login ulang setelah kedaluwarsa, dan batas login 5 percobaan per menit untuk setiap kombinasi username dan IP. Logout mencabut token yang dipakai. Tetapkan CORS frontend dan HTTPS sebelum deployment. | M1 login dan route terproteksi |
 | D03 | Arti tanggal masa aktif warung yang NULL — DIPUTUSKAN | `tanggal_mulai = NULL` tidak membatasi tanggal mulai; `tanggal_berakhir = NULL` tidak membatasi tanggal akhir. Nilai terisi tetap berlaku inklusif. Periksa status aktif user dan warung secara terpisah. | Selesai untuk M1 middleware/login |
 | D04 | Matriks role inti dan operasi superadmin — DISETUJUI | User menyetujui pembagian inti: superadmin mengelola warung dan owner awal melalui jalur admin; owner mengelola user warungnya; manager menangani katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak pada tenant. Detail izin baca/ubah yang tidak disebut dan cakupan riwayat kasir tetap harus ditetapkan sebelum policy terkait dibuat. | M1 policies dan endpoint berizin; detail policy tersisa |
 | D05 | Nominal, qty, diskon, pembayaran, pembulatan | Kandidat: string decimal dua angka pecahan; qty > 0; uang >= 0; round half-up per rincian; diskon nominal; total = subtotal - diskon header; cash bayar >= total. Putuskan QRIS/transfer, harga nol, batas angka, mata uang tampilan, dan apakah qty penjualan boleh pecahan. | M3 calculator dan M4 nominal |
@@ -48,7 +48,7 @@ Rancangan delapan tabel ada di [database/README.md](../../database/README.md). P
 | ID | Status saat ini | Pilihan final | Sumber / tanggal |
 | --- | --- | --- | --- |
 | D01 | PARTIAL | MySQL 8.0.40; transisi users masih menunggu inventaris | Pilihan user, 2026-10-04 |
-| D02 | PARTIAL | Sanctum bearer token, kedaluwarsa setelah 30 hari; logout mencabut token aktif | Pilihan user, 2026-10-04; CORS/HTTPS/rate limit tersisa |
+| D02 | PARTIAL | Sanctum bearer token 30 hari; login dibatasi 5 percobaan per menit per username dan IP; logout mencabut token aktif | Pilihan user, 2026-10-04; CORS/HTTPS deployment tersisa |
 | D03 | DECIDED | NULL berarti tanpa batas; tanggal terisi inklusif | Jawaban user, 2026-10-04 |
 | D04 | PARTIAL | Pembagian tugas inti role dan batas superadmin disetujui | Persetujuan user, 2026-10-04; detail policy baca/ubah dan riwayat tersisa |
 | D05–D06 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
