@@ -8,7 +8,7 @@ Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi
 | --- | --- | --- | --- |
 | Auth dan akses | `2cafc46` | Pint/PHP lint, 3 route, timezone sesi MySQL, migration timezone (`AUTH-API-001`, `DB-MIGRATION-003`) | Belum ada HTTP/app/contract test; DRAFT |
 | Administrasi warung dan user tenant | `0f7e39c` | Pint/PHP lint, 9 route, YAML parse (`ADMIN-API-001`) | Belum ada HTTP/app/contract test; DRAFT |
-| Kategori dan menu | perubahan lokal M2 | Implementasi awal API/migration sedang diverifikasi; belum di-commit | Belum ada HTTP/app/contract test; DRAFT |
+| Kategori dan menu | `eb5ea04` | Pint/PHP lint, 8 route, YAML parse, dua migration dan `db:table` pada MySQL 8.0.40 (`CATALOG-API-001`, `DB-MIGRATION-004`) | Belum ada HTTP/app/contract test; DRAFT, rincian D02/D04/D05/D06/D13/D16 masih perlu ditutup |
 
 Rincian hasil dan batas pemeriksaan ada di [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md). Jangan arahkan frontend ke server live sampai kontrak operasi berstatus `READY_FOR_FRONTEND`.
 
@@ -88,6 +88,22 @@ Belum ada kontrak endpoint delete, cancel penjualan, koreksi pembelian, upload g
 ### Login dan menu navigasi
 
 Login mengembalikan identitas serta konteks warung. Ambil ulang `/auth/me` saat memulihkan sesi untuk mengetahui akses terkini. Visibilitas menu mengikuti izin yang disepakati, tetapi backend tetap memeriksa semua request. UI tidak membuat pemilih warung untuk user tenant biasa.
+
+### Katalog kategori dan menu
+
+Manager dapat membuat dan mengubah kategori/menu; manager dan kasir dapat membaca katalog warung sendiri. Kasir selalu menerima kategori dan menu aktif saja, juga bila mengirim `aktif=false`; menu pada kategori nonaktif ikut disembunyikan. Detail item yang tidak terlihat untuk kasir menghasilkan 404. Daftar memakai pagination `page`/`per_page`, pencarian `q`, dan sort allowlist sesuai OpenAPI. `kategori_menu_id` harus berasal dari warung user; jangan kirim `warung_id`. Payload menu MVP memuat harga jual sebagai decimal string dua pecahan; `harga_modal` dan `gambar` tidak dikirim/diterima.
+
+Contoh buat kategori dan menu:
+
+```http
+POST /api/v1/kategori-menus
+{"nama":"Makanan","urutan":0}
+
+POST /api/v1/menus
+{"kategori_menu_id":"101","kode":"NASI","nama":"Nasi","harga":"15000.00"}
+```
+
+Menu dapat dinonaktifkan dengan `PATCH /api/v1/menus/{id}` memakai body `{"aktif":false}`; tidak ada endpoint hapus. Batas uang dan konsekuensi arsip untuk transaksi final masih mengikuti D05/D06, sehingga contoh ini belum menjadi kontrak live.
 
 ### Penjualan
 
