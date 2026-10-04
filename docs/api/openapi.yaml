@@ -14,7 +14,7 @@ info:
     test parsial. Response runtime auth, admin, katalog, dan transaksi/laporan dicocokkan
     dengan schema untuk subset operasi/status; requestBody POST/PATCH admin/katalog,
     body/header POST sale/purchase, dan query terpilih pada list akses/katalog/transaksi
-    serta report juga diperiksa terhadap OpenAPI.
+    serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`).
     Request/query operasi lain, profil
     `/warung`, D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance
     menyeluruh belum diverifikasi.
