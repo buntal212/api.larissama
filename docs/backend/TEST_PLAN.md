@@ -48,6 +48,12 @@ Checker menilai map fixture yang dipakai membangun URL, bukan request object Lar
 
 Run: Pint lulus; empat feature test area akses/katalog lulus 28 test / 3808 assertions; suite penuh lulus 81 test / 10554 assertions pada MySQL 8.0.40 Compose disposable. Tidak ada mismatch untuk nilai terpilih. Checker menguji map fixture yang membangun URL, bukan request object Laravel aktual, dan bukan validator OpenAPI umum. Query invalid/unknown, batas maksimum per_page=100, seluruh kombinasi/role/status, dan semua operasi belum dicakup. Slice hanya membaca data dan tidak mengubah schema, controller, role/tenant/filter behavior atau operasi tulis. Semua operasi tetap `DRAFT`; T-API-02/03 penuh, G1, dan G2 tetap terbuka. Rincian ada di artefak [ACCESS-CATALOG-QUERY-CONFORMANCE-001](test-runs/ACCESS-CATALOG-QUERY-CONFORMANCE-001.md).
 
+## Rencana conformance batas pagination
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13: gunakan `assertOperationQueryMatchesOpenApi()` untuk `per_page=100` dan kirim map yang sama melalui feature HTTP pada enam endpoint daftar: `/admin/warungs`, `/users`, `/kategori-menus`, `/menus`, `/penjualans`, dan `/pembelians`. Cocokkan setiap response sukses dengan schema operasi dan pastikan metadata mengembalikan `per_page=100`.
+
+Gunakan fixture dua tenant yang relevan dan role yang telah disetujui; tanpa perubahan controller, request validator, schema DB, policy, atau business behavior. Acceptance: checker membuktikan batas atas query OpenAPI dan HTTP menerima nilai batas pada keenam endpoint; `meta.per_page` tetap 100; Pint, test terarah dan suite penuh lulus pada MySQL 8.0.40 Compose disposable. Semua operasi tetap DRAFT; nilai invalid lain, seluruh filter/status, dan gate T-API-02/03 penuh tetap terbuka.
+
 ## Conformance request administrasi dan katalog
 
 `ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001` mencocokkan payload sukses yang sama-sama dipakai untuk request feature dengan requestBody OpenAPI pada delapan operasi: `POST /admin/warungs`, `PATCH /admin/warungs/{id}`, `POST/PATCH /users`, `POST/PATCH /kategori-menus`, dan `POST/PATCH /menus`. Create menu mengirim `kategori_menu_id` sebagai string sesuai D13.
