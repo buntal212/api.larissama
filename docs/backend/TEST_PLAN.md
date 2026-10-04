@@ -357,6 +357,14 @@ Pindahkan barrier worker setelah Laravel Kernel dan Request siap. Catat `microti
 
 `user_id` yang unique global serta FK tenant mengikat tiap user ke satu warung; role juga memisahkan endpoint sale dan purchase. Karena itu tenant dan endpoint diuji melalui kombinasi konteks sah, bukan divariasikan sendiri dengan actor yang sama. D09/T-RET-03 terbukti untuk konteks tersebut; crash/restart dan retensi key tetap terbuka, sehingga keputusan D09 serta seluruh operasi transaksi masih PARTIAL/DRAFT. Detail ada di [artefak run](test-runs/IDEMPOTENCY-SCOPE-NUMBER-001.md).
 
+## Rencana crash/restart idempotency T-RET-04
+
+Tambahkan data provider penjualan/pembelian pada `IdempotencyConcurrencyTest.php`. Untuk crash sebelum commit, pasang trigger MySQL sementara pada insert detail yang mengambil named lock lalu menahan query. Jalankan satu request pada proses PHP terpisah; setelah parent melihat lock diambil (berarti header sudah masuk dan insert detail sedang berjalan di dalam transaksi), kirim SIGKILL ke worker. Tunggu koneksi MySQL melepas lock, hapus trigger, lalu pastikan tidak ada header maupun detail dengan key itu. Kirim ulang payload/key yang sama dari proses PHP baru; harapkan HTTP 201 dan tepat satu header/detail dengan response cocok row.
+
+Untuk crash setelah commit/respons diterima, jalankan request sukses dalam proses PHP terpisah sampai proses keluar, lalu ulangi key/payload identik pada proses PHP baru yang membangun Kernel baru. Harapkan kedua response HTTP 201 berisi ID/no_transaksi sama dan tetap tepat satu header/detail. Periksa kedua proses punya PID berbeda dan seluruh row cocok user/tenant serta endpoint yang diuji. Proses PHP test worker boleh menerima request tanpa barrier untuk skenario berurutan; mode barrier concurrency existing tetap diwajibkan pada test concurrency.
+
+Trigger hanya dipakai DB test MySQL 8.0.40 disposable; hapus dalam `finally`, paksa stop worker bila assertion gagal, dan pastikan tidak ada koneksi/trigger yang tertinggal. Tidak mengubah runtime API, migration, schema, atau dependency. Catat Pint, focused `IdempotencyConcurrencyTest`, suite penuh, hashes, dan cleanup. Uji ini membuktikan rollback transaksi sebelum commit dan replay durable setelah worker baru hidup; tidak menetapkan masa retensi setelah header dihapus, dan semua operasi tetap DRAFT sampai conformance lain lulus.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
