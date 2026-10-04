@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs` sudah dibuat dan berhasil diterapkan pada clean-install lokal MySQL 8.0.40; migration bisnis lain dan adaptasi `users` belum dibuat. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs` dan adaptasi `users` sudah diterapkan pada clean-install lokal MySQL 8.0.40. Enam tabel bisnis lain belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
