@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -22,6 +23,23 @@ class User extends Authenticatable
     public function warung(): BelongsTo
     {
         return $this->belongsTo(Warung::class);
+    }
+
+    public function allowsApplicationAccessOn(CarbonInterface $localDate): bool
+    {
+        if (! $this->aktif) {
+            return false;
+        }
+
+        if ($this->role === 'superadmin') {
+            return $this->warung_id === null;
+        }
+
+        if ($this->warung_id === null) {
+            return false;
+        }
+
+        return $this->warung?->allowsAccessOn($localDate) ?? false;
     }
 
     /**

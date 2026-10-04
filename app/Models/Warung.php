@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\WarungFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,6 +27,15 @@ class Warung extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function allowsAccessOn(CarbonInterface $localDate): bool
+    {
+        $date = $localDate->toDateString();
+
+        return $this->aktif
+            && ($this->tanggal_mulai === null || $this->tanggal_mulai->toDateString() <= $date)
+            && ($this->tanggal_berakhir === null || $this->tanggal_berakhir->toDateString() >= $date);
     }
 
     /**
