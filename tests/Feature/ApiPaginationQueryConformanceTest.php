@@ -60,8 +60,12 @@ class ApiPaginationQueryConformanceTest extends TestCase
 
             $token = $user->createToken('pagination-boundary-test')->plainTextToken;
             $response = $this->withToken($token)
-                ->getJson('/api/v1'.$path.'?'.http_build_query($query))
-                ->assertOk();
+                ->getJson('/api/v1'.$path.'?'.http_build_query($query));
+            $this->assertSame(
+                200,
+                $response->getStatusCode(),
+                "GET {$path} failed: {$response->getContent()}",
+            );
 
             $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
             $this->assertSame(100, $response->json('meta.per_page'), "{$path} must accept per_page=100.");
