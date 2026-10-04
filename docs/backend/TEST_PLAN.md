@@ -266,6 +266,14 @@ Tidak mengubah migration, schema, model, data selain fixture test, auth/policy, 
 
 Run lulus pada 2026-10-05: Pint; `TenantCompositeForeignKeyTest` 10 test / 13 assertions; suite penuh `php artisan test --display-warnings` 225 test / 25611 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. `RefreshDatabase` mengisolasi fixture dan Compose dibersihkan. Tidak mengubah migration atau runtime. Ini menutup kasus constraint database yang tercantum pada rencana; T-DB-01 full, upgrade users lama T-DB-02, rollback migration, dan gate milestone tetap terbuka. Rincian ada di [TENANT-COMPOSITE-FK-CONSTRAINT-001](test-runs/TENANT-COMPOSITE-FK-CONSTRAINT-001.md).
 
+## Pra-implementasi audit schema database T-DB-01
+
+Task BE-101/201/301/401, T-DB-01, INV01–INV11, D01/D07/D08/D09/D16. Sumber kebenaran: delapan migration bisnis yang sudah ada dan skema target MySQL 8.0.40. Tambahkan `tests/Feature/BusinessSchemaMigrationConformanceTest.php` dengan `RefreshDatabase`.
+
+Audit metadata tabel `warungs`, `users`, `kategori_menus`, `menus`, `penjualans`, `penjualan_rincis`, `pembelians`, `pembelian_rincis`: kolom/tipe penting, PK `id`, indeks tenant/unique/idempotency, nullable, decimal precision/scale, `DATETIME_PRECISION`, wajibnya `penjualan_rincis.menu_id`, tidak adanya `jenis_item`, dan pasangan nullable untuk rincian pembelian. Verifikasi sesi MySQL `@@session.time_zone = '+00:00'` serta round-trip nilai tanggal yang dibuat sebagai UTC.
+
+Scope hanya observasi schema/DB disposable dan insert fixture round-trip; tidak mengubah migration, schema, data bersama, API/business rules, atau dependensi. Acceptance semua delapan tabel dan metadata yang dinyatakan cocok migration, indeks yang diwajibkan punya susunan kolom tepat, sesi/time round-trip UTC terbukti, Pint/focused/full suite MySQL 8.0.40 lulus dan Compose dibersihkan. Upgrade users legacy T-DB-02 serta rollback migration tetap terpisah.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
