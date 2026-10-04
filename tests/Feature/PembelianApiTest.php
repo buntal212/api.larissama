@@ -233,6 +233,26 @@ class PembelianApiTest extends TestCase
         $this->assertSame(0, Pembelian::query()->count());
     }
 
+    public function test_superadmin_cannot_create_a_purchase_for_a_tenant(): void
+    {
+        $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
+        $token = $superadmin->createToken('feature-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-superadmin-denied'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+
+        $this->assertDatabaseCount('pembelians', 0);
+        $this->assertDatabaseCount('pembelian_rincis', 0);
+    }
+
     public function test_manager_gets_404_for_purchase_from_another_warung(): void
     {
         $warungA = Warung::factory()->create();

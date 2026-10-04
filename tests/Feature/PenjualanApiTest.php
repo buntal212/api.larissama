@@ -218,6 +218,30 @@ class PenjualanApiTest extends TestCase
         $this->assertSame(0, Penjualan::query()->count());
     }
 
+    public function test_superadmin_cannot_create_a_sale_for_a_tenant(): void
+    {
+        $warung = Warung::factory()->create();
+        $menu = Menu::factory()->create(['warung_id' => $warung->id]);
+        $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
+        $token = $superadmin->createToken('feature-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'bayar' => '15000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-superadmin-denied'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+
+        $this->assertDatabaseCount('penjualans', 0);
+        $this->assertDatabaseCount('penjualan_rincis', 0);
+    }
+
     public function test_sales_report_uses_tenant_local_day_and_completed_sales_only(): void
     {
         $warungA = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
