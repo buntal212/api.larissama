@@ -494,6 +494,154 @@ class IdempotencyConcurrencyTest extends TestCase
         }
     }
 
+    #[DataProvider('transactionTypes')]
+    public function test_killed_worker_before_commit_rolls_back_and_fresh_worker_can_retry(string $transactionType): void
+    {
+        $warung = Warung::factory()->create();
+        $role = $transactionType === 'penjualan' ? 'kasir' : 'manager';
+        $actor = User::factory()->create(['warung_id' => $warung->id, 'role' => $role]);
+        $menu = $transactionType === 'penjualan'
+            ? Menu::factory()->create(['warung_id' => $warung->id])
+            : null;
+        $token = $actor->createToken('crash-recovery-test')->plainTextToken;
+        $idempotencyKey = 'crash-before-commit-'.Str::uuid();
+        $lockName = 'larissama_'.Str::lower(Str::random(20));
+        $triggerName = 'test_crash_'.Str::lower(Str::random(16));
+        $headerTable = $transactionType === 'penjualan' ? 'penjualans' : 'pembelians';
+        $detailTable = $transactionType === 'penjualan' ? 'penjualan_rincis' : 'pembelian_rincis';
+        $model = $transactionType === 'penjualan' ? Penjualan::class : Pembelian::class;
+        $payload = $this->transactionPayload($transactionType, $menu);
+        $process = null;
+        $triggerCreated = false;
+
+        try {
+            DB::unprepared("CREATE TRIGGER {$triggerName} BEFORE INSERT ON {$detailTable} FOR EACH ROW BEGIN DECLARE lock_acquired INT; SET lock_acquired = GET_LOCK('{$lockName}', 30); IF lock_acquired IS NULL OR lock_acquired = 0 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Test lock was not acquired'; END IF; DO SLEEP(60); END");
+            $triggerCreated = true;
+
+            $process = $this->newTransactionWorker($transactionType, $token, $idempotencyKey, $payload);
+            $process->setTimeout(30);
+            $process->start();
+            $ownerConnectionId = $this->waitForNamedLockOwner($lockName, $process);
+            self::assertNotNull($ownerConnectionId, 'Worker harus tertahan pada insert detail di tengah transaksi.');
+
+            $process->signal(9);
+            $process->wait();
+            self::assertFalse($process->isRunning(), 'Worker harus berhenti setelah SIGKILL.');
+            $this->waitForNamedLockRelease($lockName);
+
+            DB::unprepared("DROP TRIGGER IF EXISTS {$triggerName}");
+            $triggerCreated = false;
+
+            self::assertSame(0, $model::query()
+                ->where('warung_id', $warung->id)
+                ->where('user_id', $actor->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->count(), 'Header harus rollback setelah worker mati sebelum commit.');
+            self::assertSame(0, DB::table($detailTable)->where('warung_id', $warung->id)->count());
+
+            $retryProcess = $this->newTransactionWorker($transactionType, $token, $idempotencyKey, $payload);
+            $retryProcess->setTimeout(20);
+            $retryProcess->run();
+            self::assertSame(0, $retryProcess->getExitCode(), $retryProcess->getErrorOutput());
+            $retry = json_decode(trim($retryProcess->getOutput()), true, 512, JSON_THROW_ON_ERROR);
+
+            self::assertSame(201, $retry['status']);
+            $transaction = $model::query()
+                ->where('warung_id', $warung->id)
+                ->where('user_id', $actor->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->firstOrFail();
+            self::assertSame((string) $transaction->id, $retry['data']['id']);
+            self::assertSame($transaction->no_transaksi, $retry['data']['no_transaksi']);
+            self::assertSame(1, $transaction->rincian()->count());
+        } finally {
+            if ($process instanceof Process && $process->isRunning()) {
+                $process->signal(9);
+                $process->wait();
+            }
+
+            if ($triggerCreated) {
+                DB::unprepared("DROP TRIGGER IF EXISTS {$triggerName}");
+            }
+
+            $this->deleteTransactionFixtures([$warung->id]);
+            $actor->tokens()->delete();
+            $actor->delete();
+
+            if ($menu !== null) {
+                DB::table('menus')->where('warung_id', $warung->id)->delete();
+                DB::table('kategori_menus')->where('warung_id', $warung->id)->delete();
+            }
+
+            DB::table('warungs')->where('id', $warung->id)->delete();
+        }
+    }
+
+    #[DataProvider('transactionTypes')]
+    public function test_new_worker_replays_committed_transaction_after_response_loss(string $transactionType): void
+    {
+        $warung = Warung::factory()->create();
+        $role = $transactionType === 'penjualan' ? 'kasir' : 'manager';
+        $actor = User::factory()->create(['warung_id' => $warung->id, 'role' => $role]);
+        $menu = $transactionType === 'penjualan'
+            ? Menu::factory()->create(['warung_id' => $warung->id])
+            : null;
+        $token = $actor->createToken('restart-replay-test')->plainTextToken;
+        $idempotencyKey = 'crash-after-commit-'.Str::uuid();
+        $model = $transactionType === 'penjualan' ? Penjualan::class : Pembelian::class;
+        $payload = $this->transactionPayload($transactionType, $menu);
+
+        try {
+            $firstProcess = $this->newTransactionWorker($transactionType, $token, $idempotencyKey, $payload, true);
+            $firstProcess->setTimeout(20);
+            $firstProcess->start();
+            $firstPid = $firstProcess->getPid();
+            $firstProcess->wait();
+
+            self::assertSame(97, $firstProcess->getExitCode(), 'Worker sengaja berhenti setelah Kernel memberi HTTP 201 sebelum respons sampai ke pemanggil.');
+            self::assertSame('', trim($firstProcess->getOutput()));
+
+            $firstTransaction = $model::query()
+                ->where('warung_id', $warung->id)
+                ->where('user_id', $actor->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->firstOrFail();
+            self::assertSame(1, $firstTransaction->rincian()->count());
+
+            $retryProcess = $this->newTransactionWorker($transactionType, $token, $idempotencyKey, $payload);
+            $retryProcess->setTimeout(20);
+            $retryProcess->start();
+            $retryPid = $retryProcess->getPid();
+            $retryProcess->wait();
+
+            self::assertSame(0, $retryProcess->getExitCode(), $retryProcess->getErrorOutput());
+            $retry = json_decode(trim($retryProcess->getOutput()), true, 512, JSON_THROW_ON_ERROR);
+
+            self::assertNotNull($firstPid);
+            self::assertNotSame($firstPid, $retryPid, 'Retry harus berjalan di proses PHP baru.');
+            self::assertSame(201, $retry['status']);
+            self::assertSame((string) $firstTransaction->id, $retry['data']['id']);
+            self::assertSame($firstTransaction->no_transaksi, $retry['data']['no_transaksi']);
+            self::assertSame(1, $model::query()
+                ->where('warung_id', $warung->id)
+                ->where('user_id', $actor->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->count());
+            self::assertSame(1, $firstTransaction->rincian()->count());
+        } finally {
+            $this->deleteTransactionFixtures([$warung->id]);
+            $actor->tokens()->delete();
+            $actor->delete();
+
+            if ($menu !== null) {
+                DB::table('menus')->where('warung_id', $warung->id)->delete();
+                DB::table('kategori_menus')->where('warung_id', $warung->id)->delete();
+            }
+
+            DB::table('warungs')->where('id', $warung->id)->delete();
+        }
+    }
+
     public static function separateIdempotencyScopes(): array
     {
         return [
@@ -587,6 +735,85 @@ class IdempotencyConcurrencyTest extends TestCase
                 unlink($barrierFile);
             }
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function newTransactionWorker(string $transactionType, string $token, string $idempotencyKey, array $payload, bool $dropResponseAfterSuccess = false): Process
+    {
+        $environment = getenv();
+        $environment = is_array($environment) ? $environment : [];
+        unset($environment['LARISSAMA_TEST_BARRIER_ID']);
+        $environment['APP_ENV'] = 'testing';
+        $environment['LARISSAMA_TEST_IDEMPOTENCY_KEY'] = $idempotencyKey;
+        $environment['LARISSAMA_TEST_TOKEN'] = $token;
+        $environment['LARISSAMA_TEST_TRANSACTION_TYPE'] = $transactionType;
+        $environment['LARISSAMA_TEST_PAYLOAD'] = json_encode($payload, JSON_THROW_ON_ERROR);
+
+        if ($dropResponseAfterSuccess) {
+            $environment['LARISSAMA_TEST_DROP_RESPONSE_AFTER_SUCCESS'] = '1';
+        } else {
+            unset($environment['LARISSAMA_TEST_DROP_RESPONSE_AFTER_SUCCESS']);
+        }
+
+        return new Process(['php', 'tests/Support/concurrent-http-worker.php'], base_path(), $environment);
+    }
+
+    private function waitForNamedLockOwner(string $lockName, Process $process): ?int
+    {
+        $deadline = microtime(true) + 10;
+
+        do {
+            if (! $process->isRunning()) {
+                self::fail('Worker berhenti sebelum memperoleh named lock. stdout='.$process->getOutput().'; stderr='.$process->getErrorOutput());
+            }
+
+            $owner = DB::selectOne('SELECT IS_USED_LOCK(?) AS owner_connection_id', [$lockName])?->owner_connection_id;
+
+            if ($owner !== null) {
+                return (int) $owner;
+            }
+
+            usleep(20_000);
+        } while (microtime(true) < $deadline);
+
+        return null;
+    }
+
+    private function waitForNamedLockRelease(string $lockName): void
+    {
+        $deadline = microtime(true) + 10;
+
+        do {
+            $owner = DB::selectOne('SELECT IS_USED_LOCK(?) AS owner_connection_id', [$lockName])?->owner_connection_id;
+
+            if ($owner === null) {
+                return;
+            }
+
+            usleep(20_000);
+        } while (microtime(true) < $deadline);
+
+        self::fail("Worker berhenti tetapi MySQL named lock {$lockName} belum dilepas.");
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function transactionPayload(string $transactionType, ?Menu $menu): array
+    {
+        return $transactionType === 'penjualan'
+            ? [
+                'tanggal' => '2026-10-04T10:00:00+07:00',
+                'bayar' => '15000.00',
+                'metode_pembayaran' => 'cash',
+                'rincian' => [['menu_id' => (string) $menu?->id, 'qty' => '1.00']],
+            ]
+            : [
+                'tanggal' => '2026-10-04T10:00:00+07:00',
+                'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
+            ];
     }
 
     /**

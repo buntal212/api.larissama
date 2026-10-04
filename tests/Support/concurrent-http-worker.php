@@ -8,10 +8,11 @@ $idempotencyKey = getenv('LARISSAMA_TEST_IDEMPOTENCY_KEY');
 $token = getenv('LARISSAMA_TEST_TOKEN');
 $transactionType = getenv('LARISSAMA_TEST_TRANSACTION_TYPE');
 $body = getenv('LARISSAMA_TEST_PAYLOAD');
+$dropResponseAfterSuccess = getenv('LARISSAMA_TEST_DROP_RESPONSE_AFTER_SUCCESS') === '1';
+$usesBarrier = is_string($barrierId) && $barrierId !== '';
 
 if (
-    ! is_string($barrierId)
-    || preg_match('/^[a-f0-9-]{36}$/', $barrierId) !== 1
+    ($usesBarrier && preg_match('/^[a-f0-9-]{36}$/', $barrierId) !== 1)
     || ! is_string($idempotencyKey)
     || ! is_string($token)
     || ! in_array($transactionType, ['penjualan', 'pembelian'], true)
@@ -42,28 +43,35 @@ $request = Request::create($uri, 'POST', [], [], [], [
     'CONTENT_TYPE' => 'application/json',
 ], $body);
 
-$barrierFile = sys_get_temp_dir().'/larissama-kernel-barrier-'.$barrierId.'.'.getmypid();
-file_put_contents($barrierFile, '1', LOCK_EX);
-$deadline = microtime(true) + 5;
+if ($usesBarrier) {
+    $barrierFile = sys_get_temp_dir().'/larissama-kernel-barrier-'.$barrierId.'.'.getmypid();
+    file_put_contents($barrierFile, '1', LOCK_EX);
+    $deadline = microtime(true) + 5;
 
-do {
-    $arrivals = glob(sys_get_temp_dir().'/larissama-kernel-barrier-'.$barrierId.'.*') ?: [];
+    do {
+        $arrivals = glob(sys_get_temp_dir().'/larissama-kernel-barrier-'.$barrierId.'.*') ?: [];
 
-    if (count($arrivals) >= 2) {
-        break;
+        if (count($arrivals) >= 2) {
+            break;
+        }
+
+        usleep(20_000);
+    } while (microtime(true) < $deadline);
+
+    if (count($arrivals) < 2) {
+        echo json_encode(['status' => 503, 'code' => 'TEST_BARRIER_TIMEOUT'], JSON_THROW_ON_ERROR);
+        exit(0);
     }
-
-    usleep(20_000);
-} while (microtime(true) < $deadline);
-
-if (count($arrivals) < 2) {
-    echo json_encode(['status' => 503, 'code' => 'TEST_BARRIER_TIMEOUT'], JSON_THROW_ON_ERROR);
-    exit(0);
 }
 
 $requestStartedAt = microtime(true);
 $response = $kernel->handle($request);
 $requestFinishedAt = microtime(true);
+
+if ($dropResponseAfterSuccess && $response->getStatusCode() === 201) {
+    exit(97);
+}
+
 $content = json_decode($response->getContent(), true);
 
 echo json_encode([
@@ -72,6 +80,7 @@ echo json_encode([
     'code' => $content['code'] ?? null,
     'request_started_at' => $requestStartedAt,
     'request_finished_at' => $requestFinishedAt,
+    'worker_pid' => getmypid(),
 ], JSON_THROW_ON_ERROR);
 
 $kernel->terminate($request, $response);
