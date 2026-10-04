@@ -47,16 +47,16 @@ Semua bukti `—` berarti belum ada, bukan hilang dari laporan. Kolom test menga
 | BE-202 | BE-201 | API kategori list/detail/create/update/aktif mengikuti kontrak dan tenant. | T-CAT-01,T-TEN-01/02/03,T-RBAC-01; D06 | NOT_STARTED | — |
 | BE-203 | BE-201,BE-202 | API menu list/detail/create/update/aktif, harga decimal, validasi kategori satu warung. | T-CAT-01/02; D05,D06; D07 bila gambar/harga_modal diaktifkan | NOT_STARTED | — |
 | BE-204 | BE-202,BE-203 | Gate G2, kontrak katalog READY, contoh filter/pagination/errors diserahkan. | T-API-02/03/04; G2 | NOT_STARTED | — |
-| BE-301 | BE-204 | Schema/model header-rincian penjualan dan constraints siap; keputusan nominal/status/luar_menu selesai. | T-DB-01/03; D05,D06,D07,D08 | NOT_STARTED | — |
-| BE-302 | BE-301,BE-304 | Action create sale menghitung nominal, snapshot, bayar/kembali; rollback semua efek ketika detail gagal. | T-SAL-01/02/03/04/05; D05 | NOT_STARTED | — |
+| BE-301 | BE-204 | Schema/model header-rincian penjualan dan constraints siap; keputusan nominal/status/luar_menu serta desain nomor/retry durable ditetapkan sebelum action dibuat. | T-DB-01/03; D05,D06,D07,D08,D09 | NOT_STARTED | — |
+| BE-302 | BE-301 | Action create sale menghitung nominal, snapshot, bayar/kembali serta menjalankan nomor/retry yang disepakati; rollback semua efek ketika detail gagal. | T-SAL-01/02/03/04/05,T-RET-01/02; D05,D09 | NOT_STARTED | — |
 | BE-303 | BE-302 | List/detail penjualan memakai scope role, filter periode/status dan snapshot tersimpan. | T-TEN-01/02,T-API-02/03,T-SAL-04; D04 | NOT_STARTED | — |
-| BE-304 | BE-301 | Finalkan/implementasikan nomor dan retry durable; tutup keputusan cancellation (implementasikan bila masuk scope, atau catat defer eksplisit). | T-RET-01/02/03/04,T-SAL-06; D06,D09 | NOT_STARTED | — |
+| BE-304 | BE-302 | Buktikan nomor/retry action melalui concurrency/crash; implementasikan cancellation bila masuk scope atau catat defer eksplisit sesuai keputusan. | T-RET-01/02/03/04,T-SAL-06; D06,D09 | NOT_STARTED | — |
 | BE-305 | BE-303 | Query/API laporan pendapatan periode; nilai dari total sale sah, bukan bayar atau join detail. | T-REP-01/03/04,T-TEN-01; D08 | NOT_STARTED | — |
 | BE-306 | BE-302,BE-303,BE-304,BE-305 | Gate G3, create/read/report sale dan ketentuan retry final diserahkan ke frontend. | T-API-02/04; G3 | NOT_STARTED | — |
-| BE-401 | BE-105 | Schema/model pembelian header-rinci, unique nomor per warung, nullable qty/unit/harga siap. Tidak bergantung schema penjualan. | T-DB-01/03; D01,D10,D11 | NOT_STARTED | — |
-| BE-402 | BE-401,BE-404 | Create pembelian menerima bentuk ringkas dan rinci, menghitung total, atomic rollback, tanpa efek pada menu/penjualan. | T-BUY-01/02/03/04/05; D05,D10 | NOT_STARTED | — |
+| BE-401 | BE-105 | Schema/model pembelian header-rinci, unique nomor per warung, nullable qty/unit/harga serta desain retry/koreksi ditetapkan. Tidak bergantung schema penjualan. | T-DB-01/03; D01,D09,D10,D11 | NOT_STARTED | — |
+| BE-402 | BE-401 | Create pembelian menerima bentuk ringkas dan rinci, menghitung total, menjalankan nomor/retry yang disepakati, atomic rollback, tanpa efek pada menu/penjualan. | T-BUY-01/02/03/04/05,T-RET-01/02; D05,D09,D10 | NOT_STARTED | — |
 | BE-403 | BE-402 | List/detail pembelian ter-scope dengan pagination/periode; tidak mengarang status pembelian. | T-TEN-01/02/03,T-RBAC-01,T-API-02/03 | NOT_STARTED | — |
-| BE-404 | BE-401 | Nomor/retry pembelian mengikuti keputusan durable; koreksi/cancel ditetapkan termasuk dampak schema dan laporan atau defer eksplisit. | T-RET-01/02/03/04,T-BUY-06; D09,D11 | NOT_STARTED | — |
+| BE-404 | BE-402 | Buktikan nomor/retry pembelian melalui concurrency/crash; implementasikan koreksi/cancel sesuai schema/keputusan atau catat defer eksplisit. | T-RET-01/02/03/04,T-BUY-06; D09,D11 | NOT_STARTED | — |
 | BE-405 | BE-403 | Laporan total pembelian periode, count header, nol hanya bila periode kosong yang sukses. | T-REP-02/03/04,T-TEN-01; D08,D11 | NOT_STARTED | — |
 | BE-406 | BE-402,BE-403,BE-404,BE-405 | Gate G4; contoh ringkas/rinci/validasi/detail/laporan dan kontrak pembelian READY. | T-API-02/04; G4 | NOT_STARTED | — |
 | BE-501 | BE-306,BE-406 | Regression lintas modul, tenant, engine target dan API conformance; angka fixture lintas fitur benar. | T-E2E-01,T-API-01/02/03/04; G1–G4 | NOT_STARTED | — |
@@ -64,7 +64,7 @@ Semua bukti `—` berarti belum ada, bukan hilang dari laporan. Kolom test menga
 | BE-503 | BE-501,BE-502 | Handoff ke AI/pengembang frontend: versi spec, environment, contoh sukses/error, isu tersisa dan hasil integrasi tercatat. | T-E2E-02 | NOT_STARTED | — |
 | BE-504 | BE-503 | Gate G5; seluruh bukti lengkap, keterbatasan/defer disepakati, status endpoint dan release commit konsisten. | G5 | NOT_STARTED | — |
 
-Roadmap default M0 → M1 → M2 → M3 → M4 → M5. M4 hanya bergantung fondasi akses M1 secara domain; tidak ada hubungan FK atau perhitungan ke penjualan. BE-304/BE-404 didahulukan terhadap action write agar retry tidak ditambahkan belakangan. Pengujian integrasi retry diulang bersama action sebelum milestone diterima; task strategi retry boleh IN_REVIEW sampai bukti action lengkap.
+Roadmap default M0 → M1 → M2 → M3 → M4 → M5. M4 hanya bergantung fondasi akses M1 secara domain; tidak ada hubungan FK atau perhitungan ke penjualan. D09 wajib ditetapkan pada BE-301/BE-401 sebelum action write dibuat. BE-302/BE-402 mengimplementasikan strategi tersebut; BE-304/BE-404 membuktikan concurrency/crash sebelum milestone diterima.
 
 ## Status handoff kontrak
 
