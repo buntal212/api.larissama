@@ -60,6 +60,12 @@ Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13: untuk masing-masing
 
 Run lulus: Pint; `ApiPaginationQueryConformanceTest` 7 test / 1093 assertions; suite penuh `php artisan test --display-warnings` 89 test / 11958 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Keenam endpoint memverifikasi maksimum OpenAPI 100, schema menolak nilai 101, request HTTP menghasilkan 422 yang cocok schema, dan errors menyebut `per_page` dengan batas 100. Tidak mengubah controller, validasi, schema database, tenant, authorization, atau business behavior. Compose dibersihkan. Lock Composer yang sudah memiliki marker konflik tidak diperbaiki dan `composer install` tidak dijalankan; test memakai vendor yang sudah tersedia. Semua operasi tetap DRAFT; invalid query lain, status/filter lain, dan gate T-API-02/03 penuh tetap terbuka. Detail ada di artefak [ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001](test-runs/ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001.md).
 
+## Rencana validasi batas bawah pagination
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13: pada enam GET list yang sama, kirim `page=0` atau `per_page=0` sebagai satu kasus HTTP terpisah. Pastikan parameter OpenAPI masing-masing memiliki `minimum: 1` dan schema menolak nol; request aktual harus menghasilkan 422 yang cocok dengan response schema dan errors menyebut field yang diuji. Gunakan role endpoint yang sesuai dan map query yang sama untuk request aktual.
+
+Scope hanya feature conformance/read. Tidak mengubah controller, validasi, schema database, tenant, authorization, sort/filter, atau dependencies. Acceptance: 12 kasus batas bawah lulus beserta Pint dan suite penuh pada MySQL 8.0.40 disposable; semua operasi tetap DRAFT dan query invalid lain serta gate T-API tetap terbuka.
+
 ## Conformance request administrasi dan katalog
 
 `ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001` mencocokkan payload sukses yang sama-sama dipakai untuk request feature dengan requestBody OpenAPI pada delapan operasi: `POST /admin/warungs`, `PATCH /admin/warungs/{id}`, `POST/PATCH /users`, `POST/PATCH /kategori-menus`, dan `POST/PATCH /menus`. Create menu mengirim `kategori_menu_id` sebagai string sesuai D13.
