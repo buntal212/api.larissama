@@ -90,6 +90,12 @@ Scope hanya feature conformance/read terhadap allowlist yang sudah didefinisikan
 
 Run lulus: Pint; `ApiPaginationQueryConformanceTest` 37 test / 2395 assertions; suite penuh `php artisan test --display-warnings` 119 test / 13260 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Compose dibersihkan. Cakupan hanya satu nilai invalid pada enam operasi dan response 422; sort valid tiap enum, kombinasi filter, seluruh role/status, serta conformance umum belum ditutup. Tidak mengubah API, DB, atau behavior; semua operasi tetap DRAFT. Bukti lengkap ada di artefak [ACCESS-SORT-ALLOWLIST-CONFORMANCE-001](test-runs/ACCESS-SORT-ALLOWLIST-CONFORMANCE-001.md).
 
+## Rencana penerimaan seluruh enum sort
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Jalankan satu feature case untuk tiap opsi enum pada enam GET list, sebanyak 14 pasangan operasi/nilai: `nama`/`-nama` pada warung, user, menu; `urutan`/`-urutan`/`nama`/`-nama` pada kategori; dan `-tanggal`/`tanggal` pada penjualan serta pembelian. Untuk setiap case, cocokkan query fixture dengan parameter OpenAPI, kirim request memakai role sah, pastikan HTTP 200 dan response cocok schema.
+
+Scope hanya pembuktian penerimaan nilai sort yang didokumentasikan; tidak menguji urutan row atau tie-breaker dan tidak mengubah runtime behavior, request/controller, database, tenant/role, atau dependencies. Acceptance: seluruh 14 opsi diterima dan cocok schema, Pint serta suite penuh lulus pada MySQL 8.0.40 Compose disposable, lalu stack dibersihkan. Semua operasi tetap DRAFT dan gate lain terbuka.
+
 ## Conformance request administrasi dan katalog
 
 `ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001` mencocokkan payload sukses yang sama-sama dipakai untuk request feature dengan requestBody OpenAPI pada delapan operasi: `POST /admin/warungs`, `PATCH /admin/warungs/{id}`, `POST/PATCH /users`, `POST/PATCH /kategori-menus`, dan `POST/PATCH /menus`. Create menu mengirim `kategori_menu_id` sebagai string sesuai D13.
