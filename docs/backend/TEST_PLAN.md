@@ -102,6 +102,12 @@ Scope hanya pembuktian penerimaan nilai sort yang didokumentasikan; tidak menguj
 
 Run lulus: Pint; `ApiPaginationQueryConformanceTest` 51 test / 3381 assertions; suite penuh `php artisan test --display-warnings` 133 test / 14246 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Compose dibersihkan. Ini membuktikan semua nilai sort yang tercantum diterima, tanpa assertion atas urutan row atau tie-breaker. Tidak mengubah API, DB, atau behavior; semua operasi tetap DRAFT. Bukti lengkap ada di artefak [ACCESS-SORT-VALID-ENUM-CONFORMANCE-001](test-runs/ACCESS-SORT-VALID-ENUM-CONFORMANCE-001.md).
 
+## Rencana conformance tie-breaker sort
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Untuk tiap 14 nilai sort yang didokumentasikan pada keenam GET list, buat dua row dengan nilai kolom sort yang sama. Minta halaman 1 dan 2 menggunakan `per_page=1`; pastikan `id` naik untuk arah ascending dan turun untuk opsi `-...`, setiap transaksi hanya muncul pada satu halaman, metadata total/last_page tepat, serta kedua response cocok schema OpenAPI. Gunakan superadmin untuk warung, owner untuk user, dan manager untuk kategori/menu/penjualan/pembelian; filter `q` menjaga fixture list warung/user tetap tepat.
+
+Scope hanya feature test read dengan data sintetis; tidak mengubah controller, query, DB, tenant/policy, atau dependencies. Acceptance: 28 response HTTP dari 14 opsi sort cocok dengan aturan secondary ID dan schema, Pint serta suite penuh lulus pada MySQL 8.0.40 Compose disposable, lalu stack dibersihkan. Semua operasi tetap DRAFT dan conformance/gate lain terbuka.
+
 ## Conformance request administrasi dan katalog
 
 `ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001` mencocokkan payload sukses yang sama-sama dipakai untuk request feature dengan requestBody OpenAPI pada delapan operasi: `POST /admin/warungs`, `PATCH /admin/warungs/{id}`, `POST/PATCH /users`, `POST/PATCH /kategori-menus`, dan `POST/PATCH /menus`. Create menu mengirim `kategori_menu_id` sebagai string sesuai D13.
