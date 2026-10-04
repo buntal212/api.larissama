@@ -114,6 +114,12 @@ Scope hanya feature test read dengan data sintetis; tidak mengubah controller, q
 
 Run lulus: Pint; `ApiSortTieBreakerTest` 14 test / 3514 assertions; suite penuh `php artisan test --display-warnings` 147 test / 17760 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Compose dibersihkan. Tidak ada perubahan controller, query, database, policy, tenant, atau role. Scope membuktikan pagination stabil untuk primary key sort yang sama; operasi tetap DRAFT dan gate conformance lain terbuka. Bukti lengkap ada di artefak [ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001](test-runs/ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001.md).
 
+## Rencana conformance halaman kosong pagination
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Pada masing-masing enam GET list, kirim request yang tidak mempunyai row cocok dan pastikan response HTTP 200 sesuai schema dengan `data=[]`, `total=0`, dan `last_page=1`. Sesudah membuat dua row yang cocok untuk endpoint tersebut, minta `page=3&per_page=1` dan pastikan `data=[]` tanpa menghilangkan total asli (`total=2`, `last_page=2`, `page=3`). Untuk list warung/user gunakan filter `q` tanpa kecocokan pada kasus kosong karena aktor/tenant test diperlukan; fixture seed kemudian dicocokkan dengan q. Validasi query terhadap OpenAPI dan response aktual terhadap schema.
+
+Scope hanya feature conformance/read. Tidak mengubah paginator, API, DB schema, filter, tenant/role/policy, atau dependencies. Acceptance: 12 response pada enam route cocok dengan schema dan metadata; Pint serta suite penuh lulus pada MySQL 8.0.40 Compose disposable lalu stack dibersihkan. Semua operasi tetap DRAFT.
+
 ## Conformance request administrasi dan katalog
 
 `ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001` mencocokkan payload sukses yang sama-sama dipakai untuk request feature dengan requestBody OpenAPI pada delapan operasi: `POST /admin/warungs`, `PATCH /admin/warungs/{id}`, `POST/PATCH /users`, `POST/PATCH /kategori-menus`, dan `POST/PATCH /menus`. Create menu mengirim `kategori_menu_id` sebagai string sesuai D13.
