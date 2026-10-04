@@ -126,6 +126,14 @@ Pra-implementasi dicatat; hasil belum dijalankan. Setelah test, perbarui tracker
 
 Run lulus: Pint; `ApiSortOrderingConformanceTest` 14 test / 3492 assertions; suite penuh `php artisan test --display-warnings` 167 test / 22010 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Seluruh 14 opsi sort menghasilkan urutan sesuai nilai kolom primer yang berbeda; fixture dibuat dalam urutan C/A/B sehingga sort ID saja tidak memenuhi ekspektasi. Query dan seluruh response dicocokkan ke OpenAPI. Compose dibersihkan. Tidak ada perubahan controller, query, database, filter, tenant, atau role. Semua operasi tetap DRAFT dan gate conformance lain terbuka. Bukti lengkap ada di artefak [ACCESS-SORT-ORDERING-CONFORMANCE-001](test-runs/ACCESS-SORT-ORDERING-CONFORMANCE-001.md).
 
+## Rencana conformance default list
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Untuk enam GET list warung, user, kategori, menu, penjualan, dan pembelian, kirim request tanpa query string. Pastikan OpenAPI mendeklarasikan default `page=1`, `per_page=20`, serta `sort` sesuai operasi (`nama`, `urutan`, atau `-tanggal`); response aktual harus HTTP 200, cocok schema, memiliki metadata default tersebut, dan mengurutkan fixture menurut sort default. Gunakan fixture nilai primer berbeda dengan urutan insert yang sengaja tidak berhubungan dengan sort. Role: superadmin warung, owner user, manager sisanya.
+
+Scope hanya feature conformance/read; tidak mengubah controller, query, paginator, API, DB schema, tenant/role/policy atau dependencies. Acceptance: keenam endpoint memberi metadata dan urutan sesuai default OpenAPI/runtime, Pint serta suite penuh lulus pada MySQL 8.0.40 Compose disposable, lalu stack dibersihkan. Semua operasi tetap DRAFT.
+
+Pra-implementasi dicatat; hasil belum dijalankan. Setelah test, perbarui tracker, README API/OpenAPI, DECISIONS, TEST_PLAN dan artefak run. File kode yang direncanakan: `tests/Feature/ApiListDefaultsConformanceTest.php`.
+
 ## Rencana conformance halaman kosong pagination
 
 Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Pada masing-masing enam GET list, kirim request yang tidak mempunyai row cocok dan pastikan response HTTP 200 sesuai schema dengan `data=[]`, `total=0`, dan `last_page=1`. Sesudah membuat dua row yang cocok untuk endpoint tersebut, minta `page=3&per_page=1` dan pastikan `data=[]` tanpa menghilangkan total asli (`total=2`, `last_page=2`, `page=3`). Untuk list warung/user gunakan filter `q` tanpa kecocokan pada kasus kosong karena aktor/tenant test diperlukan; fixture seed kemudian dicocokkan dengan q. Validasi query terhadap OpenAPI dan response aktual terhadap schema.
