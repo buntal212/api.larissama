@@ -89,6 +89,49 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         }
     }
 
+    public function test_foreign_keys_match_tenant_safe_columns_and_restrict_deletes(): void
+    {
+        $foreignKeys = [
+            ['users', 'users_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
+            ['kategori_menus', 'kategori_menus_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
+            ['menus', 'menus_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
+            ['menus', 'menus_warung_kategori_fk', ['warung_id', 'kategori_menu_id'], 'kategori_menus', ['warung_id', 'id']],
+            ['penjualans', 'penjualans_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
+            ['penjualans', 'penjualans_warung_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['penjualan_rincis', 'penjualan_rincis_warung_header_fk', ['warung_id', 'penjualan_id'], 'penjualans', ['warung_id', 'id']],
+            ['penjualan_rincis', 'penjualan_rincis_warung_menu_fk', ['warung_id', 'menu_id'], 'menus', ['warung_id', 'id']],
+            ['pembelians', 'pembelians_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
+            ['pembelians', 'pembelians_warung_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['pembelian_rincis', 'pembelian_rincis_warung_header_fk', ['warung_id', 'pembelian_id'], 'pembelians', ['warung_id', 'id']],
+        ];
+        $expectedNames = [];
+
+        foreach ($foreignKeys as [$table, $name, $columns, $referencedTable, $referencedColumns]) {
+            $expectedNames[$table][] = $name;
+            $this->assertForeignKey($table, $name, $columns, $referencedTable, $referencedColumns);
+        }
+
+        $actualNames = DB::table('information_schema.KEY_COLUMN_USAGE')
+            ->select('TABLE_NAME', 'CONSTRAINT_NAME')
+            ->where('TABLE_SCHEMA', DB::connection()->getDatabaseName())
+            ->whereIn('TABLE_NAME', self::BUSINESS_TABLES)
+            ->whereNotNull('REFERENCED_TABLE_NAME')
+            ->distinct()
+            ->get()
+            ->groupBy('TABLE_NAME')
+            ->map(fn ($constraints) => $constraints->pluck('CONSTRAINT_NAME')->sort()->values()->all())
+            ->all();
+        ksort($expectedNames);
+        ksort($actualNames);
+
+        foreach ($expectedNames as &$names) {
+            sort($names);
+        }
+        unset($names);
+
+        $this->assertSame($expectedNames, $actualNames);
+    }
+
     public function test_mysql_connection_uses_utc_and_preserves_a_utc_datetime_round_trip(): void
     {
         $timezone = DB::selectOne('SELECT @@session.time_zone AS timezone')->timezone;
@@ -142,6 +185,37 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         if ($datetimePrecision !== null) {
             $this->assertSame($datetimePrecision, (int) $definition->DATETIME_PRECISION);
         }
+    }
+
+    /**
+     * @param  list<string>  $columns
+     * @param  list<string>  $referencedColumns
+     */
+    private function assertForeignKey(
+        string $table,
+        string $name,
+        array $columns,
+        string $referencedTable,
+        array $referencedColumns,
+    ): void {
+        $definition = DB::table('information_schema.KEY_COLUMN_USAGE')
+            ->selectRaw('COLUMN_NAME AS column_name, REFERENCED_TABLE_NAME AS referenced_table, REFERENCED_COLUMN_NAME AS referenced_column')
+            ->where('TABLE_SCHEMA', DB::connection()->getDatabaseName())
+            ->where('TABLE_NAME', $table)
+            ->where('CONSTRAINT_NAME', $name)
+            ->orderBy('ORDINAL_POSITION')
+            ->get();
+
+        $this->assertSame($columns, $definition->pluck('column_name')->all(), "Unexpected local columns for {$table}.{$name}.");
+        $this->assertSame([$referencedTable], $definition->pluck('referenced_table')->unique()->values()->all());
+        $this->assertSame($referencedColumns, $definition->pluck('referenced_column')->all());
+
+        $deleteRule = DB::table('information_schema.REFERENTIAL_CONSTRAINTS')
+            ->where('CONSTRAINT_SCHEMA', DB::connection()->getDatabaseName())
+            ->where('CONSTRAINT_NAME', $name)
+            ->value('DELETE_RULE');
+
+        $this->assertSame('RESTRICT', $deleteRule, "Unexpected delete rule for {$table}.{$name}.");
     }
 
     /**
