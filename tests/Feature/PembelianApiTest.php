@@ -107,6 +107,30 @@ class PembelianApiTest extends TestCase
         $this->assertDatabaseCount('pembelian_rincis', 0);
     }
 
+    public function test_purchase_list_requires_date_from_and_date_to_as_a_pair(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('feature-test')->plainTextToken;
+        $partialQueries = [
+            ['query' => ['date_from' => '2026-10-04'], 'error' => 'date_to'],
+            ['query' => ['date_to' => '2026-10-04'], 'error' => 'date_from'],
+        ];
+
+        foreach ($partialQueries as $case) {
+            $response = $this->withToken($token)
+                ->getJson('/api/v1/pembelians?'.http_build_query($case['query']))
+                ->assertUnprocessable()
+                ->assertJsonPath('code', 'VALIDATION_ERROR')
+                ->assertJsonValidationErrors($case['error']);
+
+            $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'get');
+        }
+
+        $this->assertDatabaseCount('pembelians', 0);
+        $this->assertDatabaseCount('pembelian_rincis', 0);
+    }
+
     public function test_purchase_retry_replays_same_header_and_rejects_different_payload(): void
     {
         $warung = Warung::factory()->create();

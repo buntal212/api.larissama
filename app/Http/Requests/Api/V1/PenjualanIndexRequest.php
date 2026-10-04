@@ -21,8 +21,8 @@ class PenjualanIndexRequest extends FormRequest
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'between:1,100'],
             'sort' => ['sometimes', Rule::in(['-tanggal', 'tanggal'])],
-            'date_from' => ['sometimes', 'required_with:date_to', 'date_format:Y-m-d'],
-            'date_to' => ['sometimes', 'required_with:date_from', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'date_from' => ['required_with:date_to', 'date_format:Y-m-d'],
+            'date_to' => ['required_with:date_from', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'status' => ['sometimes', Rule::in(['selesai', 'batal'])],
         ];
     }

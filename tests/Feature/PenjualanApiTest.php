@@ -191,6 +191,30 @@ class PenjualanApiTest extends TestCase
         $this->assertDatabaseCount('penjualan_rincis', 0);
     }
 
+    public function test_sale_list_requires_date_from_and_date_to_as_a_pair(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('feature-test')->plainTextToken;
+        $partialQueries = [
+            ['query' => ['date_from' => '2026-10-04'], 'error' => 'date_to'],
+            ['query' => ['date_to' => '2026-10-04'], 'error' => 'date_from'],
+        ];
+
+        foreach ($partialQueries as $case) {
+            $response = $this->withToken($token)
+                ->getJson('/api/v1/penjualans?'.http_build_query($case['query']))
+                ->assertUnprocessable()
+                ->assertJsonPath('code', 'VALIDATION_ERROR')
+                ->assertJsonValidationErrors($case['error']);
+
+            $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
+        }
+
+        $this->assertDatabaseCount('penjualans', 0);
+        $this->assertDatabaseCount('penjualan_rincis', 0);
+    }
+
     public function test_sale_detail_keeps_original_menu_snapshot_after_menu_changes(): void
     {
         $warung = Warung::factory()->create();
