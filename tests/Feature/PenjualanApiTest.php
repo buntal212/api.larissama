@@ -126,6 +126,65 @@ class PenjualanApiTest extends TestCase
             ->assertJsonPath('data.0.id', (string) $saleA->id);
     }
 
+    public function test_sale_detail_keeps_original_menu_snapshot_after_menu_changes(): void
+    {
+        $warung = Warung::factory()->create();
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create([
+            'warung_id' => $warung->id,
+            'nama' => 'Nasi Goreng Awal',
+            'harga' => '15000.00',
+        ]);
+        $token = $cashier->createToken('feature-test')->plainTextToken;
+
+        $created = $this->withToken($token)->postJson('/api/v1/penjualans', [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'bayar' => '15000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => $menu->id, 'qty' => '1.00']],
+        ], ['Idempotency-Key' => 'sale-history-snapshot-001'])->assertCreated();
+        $saleId = (int) $created->json('data.id');
+
+        $menu->update(['nama' => 'Nasi Goreng Baru', 'harga' => '20000.00']);
+
+        $this->withToken($token)->getJson("/api/v1/penjualans/{$saleId}")
+            ->assertOk()
+            ->assertJsonPath('data.rincian.0.nama_menu', 'Nasi Goreng Awal')
+            ->assertJsonPath('data.rincian.0.harga', '15000.00')
+            ->assertJsonPath('data.rincian.0.subtotal', '15000.00');
+
+        $this->assertDatabaseHas('menus', [
+            'id' => $menu->id,
+            'nama' => 'Nasi Goreng Baru',
+            'harga' => '20000.00',
+        ]);
+        $this->assertDatabaseHas('penjualan_rincis', [
+            'penjualan_id' => $saleId,
+            'menu_id' => $menu->id,
+            'nama_menu' => 'Nasi Goreng Awal',
+            'harga' => '15000.00',
+            'subtotal' => '15000.00',
+        ]);
+    }
+
+    public function test_manager_gets_404_for_sale_from_another_warung(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $managerA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'manager']);
+        $cashierB = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'kasir']);
+        $saleB = Penjualan::factory()->create(['warung_id' => $warungB->id, 'user_id' => $cashierB->id]);
+        $token = $managerA->createToken('feature-test')->plainTextToken;
+
+        $this->withToken($token)->getJson("/api/v1/penjualans/{$saleB->id}")->assertNotFound();
+
+        $this->assertDatabaseHas('penjualans', [
+            'id' => $saleB->id,
+            'warung_id' => $warungB->id,
+            'user_id' => $cashierB->id,
+        ]);
+    }
+
     public function test_manager_cannot_create_sales(): void
     {
         $warung = Warung::factory()->create();
