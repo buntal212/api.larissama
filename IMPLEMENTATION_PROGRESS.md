@@ -14,7 +14,7 @@ Baseline: 2026-10-04. Repository masih starter. Rancangan delapan tabel, desain 
 | M5 Integrasi dan rilis | 4 | 0 | Belum terpenuhi |
 | Total | 29 | 0 | 0% implementasi |
 
-Status awal: **0/28 operasi siap frontend**, **0/45 skenario aplikasi telah dijalankan**. Semua test aplikasi adalah NOT_RUN; tidak ada hasil PASS Laravel yang dicatat. Dua contoh test bawaan bukan bukti fitur bisnis. User telah memilih keluarga database MySQL/MariaDB, Sanctum bearer token, dan penjualan hanya dari menu terdaftar; pilihan itu diperbarui pada register keputusan.
+Status awal: **0/28 operasi siap frontend**, **0/45 skenario aplikasi telah dijalankan**. Semua test aplikasi adalah NOT_RUN; tidak ada hasil PASS Laravel yang dicatat. Dua contoh test bawaan bukan bukti fitur bisnis. User telah memilih keluarga database MySQL/MariaDB, Sanctum bearer token dengan expiry 30 hari, NULL masa aktif warung tanpa batas, tanggung jawab inti role, dan penjualan hanya dari menu terdaftar; pilihan itu diperbarui pada register keputusan.
 
 Persentase = jumlah task DONE / jumlah task implementasi aktif × 100. Semua task berbobot sama untuk tracking pekerjaan, bukan estimasi usaha. Dokumen perencanaan tidak masuk pembilang. Bila scope berubah, catat penambahan/pengurangan task dan sumber keputusan; jangan menghapus task gagal agar persentase naik.
 
@@ -35,7 +35,7 @@ Semua bukti `—` berarti belum ada, bukan hilang dari laporan. Kolom test menga
 | ID | Dependensi | Deliverable dan acceptance | Test / keputusan | Status | Bukti |
 | --- | --- | --- | --- | --- | --- |
 | BE-001 | — | Runtime Docker opsional, dependency Composer, dan cara menjalankan backend sudah disiapkan. T-ENV-01 masih perlu harness serta DB test terisolasi yang terverifikasi. | T-ENV-01; D01,D02 | IN_PROGRESS | B01,ENV-001 |
-| BE-002 | — | Tutup keputusan M0/M1 beserta sumbernya; inventaris schema/migration/data users; tidak menebak mapping warung. Pilihan keluarga DB/auth dan scope menu-only telah dicatat. | D01,D02,D03,D04,D12,D13,D15; D08 untuk masa aktif | IN_PROGRESS | Pilihan user 2026-10-04; detail tersisa di DECISIONS.md |
+| BE-002 | — | Tutup keputusan M0/M1 beserta sumbernya; inventaris schema/migration/data users; tidak menebak mapping warung. Pilihan keluarga DB, expiry Sanctum 30 hari, semantik NULL tanggal, tanggung jawab inti role, dan scope menu-only telah dicatat. | D01,D02,D03,D04,D12,D13,D15; D08 untuk masa aktif | IN_PROGRESS | Pilihan user 2026-10-04; detail tersisa di DECISIONS.md |
 | BE-003 | BE-002 | Finalkan konvensi API dan auth, pilih validator OpenAPI 3.1, tutup gap draft, sediakan pedoman integrasi; kontrak tidak dianggap live hanya karena final draft. | T-API-01; D02,D13 | NOT_STARTED | — |
 | BE-004 | BE-001,BE-002,BE-003 | Harness/unit/feature/integration/contract, DB test aman, fixture dua tenant, command runner/CI terdokumentasi. | T-ENV-01; D01 | NOT_STARTED | — |
 | BE-101 | BE-002,BE-004 | Migration warungs dan adaptasi users aman; model/constraints sesuai schema; upgrade menjaga data lama. | T-DB-01/02/03; D01,D03,D12 | NOT_STARTED | — |
@@ -87,7 +87,7 @@ Jika hanya sebagian operasi satu area siap, pecah baris menurut operationId. Jan
 | ID | Fakta | Dampak / langkah pembuka |
 | --- | --- | --- |
 | B01 | PHP dan Composer tidak ada di host; Docker Desktop Windows dapat diakses dari WSL. | Image PHP 8.3.35/Composer 2.10.3 berhasil dibangun dan dependency terkunci terpasang. Dockerfile/Compose opsional tersedia; T-ENV-01 masih menunggu harness dan DB test terisolasi. |
-| B02 | Versi tepat MySQL/MariaDB produksi dan detail expiry Sanctum, D03/D04/D05/D06/D08/D09/D10/D11/D12/D13/D14 belum ditetapkan. | Pilihan keluarga DB, package Sanctum v4.3.3, dan scope menu-only sudah dicatat; catat detail yang wajib untuk setiap gate. Tetap lanjut pada pekerjaan yang tidak bergantung. |
+| B02 | Versi tepat MySQL/MariaDB produksi, deployment auth, rincian izin D04, dan D05/D06/D08/D09/D10/D11/D12/D13/D14 belum ditetapkan. | Keluarga DB, expiry Sanctum 30 hari, NULL tanggal tanpa batas, tanggung jawab inti role, package v4.3.3, dan scope menu-only sudah dicatat; catat detail tersisa per gate dan lanjutkan pekerjaan independen. |
 | B03 | Schema bisnis, route API, dan test aplikasi belum ada. | Jalankan backlog per dependency; jangan menganggap dokumen ini implementasi. |
 | B04 | Environment/handoff frontend belum tersedia. | Lengkapi BE-502/BE-503 sesudah endpoint dibangun dan diuji. |
 
@@ -100,7 +100,7 @@ Jika hanya sebagian operasi satu area siap, pecah baris menurut operationId. Jan
 | DOC-003 | Paket dokumen pada `4b4f7a0` | PASS: 56 tautan lokal, 29 task dengan dependency tanpa siklus, 45 skenario, 28 operasi terdokumentasi, 3 contoh JSON panduan, bentuk pembelian minimal valid dan 6 input invalid ditolak schema; arithmetic fixture decimal dan kesamaan AGENTS/CLAUDE benar; 14 commit dalam paket masing-masing satu file. | Command sesi `python3 /tmp/larissama_validate_docs.py`; cek awal helper gagal menghitung ID E2E karena regex hanya menerima huruf. Regex helper diperbaiki dan pemeriksaan ulang lulus. Ini bukan hasil test aplikasi. |
 | ENV-OBS-001 | Pemeriksaan shell 2026-10-04 | php -v dan composer -V: command not found. | Observasi awal; tidak ada test aplikasi yang dijalankan. |
 | ENV-001 | Dockerfile/Compose `e8914b9`, `ee6a4df`, `3686947`, `a16b536`, `17863be`; Boost `bb0c553`, `0781735` | PASS: `docker compose config --quiet`; image PHP 8.3.35 dan Composer 2.10.3; `composer install` 110 package; `boost:install` selesai untuk Codex dan Claude; Pint pada User model passed. | Tidak menyelesaikan T-ENV-01: harness dan identitas DB test belum diverifikasi. Tidak ada feature test atau migration bisnis yang dijalankan. MySQL 8.0.40 hanya image development lokal, bukan pilihan versi produksi. |
-| AUTH-BOOT-001 | Sanctum `7f6fba7`, `7e1ffcc`, `2eb6036`, `a2fcc30`, `2beb299`, `71cd88f`, `a3abfab`, `fbb6001`, `4cf2df6` | Package v4.3.3, config, migration token, `HasApiTokens`, dan API route registration tersedia. Route inspection memuat route file tanpa menyisakan endpoint bawaan `/api/user`. | Fondasi saja: login/me/logout belum dibuat, migration belum dijalankan, belum ada token yang diterbitkan. Menunggu BE-101 dan keputusan lifecycle D02, D03/D04. |
+| AUTH-BOOT-001 | Sanctum `7f6fba7`, `7e1ffcc`, `2eb6036`, `a2fcc30`, `2beb299`, `71cd88f`, `a3abfab`, `fbb6001`, `4cf2df6`, `fba952d` | Package v4.3.3, config expiry 30 hari (43200 menit), migration token, `HasApiTokens`, dan API route registration tersedia. | Fondasi saja: login/me/logout belum dibuat, migration belum dijalankan, belum ada token yang diterbitkan. Masa aktif NULL telah diputuskan dan tanggung jawab inti role disetujui; rincian deployment/policy serta dependency BE-101 masih tersisa. Tidak ada test aplikasi yang dijalankan untuk perubahan config expiry ini. |
 
 Run aplikasi berikutnya wajib memakai format lengkap pada TEST_PLAN. Simpan output yang relevan pada artefak bukti (lokasi disepakati saat M0), tanpa secret, dan tautkan di sini. Tiap hasil mencantumkan commit yang diuji, bukan sekadar branch yang bisa bergerak.
 
@@ -114,5 +114,6 @@ Run aplikasi berikutnya wajib memakai format lengkap pada TEST_PLAN. Simpan outp
 | 2026-10-04 | Backlog/gate dan pedoman agent diselaraskan | `bda7024`, `c17b5be`, `b675557`, `cfe161e`, `0145fd7`, `0697609`. Aturan commit per file persisten dan AGENTS/CLAUDE sama. |
 | 2026-10-04 | Review kontrak dan pemeriksaan paket rancangan | `17c6586`, `785a597`, `4b4f7a0`; bukti DOC-002/DOC-003. Tidak ada task implementasi atau operasi live yang dinaikkan statusnya. |
 | 2026-10-04 | Pilihan DB/auth dicatat dan scope penjualan dikunci ke menu terdaftar | `4972b96`, `c7d0127`, `4875172`, `c6575f7`, `88d0886`, `724e837`, `e30c52d`. Migration bisnis masih belum dibuat. |
+| 2026-10-04 | Pilihan masa token, batas tanggal, dan tanggung jawab inti role dicatat; expiry Sanctum dikonfigurasi | `d19079a`, `de0c4e6`, `fba952d`. `sanctum.expiration` = 43200 menit. Login/me/logout, migration bisnis, dan policy tetap belum dibuat; tidak ada test yang dijalankan. |
 
 Saat mulai task, tambahkan log berisi ID task, agent/pelaksana, tujuan, fakta/invariant, scope izin, batas transaksi/retry, file, dan acceptance. Saat selesai, tambahkan perubahan, hasil test, hash tiap file, operasi yang diserahkan, serta task berikutnya.
