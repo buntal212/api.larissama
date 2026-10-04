@@ -1276,7 +1276,8 @@ paths:
       - Penjualan
       summary: Riwayat Penjualan
       description: 'Implementasi awal tersedia tetapi masih DRAFT; belum siap integrasi live. Setiap item berasal
-        dari menu terdaftar; kasir hanya membaca penjualan miliknya, manager membaca seluruh penjualan warung.'
+        dari menu terdaftar; kasir hanya membaca penjualan miliknya, manager membaca seluruh penjualan warung.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200 dengan schema; request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1374,7 +1375,7 @@ paths:
       description: 'Implementasi awal menyimpan header dan rincian atomik; warung/user/nomor/total dari backend.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. Aturan nominal lain masih D05 dan operasi tetap DRAFT, belum dapat dipakai live.
-        Setiap item wajib berasal dari menu terdaftar.'
+        Setiap item wajib berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1485,7 +1486,7 @@ paths:
       - Penjualan
       summary: Detail Penjualan dan rincian
       description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna dan untuk
-        kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar.'
+        kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1568,7 +1569,8 @@ paths:
       tags:
       - Pembelian
       summary: Riwayat Pembelian
-      description: 'Implementasi awal tersedia tetapi masih DRAFT; seluruh data dibatasi ke warung pengguna.'
+      description: 'Implementasi awal tersedia tetapi masih DRAFT; seluruh data dibatasi ke warung pengguna.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/403; request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1649,7 +1651,8 @@ paths:
       summary: Catat Pembelian
       description: 'Implementasi awal menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
-        memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; operasi tetap DRAFT.'
+        memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; operasi tetap DRAFT.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1780,7 +1783,8 @@ paths:
       tags:
       - Pembelian
       summary: Detail Pembelian dan rincian
-      description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna.'
+      description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1844,7 +1848,8 @@ paths:
       - Laporan
       summary: Pendapatan penjualan pada periode
       description: 'Implementasi awal menjumlahkan total penjualan berstatus selesai dan menghitung header di
-        periode timezone warung. Tidak menjumlahkan bayar atau join rincian; masih DRAFT sampai gate lulus.'
+        periode timezone warung. Tidak menjumlahkan bayar atau join rincian; masih DRAFT sampai gate lulus.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422; request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1908,6 +1913,7 @@ paths:
       summary: Total pembelian pada periode
       description: Implementasi awal menjumlahkan total dan menghitung header pembelian di periode timezone warung;
         tidak join rincian atau mengurangi dari pendapatan sebagai laba. Masih DRAFT sampai gate lulus.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422; request schema, status lain, dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
