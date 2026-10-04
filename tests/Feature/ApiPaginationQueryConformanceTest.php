@@ -157,6 +157,32 @@ class ApiPaginationQueryConformanceTest extends TestCase
         $response->assertInvalid([$parameter => 'integer']);
     }
 
+    #[DataProvider('sortNotAllowlistedOperations')]
+    public function test_returns_422_for_sort_value_outside_openapi_allowlist(string $path, string $role): void
+    {
+        $warung = Warung::factory()->create();
+        $user = $role === 'superadmin'
+            ? User::factory()->superadmin()->create()
+            : User::factory()->create([
+                'warung_id' => $warung->id,
+                'role' => $role,
+            ]);
+        $token = $user->createToken('sort-allowlist-test')->plainTextToken;
+        $query = ['sort' => 'created_at'];
+
+        $this->assertOpenApiRejectsSortNotInAllowlist($path, $query['sort']);
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1'.$path.'?'.http_build_query($query))
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
+        $response->assertJsonPath('code', 'VALIDATION_ERROR');
+        $response->assertJsonPath('message', 'Data belum valid.');
+        $response->assertJsonStructure(['errors' => ['sort']]);
+        $this->assertNotEmpty($response->json('errors.sort'));
+    }
+
     /**
      * @return array<string, array{string, string}>
      */
@@ -202,6 +228,48 @@ class ApiPaginationQueryConformanceTest extends TestCase
         }
 
         return $operations;
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function sortNotAllowlistedOperations(): array
+    {
+        return [
+            'admin warungs as superadmin' => ['/admin/warungs', 'superadmin'],
+            'users as owner' => ['/users', 'owner'],
+            'categories as manager' => ['/kategori-menus', 'manager'],
+            'menus as manager' => ['/menus', 'manager'],
+            'sales as manager' => ['/penjualans', 'manager'],
+            'purchases as manager' => ['/pembelians', 'manager'],
+        ];
+    }
+
+    private function assertOpenApiRejectsSortNotInAllowlist(string $path, string $sort): void
+    {
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path]['get'] ?? null;
+        $this->assertIsArray($operation, "OpenAPI GET {$path} must exist.");
+
+        $schema = null;
+        foreach ($operation['parameters'] ?? [] as $parameter) {
+            if (isset($parameter['$ref'])) {
+                $parameter = $this->resolveOpenApiReference($document, $parameter['$ref']);
+            }
+
+            if (($parameter['in'] ?? null) === 'query' && ($parameter['name'] ?? null) === 'sort') {
+                $schema = $parameter['schema'] ?? null;
+                break;
+            }
+        }
+
+        $this->assertIsArray($schema, "OpenAPI GET {$path} must define a sort query schema.");
+        $this->assertIsArray($schema['enum'] ?? null, "OpenAPI GET {$path} must define a sort allowlist.");
+        $this->assertNotEmpty($schema['enum'], "OpenAPI GET {$path} sort allowlist must not be empty.");
+        $this->assertNotContains($sort, $schema['enum'], "OpenAPI GET {$path} must not allow {$sort}.");
+
+        $errors = $this->collectOpenApiSchemaErrors($sort, $schema, $document, 'query.sort');
+        $this->assertContains('query.sort is not in the OpenAPI enum', $errors);
     }
 
     private function assertOpenApiRejectsPerPageOverflow(string $path): void
