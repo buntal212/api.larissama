@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
-  description: Rancangan 2026-10-04; semua operasi tetap DRAFT sampai keputusan dan test kontrak/fungsional lulus. Auth, administrasi warung/user, serta katalog kategori/menu memiliki implementasi awal yang belum diverifikasi dengan test aplikasi/contract. Sanctum bearer 30 hari, rate limit login, zona waktu per warung, dan migration kategori/menu tersedia. Detail deployment D02, izin rinci D04, nominal D05, periode D08, identitas D12, HTTP D13, dan FK gabungan tenant D16 masih perlu finalisasi. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. D09 belum menentukan mekanisme/header retry. Contoh sintetis; nomor contoh bukan format penomoran final.
+  description: Rancangan 2026-10-04; semua operasi tetap DRAFT sampai keputusan dan test kontrak/fungsional lulus. Auth, administrasi, katalog, transaksi, dan laporan memiliki implementasi awal yang belum diverifikasi dengan test aplikasi/contract. Sanctum bearer 30 hari, timezone tenant, baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian D04/D05/D06/D08/D10/D11/D12/D13 masih menjadi gate. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan kontrak live.
 servers:
 - url: /api/v1
   description: Prefix kandidat; base URL environment belum ditetapkan.
@@ -459,7 +459,6 @@ paths:
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       - kasir
       x-blocked-by:
@@ -1258,12 +1257,11 @@ paths:
       tags:
       - Penjualan
       summary: Riwayat Penjualan
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi. Setiap item berasal
-        dari menu terdaftar; item bebas tidak didukung.'
+      description: 'Implementasi awal tersedia tetapi masih DRAFT; belum siap integrasi live. Setiap item berasal
+        dari menu terdaftar; kasir hanya membaca penjualan miliknya, manager membaca seluruh penjualan warung.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       - kasir
       x-blocked-by:
@@ -1272,7 +1270,6 @@ paths:
       - D13
       - D05
       - D08
-      - D09
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1356,14 +1353,13 @@ paths:
       tags:
       - Penjualan
       summary: Catat Penjualan
-      description: 'Header dan rincian disimpan atomik; warung/user/nomor/total dari backend. D09 belum menetapkan
-        retry: jangan retry otomatis. DRAFT, belum dapat dipakai live. Setiap item berasal dari menu terdaftar;
-        item bebas tidak didukung.'
+      description: 'Implementasi awal menyimpan header dan rincian atomik; warung/user/nomor/total dari backend.
+        Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
+        memakai key sama menghasilkan 409. Aturan nominal lain masih D05 dan operasi tetap DRAFT, belum dapat dipakai live.
+        Setiap item wajib berasal dari menu terdaftar.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
-      - manager
       - kasir
       x-blocked-by:
       - D02
@@ -1430,13 +1426,22 @@ paths:
         '404':
           $ref: '#/components/responses/Error404'
         '409':
-          $ref: '#/components/responses/Error409'
+          $ref: '#/components/responses/IdempotencyConflict409'
         '422':
           $ref: '#/components/responses/Error422'
         '429':
           $ref: '#/components/responses/Error429'
         '500':
           $ref: '#/components/responses/Error500'
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description: Key unik per warung, user, dan endpoint selama transaksi tersimpan.
       requestBody:
         required: true
         content:
@@ -1461,12 +1466,11 @@ paths:
       tags:
       - Penjualan
       summary: Detail Penjualan dan rincian
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi. Setiap item berasal
-        dari menu terdaftar; item bebas tidak didukung.'
+      description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna dan untuk
+        kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       - kasir
       x-blocked-by:
@@ -1475,7 +1479,6 @@ paths:
       - D13
       - D05
       - D08
-      - D09
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1547,11 +1550,10 @@ paths:
       tags:
       - Pembelian
       summary: Riwayat Pembelian
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'Implementasi awal tersedia tetapi masih DRAFT; seluruh data dibatasi ke warung pengguna.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       x-blocked-by:
       - D02
@@ -1559,9 +1561,6 @@ paths:
       - D13
       - D05
       - D08
-      - D09
-      - D10
-      - D11
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1630,12 +1629,12 @@ paths:
       tags:
       - Pembelian
       summary: Catat Pembelian
-      description: 'Header dan rincian disimpan atomik; warung/user/nomor/total dari backend. D09 belum menetapkan
-        retry: jangan retry otomatis. DRAFT, belum dapat dipakai live.'
+      description: 'Implementasi awal menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
+        Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
+        memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; operasi tetap DRAFT.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       x-blocked-by:
       - D02
@@ -1716,13 +1715,22 @@ paths:
         '404':
           $ref: '#/components/responses/Error404'
         '409':
-          $ref: '#/components/responses/Error409'
+          $ref: '#/components/responses/IdempotencyConflict409'
         '422':
           $ref: '#/components/responses/Error422'
         '429':
           $ref: '#/components/responses/Error429'
         '500':
           $ref: '#/components/responses/Error500'
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description: Key unik per warung, user, dan endpoint selama transaksi tersimpan.
       requestBody:
         required: true
         content:
@@ -1754,11 +1762,10 @@ paths:
       tags:
       - Pembelian
       summary: Detail Pembelian dan rincian
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       x-blocked-by:
       - D02
@@ -1766,9 +1773,6 @@ paths:
       - D13
       - D05
       - D08
-      - D09
-      - D10
-      - D11
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1821,12 +1825,11 @@ paths:
       tags:
       - Laporan
       summary: Pendapatan penjualan pada periode
-      description: 'Kandidat D08: SUM(total) dan COUNT(header) untuk penjualan selesai. Tidak menjumlahkan bayar,
-        tidak terpengaruh pagination atau jumlah rincian.'
+      description: 'Implementasi awal menjumlahkan total penjualan berstatus selesai dan menghitung header di
+        periode timezone warung. Tidak menjumlahkan bayar atau join rincian; masih DRAFT sampai gate lulus.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       x-blocked-by:
       - D02
@@ -1885,12 +1888,11 @@ paths:
       tags:
       - Laporan
       summary: Total pembelian pada periode
-      description: SUM(total) dan COUNT(header) pembelian pada periode; tidak join rincian untuk agregasi nominal
-        header. Tidak dikurangi dari pendapatan sebagai laba.
+      description: Implementasi awal menjumlahkan total dan menghitung header pembelian di periode timezone warung;
+        tidak join rincian atau mengurangi dari pendapatan sebagai laba. Masih DRAFT sampai gate lulus.
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
-      - owner
       - manager
       x-blocked-by:
       - D02
@@ -2045,14 +2047,25 @@ components:
             errors: {}
             request_id: req-contoh-001
     Error409:
-      description: Konflik keunikan atau state yang sudah disepakati; belum menetapkan perilaku retry D09.
+      description: Konflik keunikan atau state yang sudah disepakati.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiError'
           example:
             code: CONFLICT
-            message: Konflik keunikan atau state yang sudah disepakati; belum menetapkan perilaku retry D09.
+            message: Konflik keunikan atau state yang sudah disepakati.
+            errors: {}
+            request_id: req-contoh-001
+    IdempotencyConflict409:
+      description: Idempotency-Key yang sama sudah tercatat untuk payload berbeda.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            code: IDEMPOTENCY_KEY_REUSED
+            message: Idempotency-Key sudah digunakan untuk payload berbeda.
             errors: {}
             request_id: req-contoh-001
     Error422:
@@ -2098,7 +2111,7 @@ components:
     Money:
       type: string
       pattern: ^(0|[1-9][0-9]{0,12})\.[0-9]{2}$
-      description: 'Kandidat D05: decimal nonnegatif berskala dua, batas DECIMAL(15,2); jangan memakai float.'
+      description: Decimal string eksak nonnegatif dengan dua angka pecahan sesuai baseline D05; jangan memakai float. Batas saat ini mengikuti DECIMAL(15,2).
     Quantity:
       type: string
       pattern: ^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$
@@ -2658,7 +2671,7 @@ components:
           - cash
           - qris
           - transfer
-          description: Nilai dan perlakuan bayar/kembalian kandidat D05.
+          description: Metode kandidat D05; noncash saat ini mensyaratkan bayar sama dengan total, tetapi aturan ini belum final.
         catatan:
           $ref: '#/components/schemas/Note'
         rincian:
@@ -2671,7 +2684,7 @@ components:
       - bayar
       - metode_pembayaran
       - rincian
-      description: diskon yang tidak dikirim berarti 0.00 pada kandidat D05. Setiap rincian harus memilih menu terdaftar.
+      description: Diskon yang tidak dikirim dianggap 0.00 dalam implementasi awal; aturan ini tetap DRAFT karena D05 belum lengkap. Setiap rincian harus memilih menu terdaftar.
         total/subtotal/kembalian/user_id/warung_id/no_transaksi/status ditetapkan backend.
     PenjualanSummary:
       type: object
@@ -2705,7 +2718,7 @@ components:
           - cash
           - qris
           - transfer
-          description: Nilai dan perlakuan bayar/kembalian kandidat D05.
+          description: Metode kandidat D05; noncash saat ini mensyaratkan bayar sama dengan total, tetapi aturan ini belum final.
         status:
           type: string
           enum:
@@ -2806,7 +2819,7 @@ components:
           - cash
           - qris
           - transfer
-          description: Nilai dan perlakuan bayar/kembalian kandidat D05.
+          description: Metode kandidat D05; noncash saat ini mensyaratkan bayar sama dengan total, tetapi aturan ini belum final.
         status:
           type: string
           enum:

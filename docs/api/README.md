@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Auth, administrasi, dan katalog kategori/menu sudah memiliki implementasi awal, tetapi masih `DRAFT` karena test aplikasi dan contract test belum dijalankan. Penjualan, pembelian, serta laporan belum tersedia. File ini dapat dipakai untuk review dan mock yang diberi label, bukan bukti integrasi live sudah dapat berjalan.
+Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Auth, administrasi, katalog, penjualan, pembelian, serta laporan memiliki implementasi awal, tetapi semua operasi tetap `DRAFT`: test aplikasi dan contract test belum dijalankan, dan sebagian rincian nominal/role masih belum final. File ini dapat dipakai untuk review dan mock berlabel, bukan integrasi live.
 
 ## Status implementasi yang tersedia
 
@@ -8,7 +8,8 @@ Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi
 | --- | --- | --- | --- |
 | Auth dan akses | `2cafc46` | Pint/PHP lint, 3 route, timezone sesi MySQL, migration timezone (`AUTH-API-001`, `DB-MIGRATION-003`) | Belum ada HTTP/app/contract test; DRAFT |
 | Administrasi warung dan user tenant | `0f7e39c` | Pint/PHP lint, 9 route, YAML parse (`ADMIN-API-001`) | Belum ada HTTP/app/contract test; DRAFT |
-| Kategori dan menu | `eb5ea04` | Pint/PHP lint, 8 route, YAML parse, dua migration dan `db:table` pada MySQL 8.0.40 (`CATALOG-API-001`, `DB-MIGRATION-004`) | Belum ada HTTP/app/contract test; DRAFT, rincian D02/D04/D05/D06/D13/D16 masih perlu ditutup |
+| Kategori dan menu | `eb5ea04`, `e0e32b8` | Pint/PHP lint, 8 route, YAML parse, migration dan FK gabungan pada MySQL 8.0.40 (`CATALOG-API-001`, `DB-MIGRATION-004/005`) | Belum ada HTTP/app/contract test; DRAFT, rincian D04/D06/D13 masih perlu ditutup |
+| Penjualan, pembelian, laporan | `0ff1d08` | Pint/PHP lint, 8 route, OpenAPI parse/ref/contoh, empat migration header/detail dan FK gabungan pada MySQL 8.0.40 (`TRANSACTION-API-001`, `DB-MIGRATION-006`) | Belum ada HTTP/app/conformance test; DRAFT, detail D04/D05/D06/D08/D09/D10/D11/D13 dan bukti concurrency masih perlu ditutup |
 
 Rincian hasil dan batas pemeriksaan ada di [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md). Jangan arahkan frontend ke server live sampai kontrak operasi berstatus `READY_FOR_FRONTEND`.
 
@@ -40,9 +41,9 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | Sort | Hanya enum pada operasi; arah diikuti id sebagai tie-breaker. Default transaksi `-tanggal` dengan id menurun saat tanggal sama. Nilai tak didukung menghasilkan 422. |
 | Periode | `date_from` dan `date_to` wajib untuk laporan. Pada daftar transaksi boleh keduanya kosong; bila salah satu diisi harus berpasangan. Awal <= akhir. |
 | Patch | Hanya field yang berubah. Field nullable dikosongkan dengan null; field dihilangkan berarti tidak diubah. Body kosong ditolak. |
-| Retry | Mekanisme durable D09 belum ditentukan. Jangan mengarang Idempotency-Key atau retry create otomatis; timeout belum membuktikan transaksi gagal tersimpan. |
+| Retry | Create penjualan/pembelian wajib memakai `Idempotency-Key`. Key yang sama dengan payload kanonis identik me-replay respons awal; key sama dengan payload berbeda memberi 409 `IDEMPOTENCY_KEY_REUSED`. Sampai frontend menerima status READY, retry otomatis belum boleh dianggap terverifikasi karena race/crash belum diuji. |
 
-User menyetujui tanggung jawab inti D04: superadmin mengelola warung dan owner awal melalui jalur admin; owner mengelola user warungnya; manager mengelola katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak sebagai user tenant. Hak katalog pada implementasi awal: manager dapat membaca dan mengubah; manager dan kasir dapat membaca katalog, dengan kasir hanya melihat kategori/menu aktif. Hak owner di luar pengelolaan user dan hak baca riwayat penjualan masih menunggu rincian D04. Semua batas nominal/rounding tetap kandidat, bukan keputusan produksi. Setiap operasi harus menutup keputusan pemblokir sebelum READY_FOR_FRONTEND.
+User menyetujui tanggung jawab inti D04: superadmin mengelola warung dan owner awal lewat admin; owner mengelola user; manager menangani katalog, pembelian, dan laporan; kasir menangani penjualan. Superadmin tidak otomatis bertindak sebagai user tenant. Implementasi least-privilege sementara memberi manager akses daftar/detail penjualan satu warung dan kasir akses transaksi miliknya saja; create sale untuk kasir; pembelian/laporan untuk manager. Hak owner di luar pengelolaan user tetap default deny sampai D04 ditutup. Semua operasi harus menutup keputusan pemblokir dan test sebelum READY_FOR_FRONTEND.
 
 ## Daftar operasi
 
@@ -70,16 +71,22 @@ Path berikut relatif terhadap `/api/v1`. Hak akses di tabel adalah kandidat D04.
 | Tambah menu | POST /menus | createMenu | manager |
 | Detail menu | GET /menus/{id} | getMenu | manager; kasir hanya menu aktif dari kategori aktif |
 | Ubah menu | PATCH /menus/{id} | updateMenu | manager |
-| Daftar penjualan | GET /penjualans | listPenjualans | Hak baca dan riwayat kasir menunggu D04 |
-| Catat penjualan | POST /penjualans | createPenjualan | kasir inti; hak owner/manager menunggu D04 |
-| Detail penjualan | GET /penjualans/{id} | getPenjualan | Hak baca dan riwayat kasir menunggu D04 |
-| Daftar pembelian | GET /pembelians | listPembelians | manager inti; hak owner menunggu D04 |
-| Catat pembelian | POST /pembelians | createPembelian | manager inti; hak owner menunggu D04 |
-| Detail pembelian | GET /pembelians/{id} | getPembelian | manager inti; hak owner menunggu D04 |
-| Pendapatan periode | GET /laporan/penjualan | getLaporanPenjualan | manager inti; hak owner menunggu D04 |
-| Total pembelian periode | GET /laporan/pembelian | getLaporanPembelian | manager inti; hak owner menunggu D04 |
+| Daftar penjualan | GET /penjualans | listPenjualans | Manager semua; kasir miliknya saja |
+| Catat penjualan | POST /penjualans | createPenjualan | Kasir |
+| Detail penjualan | GET /penjualans/{id} | getPenjualan | Manager semua; kasir miliknya saja |
+| Daftar pembelian | GET /pembelians | listPembelians | Manager |
+| Catat pembelian | POST /pembelians | createPembelian | Manager |
+| Detail pembelian | GET /pembelians/{id} | getPembelian | Manager |
+| Pendapatan periode | GET /laporan/penjualan | getLaporanPenjualan | Manager |
+| Total pembelian periode | GET /laporan/pembelian | getLaporanPembelian | Manager |
 
-Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi: hasilnya satu ringkasan periode.
+Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi: hasilnya satu ringkasan periode. Semua transaksi terscope ke warung bearer; FK gabungan juga mencegah relasi lintas warung di database.
+
+### Retry create transaksi
+
+`POST /penjualans` dan `POST /pembelians` mewajibkan header `Idempotency-Key` 1–255 karakter. Scope uniknya `(warung_id, user_id, endpoint)`; key dan hash SHA-256 payload kanonis tersimpan pada header transaksi dan tidak dikirim kembali pada resource. Payload sama me-replay resource transaksi awal dengan HTTP 201; payload berbeda untuk key yang sama menghasilkan HTTP 409 `IDEMPOTENCY_KEY_REUSED`. Urutan rincian ikut diperhitungkan dalam hash. Perilaku ini sudah diimplementasikan, tetapi test replay, dua koneksi bersamaan, crash, serta retensi record belum diverifikasi; transaksi tetap DRAFT dan jangan dipakai sebagai kontrak live.
+
+Nomor transaksi implementasi sementara adalah `PJ-<ULID>` dan `PB-<ULID>`; jangan mengasumsikan format permanen sebelum bukti concurrency D09 lengkap.
 
 Belum ada kontrak endpoint delete, cancel penjualan, koreksi pembelian, upload gambar, atau transaksi atas nama tenant oleh superadmin. D06/D11/D14 dan schema terkait harus diselesaikan dahulu; kebutuhan frontend untuk aksi tersebut dikembalikan sebagai gap, bukan dibuat route sendiri. Penjualan hanya memilih menu terdaftar; tidak ada input item bebas.
 
@@ -109,7 +116,7 @@ Menu dapat dinonaktifkan dengan `PATCH /api/v1/menus/{id}` memakai body `{"aktif
 
 Ambil kategori/menu aktif, pilih menu dan qty, lalu kirim request berdasarkan `PenjualanCreate`. Nama/harga menu bukan input yang dipercaya backend. Form dapat membuat pratinjau, tetapi transaksi sukses menampilkan total dan snapshot dari response.
 
-Contoh sintetis: Nasi `15000.00` × `2.00` dan Teh `5000.00` × `1.00`, diskon header `2000.00`, bayar cash `50000.00`. Kandidat D05 menghasilkan subtotal `35000.00`, total `33000.00`, kembalian `17000.00`. Input serta response lengkap ada pada contoh `menu` di OpenAPI. Setiap item harus merujuk ke menu aktif di warung yang sama; backend mengambil nama dan harga jual untuk snapshot.
+Contoh sintetis: Nasi `15000.00` × `2.00` dan Teh `5000.00` × `1.00`, diskon header `2000.00`, bayar cash `50000.00`. Baseline D05 menetapkan decimal eksak dua angka pecahan dan round half-up per rincian. Implementasi menghitung subtotal dan diskon; cash sementara menerima bayar >= total, sedangkan QRIS/transfer sementara mensyaratkan bayar = total. Aturan pembayaran, diskon, harga nol, batas nilai, dan qty pecahan belum seluruhnya diputuskan sehingga perilaku ini tetap DRAFT. Setiap item harus merujuk menu aktif di warung sama; backend menyimpan snapshot nama/harga jual.
 
 ### Pembelian ringkas
 
@@ -138,7 +145,7 @@ Backend menyimpan satu header, satu detail, total `150000.00`. Response rincian 
 }
 ```
 
-Kandidat D10 menghasilkan subtotal `75000.00` dan `20000.00`, total `95000.00`. Kolom subtotal database selalu terisi; pada request hitungan backend dapat mengisinya. Jika subtotal dikirim bersama qty/harga, kandidat validasi mewajibkan hasil yang sama. Pasangan field yang tidak lengkap menunggu keputusan D10; bentuk ringkas di atas tetap wajib diterima.
+Implementasi kandidat D10 menghasilkan subtotal `75000.00` dan `20000.00`, total `95000.00`. Kolom subtotal database selalu terisi; pada request hitungan backend dapat mengisinya. Qty dan harga satuan wajib berpasangan; subtotal yang ikut dikirim harus cocok. Pasangan tidak lengkap menghasilkan 422. Bentuk ringkas K05 tetap diterima tanpa qty/satuan/harga satuan.
 
 ### Laporan
 
@@ -163,7 +170,7 @@ Jika suatu API gagal, bagian itu berstatus belum diketahui/gagal; jangan menampi
 | 401 UNAUTHENTICATED | Tangani login/token sesuai auth final; pada login tampilkan kredensial gagal. |
 | 403 FORBIDDEN | Tampilkan akses ditolak/status akun atau warung; jangan otomatis menganggap token tidak valid. |
 | 404 NOT_FOUND | Data tidak ditemukan dalam scope; tidak membocorkan apakah ID ada di warung lain. |
-| 409 CONFLICT | Refresh fakta terkait dan tampilkan konflik; jangan menebak semantik retry D09. |
+| 409 `IDEMPOTENCY_KEY_REUSED` | Jangan mengulang payload berbeda dengan key yang sama. Jika payload memang intent baru, buat key baru; payload dan hasil awal pada key lama tetap menjadi fakta yang tercatat. |
 | 422 VALIDATION_ERROR | Tautkan errors berformat dotted path ke field/baris; pertahankan input pengguna. |
 | 429 RATE_LIMITED | Beri pesan tunggu; aturan interval/rate limit final mengikuti D02. |
 | 500 INTERNAL_ERROR / kegagalan jaringan | Tampilkan kegagalan dan request_id bila ada; jangan mengubah nilai menjadi nol atau mengklaim write pasti gagal. |
@@ -180,4 +187,4 @@ Checklist penerima: login/me/logout, permission denied, list/filter/pagination, 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
-| 0.1.0-draft | DRAFT | Rancangan awal 28 operasi, nominal/ID string, header-rincian, kedua bentuk pembelian, laporan periode, dan daftar keputusan pemblokir. Belum ada operasi live yang diserahkan. |
+| 0.1.0-draft | DRAFT | Implementasi awal auth/admin/katalog/transaksi/laporan, nominal/ID string, header-rincian, Idempotency-Key, dua bentuk pembelian, laporan periode, dan daftar keputusan pemblokir. Belum ada operasi live yang diserahkan. |

@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration `warungs`, adaptasi `users`, timezone, kategori, menu, dan FK tenant gabungan telah diterapkan serta diperiksa pada database development lokal MySQL 8.0.40. Empat tabel transaksi masih belum memiliki migration. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration delapan tabel bisnis, termasuk adaptasi `users`, timezone, katalog, FK tenant gabungan, dan empat tabel transaksi, telah diterapkan serta diperiksa pada database development lokal MySQL 8.0.40. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
@@ -122,6 +122,8 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
 | `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
 | `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
+| `idempotency_key` | VARCHAR(255), unik bersama `(warung_id, user_id)` pada endpoint penjualan |
+| `payload_hash` | CHAR(64), hash SHA-256 payload kanonis; internal, tidak dikirim ke API |
 | `tanggal` | DATETIME |
 | `subtotal` | DECIMAL(15,2) |
 | `diskon` | DECIMAL(15,2), default 0 |
@@ -133,7 +135,9 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Relasi: satu warung dan satu user dapat terkait dengan banyak penjualan. User pencatat dan penjualan harus berada pada tenant yang sama, kecuali alur superadmin yang diotorisasi secara eksplisit.
+Nomor teknis saat ini memakai prefix `PJ-` dan ULID. Key idempotensi bertahan selama header transaksi tersimpan; payload yang sama me-replay response awal dan payload berbeda untuk key sama menghasilkan 409. Format nomor dan scope retry merupakan pilihan implementasi sementara D09 dan perlu dibuktikan pada concurrency.
+
+Relasi: satu warung dan satu user tenant dapat terkait dengan banyak penjualan. Hanya user tenant yang berwenang membuat transaksi melalui API saat ini; superadmin tidak memiliki jalur transaksi atas nama tenant.
 
 ### `penjualan_rincis`
 
@@ -161,12 +165,16 @@ Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu`
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
 | `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
 | `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
+| `idempotency_key` | VARCHAR(255), unik bersama `(warung_id, user_id)` pada endpoint pembelian |
+| `payload_hash` | CHAR(64), hash SHA-256 payload kanonis; internal, tidak dikirim ke API |
 | `tanggal` | DATETIME |
 | `total` | DECIMAL(15,2), jumlah seluruh subtotal rincian |
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Relasi: satu warung dan satu user dapat terkait dengan banyak pembelian. User pencatat dan header pembelian harus berasal dari warung yang sama, kecuali alur superadmin yang diotorisasi secara eksplisit.
+Nomor teknis saat ini memakai prefix `PB-` dan ULID. Pembelian tidak punya status/cancel; koreksi tidak tersedia sampai D11 diputuskan.
+
+Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. Hanya user tenant yang berwenang membuat transaksi melalui API saat ini; superadmin tidak memiliki jalur transaksi atas nama tenant.
 
 ### `pembelian_rincis`
 
@@ -199,17 +207,17 @@ warung.aktif = TRUE
 
 Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar token lama tidak melewati masa aktif. Batas tanggal terisi bersifat inklusif. User telah menetapkan bahwa `NULL` pada `tanggal_mulai` berarti tidak ada batas mulai dan `NULL` pada `tanggal_berakhir` berarti tidak ada batas akhir (2026-10-04). Status aktif user dan warung tetap wajib.
 
-## Keputusan yang harus ditetapkan sebelum migration fitur
+## Keputusan yang harus ditetapkan sebelum kontrak siap frontend
 
 1. Inventaris migration dan data sebelum transisi `users`; target produksi telah dipilih MySQL 8.0.40. Validasi integrasi harus memakai versi itu, bukan SQLite default.
 2. Aturan normalisasi username/email dan sensitivitas huruf. Username unique global; email boleh `NULL` dan unique global saat terisi. Migration awal Laravel mewajibkan email, jadi transisi tetap perlu menjaga data lama.
 3. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
-4. Batas nilai dan rumus qty/diskon/pembayaran selain baseline decimal eksak dua angka dan round half-up per rincian yang telah disetujui.
+4. Batas nilai dan rumus qty/diskon/pembayaran selain baseline decimal eksak dua angka dan round half-up per rincian yang telah disetujui; perilaku payment noncash saat ini masih asumsi DRAFT.
 5. Apakah daftar nilai role, metode pembayaran, dan status dijaga sebagai konstanta/enum aplikasi atau constraint database. Pembagian tanggung jawab inti superadmin/owner/manager/kasir disetujui; detail izin per operasi mengikuti D04.
-6. Format nomor transaksi dan bukti bahwa Idempotency-Key me-replay payload identik serta menolak payload berbeda dengan HTTP 409 saat retry/concurrency.
+6. Format nomor transaksi sementara `PJ-/PB-ULID`; buktikan bahwa Idempotency-Key dengan scope `(warung_id,user_id,endpoint)` me-replay payload identik serta menolak payload berbeda dengan HTTP 409 saat retry/concurrency.
 7. Periode memakai timezone warung dan timestamp disimpan UTC sesuai D08; kebijakan backdate/future date dan warung tanpa timezone masih perlu ditetapkan.
 8. Aturan koreksi atau pembatalan pembelian setelah dicatat, termasuk dampaknya pada laporan dan apakah perlu status khusus.
 
 ## Kondisi proyek yang telah diverifikasi
 
-Backend masih memakai starter Laravel dan belum memiliki migration lengkap untuk delapan tabel bisnis; migration `warungs` berhasil dijalankan pada clean-install lokal MySQL 8.0.40. Database itu bukan produksi. Migration framework saat ini menyediakan `users` dengan `name`, `email` non-null unique, `email_verified_at`, `password`, `remember_token`, tabel session/password reset, cache/jobs, serta migration Sanctum untuk `personal_access_tokens`. Ini belum sama dengan rancangan bisnis di atas. Email bisnis telah diputuskan nullable dan unique saat diisi. Periksa apakah migration pernah dijalankan atau database sudah berisi data sebelum menentukan cara transisi; jangan mengubah migration yang telah dipakai bersama.
+Migration delapan tabel bisnis sudah tersedia dan diterapkan pada database development lokal MySQL 8.0.40. Database itu bukan produksi. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; production/data lama tidak disentuh. Schema framework tetap menyediakan kolom `email_verified_at`, `remember_token`, dan tabel session/password reset, cache/jobs, serta Sanctum `personal_access_tokens` sebagai infrastruktur di luar delapan tabel bisnis. Email bisnis nullable dan unique saat diisi. Periksa database tujuan sebelum menjalankan migration; jangan mengubah migration yang sudah dipakai bersama.
