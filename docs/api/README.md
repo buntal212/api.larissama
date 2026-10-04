@@ -18,7 +18,7 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | --- | --- |
 | Base URL | Diserahkan per environment saat handoff. Prefix `/api/v1` sudah ada pada `servers.url`; jangan menggandakannya. |
 | Media | Request/response JSON; kirim `Accept: application/json`, body dengan `Content-Type: application/json`. |
-| Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`. Detail expiry, revokasi, CORS, HTTPS dan rate limit masih menunggu D02. Jangan menganggap token berbentuk JWT. |
+| Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`. Detail expiry, revokasi, CORS, HTTPS dan rate limit masih menunggu D02. Sanctum personal access token bersifat opaque; jangan parsing isinya sebagai JWT. |
 | Tenant | User biasa tidak mengirim pemilih warung. Backend menggunakan identitas user; path admin warung hanya untuk superadmin. |
 | ID | String digit, misalnya `"1001"`; jangan konversi BIGINT menjadi Number. |
 | Nominal dan qty | String decimal dua angka pecahan, tanpa pemisah ribuan; contoh `"150000.00"`, `"0.50"`. Format lokal hanya untuk tampilan. Money transaksi mengikuti batas kolom; AggregateMoney laporan dapat melebihi kapasitas satu transaksi dan tetap string eksak. |
