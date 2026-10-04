@@ -271,7 +271,7 @@ paths:
       tags:
       - Admin
       summary: Buat warung dan owner awal
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning warung+owner: response 201, owner terikat ke warung, password di-hash/tidak dikirim, penolakan role tenant, dan rollback saat insert owner gagal. Field set sukses/error D13 diperiksa manual; OpenAPI runtime conformance belum diuji.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji provisioning owner/hash/rollback; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422/500. Request schema dan status lain belum dicocokkan otomatis; conformance penuh belum selesai.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -525,7 +525,7 @@ paths:
       tags:
       - Akses
       summary: Daftar users
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner melihat daftar user tenant sendiri dan metadata total. Parameter pagination/filter/sort serta OpenAPI runtime conformance belum diuji.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. Pagination/filter/sort dan request schema belum dicocokkan otomatis; conformance penuh belum selesai.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -593,7 +593,7 @@ paths:
       tags:
       - Akses
       summary: Tambah User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat manager dalam warung sendiri, hash password, resource tanpa password, dan penolakan input warung_id/role superadmin serta aktor non-owner. OpenAPI runtime conformance penuh dan keputusan D12 masih terbuka.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan eskalasi; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. Request schema, status lain, dan keputusan D12 masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -656,7 +656,7 @@ paths:
       tags:
       - Akses
       summary: Detail User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membaca user tenant sendiri dan mendapat 404 untuk ID warung lain tanpa mengubah datanya. OpenAPI runtime conformance penuh dan keputusan D12 masih terbuka.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji detail user sendiri dan 404 untuk tenant lain; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404. Status lain, request schema, role boundary detail, dan keputusan D12 belum ditutup.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -707,7 +707,7 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji update user dalam tenant sendiri, 404 untuk ID tenant lain, serta penolakan warung_id dan role superadmin. OpenAPI runtime conformance penuh dan keputusan D12 masih terbuka.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji update tenant sendiri, 404 tenant lain, dan penolakan injeksi; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404/422. Status lain, request schema, role boundary detail, dan keputusan D12 belum ditutup.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
