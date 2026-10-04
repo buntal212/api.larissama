@@ -1040,8 +1040,6 @@ paths:
                   harga: '15000.00'
                   deskripsi: null
                   aktif: true
-                  harga_modal: null
-                  gambar: null
                   created_at: '2026-10-04T03:00:00Z'
                   updated_at: '2026-10-04T03:00:00Z'
                 meta:
@@ -1118,8 +1116,6 @@ paths:
                   harga: '15000.00'
                   deskripsi: null
                   aktif: true
-                  harga_modal: null
-                  gambar: null
                   created_at: '2026-10-04T03:00:00Z'
                   updated_at: '2026-10-04T03:00:00Z'
         '400':
@@ -1187,8 +1183,6 @@ paths:
                   harga: '15000.00'
                   deskripsi: null
                   aktif: true
-                  harga_modal: null
-                  gambar: null
                   created_at: '2026-10-04T03:00:00Z'
                   updated_at: '2026-10-04T03:00:00Z'
         '400':
@@ -1243,8 +1237,6 @@ paths:
                   harga: '17000.00'
                   deskripsi: null
                   aktif: true
-                  harga_modal: null
-                  gambar: null
                   created_at: '2026-10-04T03:00:00Z'
                   updated_at: '2026-10-04T03:00:00Z'
         '400':
@@ -1281,7 +1273,8 @@ paths:
       tags:
       - Penjualan
       summary: Riwayat Penjualan
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi. Setiap item berasal
+        dari menu terdaftar; item bebas tidak didukung.'
       x-contract-status: DRAFT
       x-implementation-status: NOT_STARTED
       x-candidate-roles:
@@ -1293,7 +1286,6 @@ paths:
       - D04
       - D13
       - D05
-      - D07
       - D08
       - D09
       responses:
@@ -1380,7 +1372,8 @@ paths:
       - Penjualan
       summary: Catat Penjualan
       description: 'Header dan rincian disimpan atomik; warung/user/nomor/total dari backend. D09 belum menetapkan
-        retry: jangan retry otomatis. DRAFT, belum dapat dipakai live.'
+        retry: jangan retry otomatis. DRAFT, belum dapat dipakai live. Setiap item berasal dari menu terdaftar;
+        item bebas tidak didukung.'
       x-contract-status: DRAFT
       x-implementation-status: NOT_STARTED
       x-candidate-roles:
@@ -1392,7 +1385,6 @@ paths:
       - D04
       - D13
       - D05
-      - D07
       - D08
       - D09
       responses:
@@ -1425,7 +1417,6 @@ paths:
                       - id: '5001'
                         penjualan_id: '501'
                         menu_id: '1001'
-                        jenis_item: menu
                         nama_menu: Nasi
                         harga: '15000.00'
                         qty: '2.00'
@@ -1437,43 +1428,11 @@ paths:
                       - id: '5002'
                         penjualan_id: '501'
                         menu_id: '1002'
-                        jenis_item: menu
                         nama_menu: Teh
                         harga: '5000.00'
                         qty: '1.00'
                         diskon: '0.00'
                         subtotal: '5000.00'
-                        catatan: null
-                        created_at: '2026-10-04T03:00:00Z'
-                        updated_at: '2026-10-04T03:00:00Z'
-                luar_menu_draft_D07:
-                  value:
-                    data:
-                      id: '502'
-                      warung_id: '1'
-                      user_id: '11'
-                      no_transaksi: PJ-CONTOH-002
-                      tanggal: '2026-10-04T03:00:00Z'
-                      subtotal: '10000.00'
-                      diskon: '0.00'
-                      total: '10000.00'
-                      bayar: '10000.00'
-                      kembalian: '0.00'
-                      metode_pembayaran: cash
-                      status: selesai
-                      catatan: null
-                      created_at: '2026-10-04T03:00:00Z'
-                      updated_at: '2026-10-04T03:00:00Z'
-                      rincian:
-                      - id: '5003'
-                        penjualan_id: '502'
-                        menu_id: null
-                        jenis_item: luar_menu
-                        nama_menu: Item bebas
-                        harga: '10000.00'
-                        qty: '1.00'
-                        diskon: '0.00'
-                        subtotal: '10000.00'
                         catatan: null
                         created_at: '2026-10-04T03:00:00Z'
                         updated_at: '2026-10-04T03:00:00Z'
@@ -1507,23 +1466,9 @@ paths:
                   bayar: '50000.00'
                   metode_pembayaran: cash
                   rincian:
-                  - jenis_item: menu
-                    menu_id: '1001'
+                  - menu_id: '1001'
                     qty: '2.00'
-                  - jenis_item: menu
-                    menu_id: '1002'
-                    qty: '1.00'
-              luar_menu_draft_D07:
-                summary: Jangan aktifkan sebelum D07 selesai
-                value:
-                  tanggal: '2026-10-04T03:00:00Z'
-                  bayar: '10000.00'
-                  metode_pembayaran: cash
-                  rincian:
-                  - jenis_item: luar_menu
-                    menu_id: null
-                    nama_menu: Item bebas
-                    harga: '10000.00'
+                  - menu_id: '1002'
                     qty: '1.00'
   /penjualans/{id}:
     get:
@@ -1531,7 +1476,8 @@ paths:
       tags:
       - Penjualan
       summary: Detail Penjualan dan rincian
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi. Setiap item berasal
+        dari menu terdaftar; item bebas tidak didukung.'
       x-contract-status: DRAFT
       x-implementation-status: NOT_STARTED
       x-candidate-roles:
@@ -1543,7 +1489,6 @@ paths:
       - D04
       - D13
       - D05
-      - D07
       - D08
       - D09
       responses:
@@ -1574,7 +1519,6 @@ paths:
                   - id: '5001'
                     penjualan_id: '501'
                     menu_id: '1001'
-                    jenis_item: menu
                     nama_menu: Nasi
                     harga: '15000.00'
                     qty: '2.00'
@@ -1586,7 +1530,6 @@ paths:
                   - id: '5002'
                     penjualan_id: '501'
                     menu_id: '1002'
-                    jenis_item: menu
                     nama_menu: Teh
                     harga: '5000.00'
                     qty: '1.00'
@@ -2660,16 +2603,6 @@ components:
         aktif:
           type: boolean
           default: true
-        harga_modal:
-          anyOf:
-          - $ref: '#/components/schemas/Money'
-          - type: 'null'
-        gambar:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 255
-          - type: 'null'
         created_at:
           $ref: '#/components/schemas/Timestamp'
         updated_at:
@@ -2683,19 +2616,14 @@ components:
       - harga
       - deskripsi
       - aktif
-      - harga_modal
-      - gambar
       - created_at
       - updated_at
-      description: harga_modal/gambar boleh null. Draft belum membuka penulisan kedua field ini; penetapan fungsi/upload
-        melalui D07.
+      description: Resource menu hanya menampilkan harga jual. Field legacy harga_modal dan gambar tidak dipakai
+        oleh API MVP.
     SaleMenuLineInput:
       type: object
       additionalProperties: false
       properties:
-        jenis_item:
-          type: string
-          const: menu
         menu_id:
           $ref: '#/components/schemas/Id'
         qty:
@@ -2705,38 +2633,10 @@ components:
         catatan:
           $ref: '#/components/schemas/Note'
       required:
-      - jenis_item
       - menu_id
       - qty
-      description: Nama/harga berasal dari master yang dibaca backend; tidak menerima harga kiriman untuk item menu.
-    SaleFreeLineInput:
-      type: object
-      additionalProperties: false
-      properties:
-        jenis_item:
-          type: string
-          const: luar_menu
-        menu_id:
-          type: 'null'
-        nama_menu:
-          type: string
-          minLength: 1
-          maxLength: 150
-        harga:
-          $ref: '#/components/schemas/Money'
-        qty:
-          $ref: '#/components/schemas/Quantity'
-        diskon:
-          $ref: '#/components/schemas/Money'
-        catatan:
-          $ref: '#/components/schemas/Note'
-      required:
-      - jenis_item
-      - menu_id
-      - nama_menu
-      - harga
-      - qty
-      description: Cabang rancangan lama; jangan aktifkan UI item bebas sebelum D07 diputuskan.
+      description: Setiap baris harus memilih menu aktif dari warung yang sama. Nama/harga snapshot berasal dari
+        data menu yang dibaca backend; client tidak mengirim nama/harga.
     PenjualanCreate:
       type: object
       additionalProperties: false
@@ -2759,17 +2659,15 @@ components:
         rincian:
           type: array
           items:
-            oneOf:
-            - $ref: '#/components/schemas/SaleMenuLineInput'
-            - $ref: '#/components/schemas/SaleFreeLineInput'
+            $ref: '#/components/schemas/SaleMenuLineInput'
           minItems: 1
       required:
       - tanggal
       - bayar
       - metode_pembayaran
       - rincian
-      description: diskon yang tidak dikirim berarti 0.00 pada kandidat D05. total/subtotal/kembalian/user_id/warung_id/no_transaksi/status
-        ditetapkan backend.
+      description: diskon yang tidak dikirim berarti 0.00 pada kandidat D05. Setiap rincian harus memilih menu terdaftar.
+        total/subtotal/kembalian/user_id/warung_id/no_transaksi/status ditetapkan backend.
     PenjualanSummary:
       type: object
       additionalProperties: false
@@ -2839,14 +2737,7 @@ components:
         penjualan_id:
           $ref: '#/components/schemas/Id'
         menu_id:
-          anyOf:
-          - $ref: '#/components/schemas/Id'
-          - type: 'null'
-        jenis_item:
-          type: string
-          enum:
-          - menu
-          - luar_menu
+          $ref: '#/components/schemas/Id'
         nama_menu:
           type: string
           minLength: 1
@@ -2869,7 +2760,6 @@ components:
       - id
       - penjualan_id
       - menu_id
-      - jenis_item
       - nama_menu
       - harga
       - qty
@@ -2878,6 +2768,7 @@ components:
       - catatan
       - created_at
       - updated_at
+      description: menu_id wajib; nama dan harga adalah snapshot pada waktu penjualan.
     Penjualan:
       type: object
       additionalProperties: false
