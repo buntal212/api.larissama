@@ -1,0 +1,218 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use App\Models\Warung;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\TestCase;
+
+class UserApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_owner_can_create_list_show_and_update_users_in_their_warung(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $ownerA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'owner']);
+        $ownerB = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'owner']);
+        $managerB = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'manager']);
+        $token = $ownerA->createToken('user-feature-test')->plainTextToken;
+        $password = 'manager-test-password';
+
+        $created = $this->withToken($token)
+            ->postJson('/api/v1/users', [
+                'nama' => 'Manager Warung A',
+                'username' => 'manager-warung-a',
+                'email' => null,
+                'password' => $password,
+                'role' => 'manager',
+            ])
+            ->assertCreated();
+
+        $userResource = $created->json('data');
+        $this->assertEqualsCanonicalizing(
+            ['id', 'warung_id', 'nama', 'username', 'email', 'role', 'aktif', 'created_at', 'updated_at'],
+            array_keys($userResource),
+        );
+        $this->assertSame((string) $warungA->id, $userResource['warung_id']);
+        $this->assertSame('manager', $userResource['role']);
+        $this->assertTrue($userResource['aktif']);
+        $this->assertArrayNotHasKey('password', $userResource);
+        $this->assertStringNotContainsString($password, $created->getContent());
+        $this->assertDatabaseHas('users', [
+            'id' => (int) $userResource['id'],
+            'warung_id' => $warungA->id,
+            'username' => 'manager-warung-a',
+            'role' => 'manager',
+            'aktif' => true,
+        ]);
+
+        $createdUser = User::query()->findOrFail((int) $userResource['id']);
+        $this->assertTrue(Hash::check($password, $createdUser->password));
+
+        $list = $this->withToken($token)->getJson('/api/v1/users')->assertOk();
+        $listedIds = array_column($list->json('data'), 'id');
+        $this->assertSame(2, $list->json('meta.total'));
+        $this->assertContains((string) $ownerA->id, $listedIds);
+        $this->assertContains((string) $createdUser->id, $listedIds);
+        $this->assertNotContains((string) $ownerB->id, $listedIds);
+        $this->assertNotContains((string) $managerB->id, $listedIds);
+
+        $detail = $this->withToken($token)
+            ->getJson('/api/v1/users/'.$createdUser->id)
+            ->assertOk();
+        $this->assertSame((string) $createdUser->id, $detail->json('data.id'));
+        $this->assertSame('manager', $detail->json('data.role'));
+
+        $updated = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$createdUser->id, [
+                'nama' => 'Kasir Warung A',
+                'role' => 'kasir',
+            ])
+            ->assertOk();
+
+        $this->assertSame('Kasir Warung A', $updated->json('data.nama'));
+        $this->assertSame('kasir', $updated->json('data.role'));
+        $this->assertSame((string) $warungA->id, $updated->json('data.warung_id'));
+        $this->assertDatabaseHas('users', [
+            'id' => $createdUser->id,
+            'warung_id' => $warungA->id,
+            'nama' => 'Kasir Warung A',
+            'role' => 'kasir',
+        ]);
+    }
+
+    public function test_owner_gets_404_for_another_warungs_user_and_leaves_it_unchanged(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $ownerA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'owner']);
+        $managerB = User::factory()->create([
+            'warung_id' => $warungB->id,
+            'role' => 'manager',
+            'nama' => 'Manager Tetap Warung B',
+        ]);
+        $token = $ownerA->createToken('user-feature-test')->plainTextToken;
+
+        $detail = $this->withToken($token)
+            ->getJson('/api/v1/users/'.$managerB->id)
+            ->assertNotFound();
+        $this->assertD13ErrorEnvelope($detail, 'NOT_FOUND');
+
+        $update = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$managerB->id, ['nama' => 'Pemilik Menyerang'])
+            ->assertNotFound();
+        $this->assertD13ErrorEnvelope($update, 'NOT_FOUND');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $managerB->id,
+            'warung_id' => $warungB->id,
+            'nama' => 'Manager Tetap Warung B',
+            'role' => 'manager',
+        ]);
+    }
+
+    public function test_owner_cannot_inject_warung_id_or_elevated_role_on_create_or_update(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'owner']);
+        $target = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'manager']);
+        $token = $owner->createToken('user-feature-test')->plainTextToken;
+        $createPayload = [
+            'nama' => 'Injected User',
+            'username' => 'injected-user',
+            'password' => 'injected-test-password',
+            'role' => 'manager',
+        ];
+
+        $createWithTenant = $this->withToken($token)->postJson('/api/v1/users', [
+            ...$createPayload,
+            'warung_id' => $warungB->id,
+        ])->assertUnprocessable();
+        $this->assertD13ErrorEnvelope($createWithTenant, 'VALIDATION_ERROR', 'warung_id');
+
+        $createWithElevatedRole = $this->withToken($token)->postJson('/api/v1/users', [
+            ...$createPayload,
+            'username' => 'injected-superadmin',
+            'role' => 'superadmin',
+        ])->assertUnprocessable();
+        $this->assertD13ErrorEnvelope($createWithElevatedRole, 'VALIDATION_ERROR', 'role');
+
+        $updateWithTenant = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$target->id, ['warung_id' => $warungB->id])
+            ->assertUnprocessable();
+        $this->assertD13ErrorEnvelope($updateWithTenant, 'VALIDATION_ERROR', 'warung_id');
+
+        $updateWithElevatedRole = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$target->id, ['role' => 'superadmin'])
+            ->assertUnprocessable();
+        $this->assertD13ErrorEnvelope($updateWithElevatedRole, 'VALIDATION_ERROR', 'role');
+
+        $this->assertSame(2, User::query()->count());
+        $this->assertDatabaseMissing('users', ['username' => 'injected-user']);
+        $this->assertDatabaseMissing('users', ['username' => 'injected-superadmin']);
+        $this->assertDatabaseHas('users', [
+            'id' => $target->id,
+            'warung_id' => $warungA->id,
+            'role' => 'manager',
+        ]);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function nonOwnerRoles(): array
+    {
+        return [
+            'manager' => ['manager'],
+            'cashier' => ['kasir'],
+            'superadmin' => ['superadmin'],
+        ];
+    }
+
+    #[DataProvider('nonOwnerRoles')]
+    public function test_non_owner_roles_cannot_use_owner_user_administration(string $role): void
+    {
+        $warung = $role === 'superadmin' ? null : Warung::factory()->create();
+        $actor = User::factory()->create([
+            'warung_id' => $warung?->id,
+            'role' => $role,
+        ]);
+        $token = $actor->createToken('user-feature-test')->plainTextToken;
+
+        $this->withToken($token)->getJson('/api/v1/users')->assertForbidden();
+        $this->withToken($token)->postJson('/api/v1/users', [
+            'nama' => 'Tidak Diizinkan',
+            'username' => 'forbidden-user-'.$role,
+            'password' => 'forbidden-test-password',
+            'role' => 'manager',
+        ])->assertForbidden();
+
+        $this->assertSame(1, User::query()->count());
+        $this->assertDatabaseMissing('users', ['username' => 'forbidden-user-'.$role]);
+    }
+
+    private function assertD13ErrorEnvelope(TestResponse $response, string $expectedCode, ?string $field = null): void
+    {
+        $body = $response->json();
+
+        $this->assertEqualsCanonicalizing(['code', 'message', 'errors', 'request_id'], array_keys($body));
+        $this->assertSame($expectedCode, $body['code']);
+        $this->assertIsString($body['message']);
+        $this->assertIsArray($body['errors']);
+        $this->assertMatchesRegularExpression(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
+            $body['request_id'],
+        );
+
+        if ($field !== null) {
+            $this->assertArrayHasKey($field, $body['errors']);
+        }
+    }
+}
