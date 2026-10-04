@@ -12,7 +12,7 @@ Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder
 - Kontrak API menentukan bentuk data yang dikonsumsi frontend; frontend tidak menjadi sumber kebenaran bisnis.
 - Jika sumber-sumber itu berbeda, telusuri keputusan yang mendasarinya dan perbarui artefak yang terkait. Jangan menyelesaikan konflik dengan menebak atau hanya mengubah dokumen turunan.
 
-Rancangan ini mencakup enam tabel: `warungs`, `users`, `kategori_menus`, `menus`, `penjualans`, dan `penjualan_rincis`. Aplikasi tidak memakai tabel `mejas` atau `menu_varians`.
+Rancangan ini mencakup delapan tabel: `warungs`, `users`, `kategori_menus`, `menus`, `penjualans`, `penjualan_rincis`, `pembelians`, dan `pembelian_rincis`. Aplikasi tidak memakai tabel `mejas` atau `menu_varians`.
 
 ## Aturan inti
 
@@ -24,6 +24,10 @@ Rancangan ini mencakup enam tabel: `warungs`, `users`, `kategori_menus`, `menus`
 - Satu penjualan memiliki satu kasir dan banyak rincian.
 - Rincian penjualan menyimpan snapshot nama dan harga supaya perubahan data menu tidak mengubah riwayat transaksi.
 - Item yang tidak ada di master menu tetap disimpan di `penjualan_rincis` dengan `menu_id = NULL` dan `jenis_item = luar_menu`.
+- Satu pembelian dicatat untuk satu warung dan satu user pencatat, lalu memiliki satu atau lebih rincian.
+- Rincian pembelian boleh berupa item bahan satu per satu atau satu baris ringkasan, misalnya `Belanja di pasar` dengan nominal total.
+- Pembelian dan penjualan berdiri sendiri. Pembelian tidak mengubah stok dan tidak terhubung ke menu, resep, atau rincian penjualan.
+- Total pembelian pada header sama dengan penjumlahan `subtotal` seluruh rincian dan dihitung backend.
 
 ## Relasi
 
@@ -37,6 +41,9 @@ erDiagram
     USERS ||--o{ PENJUALANS : melayani
     PENJUALANS ||--|{ PENJUALAN_RINCIS : berisi
     MENUS o|--o{ PENJUALAN_RINCIS : sumber_menu
+    WARUNGS ||--o{ PEMBELIANS : mencatat
+    USERS ||--o{ PEMBELIANS : menginput
+    PEMBELIANS ||--|{ PEMBELIAN_RINCIS : berisi
 ```
 
 ## Tabel dan kolom
@@ -142,6 +149,38 @@ Relasi: satu warung dan satu user dapat terkait dengan banyak penjualan. User pe
 
 Untuk item dari master, simpan `menu_id`, `jenis_item = menu`, dan snapshot `nama_menu` serta `harga`. Untuk item bebas, simpan `menu_id = NULL`, `jenis_item = luar_menu`, lalu isi nama dan harga dari input kasir yang sudah divalidasi backend. Jangan menghapus atau mengubah snapshot transaksi saat master menu berubah.
 
+### `pembelians`
+
+| Kolom | Tipe/rule |
+| --- | --- |
+| `id` | BIGINT primary key |
+| `warung_id` | BIGINT foreign key |
+| `user_id` | BIGINT foreign key user pencatat |
+| `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
+| `tanggal` | DATETIME |
+| `total` | DECIMAL(15,2), jumlah seluruh subtotal rincian |
+| `catatan` | TEXT, nullable |
+| `created_at`, `updated_at` | timestamp |
+
+Relasi: satu warung dan satu user dapat terkait dengan banyak pembelian. User pencatat dan header pembelian harus berasal dari warung yang sama, kecuali alur superadmin yang diotorisasi secara eksplisit.
+
+### `pembelian_rincis`
+
+| Kolom | Tipe/rule |
+| --- | --- |
+| `id` | BIGINT primary key |
+| `pembelian_id` | BIGINT foreign key |
+| `nama_item` | VARCHAR(150), nama bahan atau keterangan, misalnya `Belanja di pasar` |
+| `qty` | DECIMAL(10,2), nullable |
+| `satuan` | VARCHAR(30), nullable |
+| `harga_satuan` | DECIMAL(15,2), nullable |
+| `subtotal` | DECIMAL(15,2), nominal rincian yang wajib diisi |
+| `created_at`, `updated_at` | timestamp |
+
+Setiap header pembelian harus memiliki minimal satu rincian. Untuk pencatatan lengkap, buat satu baris per bahan dan backend menghitung subtotal dari kuantitas serta harga satuan yang diberikan. Untuk pencatatan ringkas, buat satu baris dengan `nama_item` berisi keterangan umum, misalnya `Belanja di pasar`; `qty`, `satuan`, dan `harga_satuan` boleh `NULL`, sedangkan `subtotal` berisi nominal total. Backend menghitung `pembelians.total` dari seluruh subtotal dalam transaksi database yang sama.
+
+Rincian pembelian adalah catatan bebas, bukan master bahan atau catatan stok. `pembelian_rincis` hanya terhubung ke header pembelian dan tidak memiliki relasi ke menu, resep, stok, maupun penjualan. Laporan periode menjumlahkan total pembelian berdasarkan `warung_id` dan tanggal header.
+
 ## Batas akses warung
 
 User tenant dapat login dan memakai API hanya jika seluruh kondisi ini terpenuhi:
@@ -162,13 +201,14 @@ Rancangan menandai kedua tanggal sebagai nullable, tetapi belum menjelaskan arti
 1. Database produksi yang dituju. Konfigurasi proyek saat ini default ke SQLite dan juga menyediakan konfigurasi MySQL/MariaDB/PostgreSQL; rancangan belum memilih satu target.
 2. Arti `tanggal_mulai` atau `tanggal_berakhir` yang `NULL`.
 3. Apakah email nullable tetap unique global. Migration Laravel bawaan saat ini mewajibkan email dan membuatnya unique, sedangkan rancangan meminta email nullable.
-4. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, dan rincian. Snapshot rincian perlu tetap utuh; transaksi selesai tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
-5. Cara database dan aplikasi mencegah `kategori_menu_id`, `menu_id`, kasir, dan penjualan menghubungkan data dari warung berbeda, termasuk apakah engine target akan memakai foreign key gabungan dengan `warung_id`.
+4. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
+5. Cara database dan aplikasi mencegah `kategori_menu_id`, `menu_id`, kasir, penjualan, pembelian, dan user pencatat menghubungkan data dari warung berbeda, termasuk apakah engine target akan memakai foreign key gabungan dengan `warung_id`.
 6. Batas nilai dan pembulatan uang, serta rumus subtotal/diskon header dan rincian.
 7. Apakah daftar nilai role, metode pembayaran, status, dan `jenis_item` dijaga sebagai konstanta/enum aplikasi atau constraint database. Rancangan saat ini menyebut kolom VARCHAR.
 8. Apakah superadmin dapat membuat transaksi atas nama warung, atau hanya mengelola data warung. Rancangan hanya menetapkan `warung_id = NULL` untuk akun superadmin.
 9. Perilaku idempotensi untuk request pembuatan/finalisasi penjualan yang dapat dicoba ulang, agar retry tidak menggandakan transaksi.
-10. Arti zona waktu pada `penjualans.tanggal`: apakah itu instant tersimpan dalam UTC atau waktu lokal warung, serta bagaimana zona waktu bisnis ditetapkan.
+10. Arti zona waktu pada `penjualans.tanggal` dan `pembelians.tanggal`: apakah itu instant tersimpan dalam UTC atau waktu lokal warung, serta bagaimana zona waktu bisnis ditetapkan untuk filter laporan periode.
+11. Aturan koreksi atau pembatalan pembelian setelah dicatat, termasuk dampaknya pada laporan dan apakah perlu status khusus.
 
 ## Kondisi proyek saat dokumen dibuat
 
