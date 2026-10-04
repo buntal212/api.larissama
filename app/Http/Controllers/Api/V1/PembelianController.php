@@ -36,13 +36,14 @@ class PembelianController extends Controller
         }
 
         $direction = ($filters['sort'] ?? '-tanggal') === '-tanggal' ? 'desc' : 'asc';
+        $page = $filters['page'] ?? '1';
         $paginator = ApiPagination::paginate(
             $query->orderBy('tanggal', $direction)->orderBy('id', $direction),
             (int) ($filters['per_page'] ?? 20),
-            (int) ($filters['page'] ?? 1),
+            $page,
         );
 
-        return ApiPaginationResponse::make($paginator, PembelianSummaryResource::class, $request);
+        return ApiPaginationResponse::make($paginator, PembelianSummaryResource::class, $request, $page);
     }
 
     public function store(PembelianStoreRequest $request, CreatePembelian $createPembelian): JsonResponse

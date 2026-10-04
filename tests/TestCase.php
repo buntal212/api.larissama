@@ -5,6 +5,7 @@ namespace Tests;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\Yaml\Yaml;
+use Tests\Support\OpenApiIntegerLiteral;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -32,7 +33,8 @@ abstract class TestCase extends BaseTestCase
 
         $schema = $content['application/json']['schema'] ?? null;
         $this->assertIsArray($schema, "OpenAPI must define an application/json schema for HTTP {$response->getStatusCode()} on {$method} {$path}.");
-        $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
+        $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
+        $this->preserveLargeIntegerPage($payload, $response->getContent());
         $errors = $this->collectOpenApiSchemaErrors($payload, $schema, $document, '$');
 
         $this->assertSame([], $errors, implode("\n", $errors));
@@ -144,6 +146,11 @@ abstract class TestCase extends BaseTestCase
         $type = $schema['type'] ?? null;
         if ($type === 'integer') {
             $integer = filter_var($value, FILTER_VALIDATE_INT);
+
+            if ($integer === false && $path === 'query.page' && preg_match('/\A[1-9][0-9]*\z/', $value) === 1) {
+                return new OpenApiIntegerLiteral($value);
+            }
+
             $this->assertNotFalse($integer, "{$path} must serialize as an integer query value.");
 
             return $integer;
@@ -342,6 +349,13 @@ abstract class TestCase extends BaseTestCase
             if (isset($schema['enum']) && ! in_array($value, $schema['enum'], true)) {
                 $errors[] = "{$path} is not in the OpenAPI enum";
             }
+        } elseif ($value instanceof OpenApiIntegerLiteral) {
+            if (isset($schema['minimum']) && is_int($schema['minimum']) && $value->compareTo($schema['minimum']) < 0) {
+                $errors[] = "{$path} is below OpenAPI minimum";
+            }
+            if (isset($schema['maximum']) && is_int($schema['maximum']) && $value->compareTo($schema['maximum']) > 0) {
+                $errors[] = "{$path} is above OpenAPI maximum";
+            }
         } elseif (is_int($value) || is_float($value)) {
             if (isset($schema['minimum']) && $value < $schema['minimum']) {
                 $errors[] = "{$path} is below OpenAPI minimum";
@@ -359,13 +373,26 @@ abstract class TestCase extends BaseTestCase
         return match ($type) {
             'array' => is_array($value),
             'boolean' => is_bool($value),
-            'integer' => is_int($value),
+            'integer' => is_int($value) || $value instanceof OpenApiIntegerLiteral,
             'null' => $value === null,
             'number' => is_int($value) || is_float($value),
             'object' => is_object($value),
             'string' => is_string($value),
             default => false,
         };
+    }
+
+    private function preserveLargeIntegerPage(mixed $payload, string $json): void
+    {
+        if (! is_object($payload) || ! isset($payload->meta) || ! is_object($payload->meta)
+            || ! is_string($payload->meta->page ?? null)) {
+            return;
+        }
+
+        if (preg_match('/"meta"\s*:\s*\{[^{}]*"page"\s*:\s*([1-9][0-9]*)\s*(?=[,}])/', $json, $matches) === 1
+            && $matches[1] === $payload->meta->page) {
+            $payload->meta->page = new OpenApiIntegerLiteral($matches[1]);
+        }
     }
 
     private function openApiStringFormatMatches(string $value, string $format): bool

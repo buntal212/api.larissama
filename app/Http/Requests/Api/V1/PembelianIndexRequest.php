@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Models\Pembelian;
+use App\Rules\PositivePageNumber;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,7 @@ class PembelianIndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'page' => ['sometimes', 'integer', 'min:1'],
+            'page' => ['sometimes', new PositivePageNumber],
             'per_page' => ['sometimes', 'integer', 'between:1,100'],
             'sort' => ['sometimes', Rule::in(['-tanggal', 'tanggal'])],
             'date_from' => ['required_with:date_to', 'date_format:Y-m-d'],

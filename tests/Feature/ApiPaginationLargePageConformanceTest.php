@@ -18,6 +18,8 @@ class ApiPaginationLargePageConformanceTest extends TestCase
 
     private const MAX_PAGE = '9223372036854775807';
 
+    private const PAGE_ABOVE_PHP_INT_MAX = '9223372036854775808';
+
     #[DataProvider('listOperations')]
     public function test_maximum_64_bit_page_returns_empty_data_and_original_total(string $path, string $role): void
     {
@@ -48,6 +50,39 @@ class ApiPaginationLargePageConformanceTest extends TestCase
             'last_page' => 1,
         ], $response->json('meta'));
         $this->assertSame([], $response->json('data'));
+    }
+
+    #[DataProvider('listOperations')]
+    public function test_page_above_php_integer_range_is_preserved_as_an_exact_json_integer(string $path, string $role): void
+    {
+        $warung = Warung::factory()->create();
+        $user = $role === 'superadmin'
+            ? User::factory()->superadmin()->create()
+            : User::factory()->create([
+                'warung_id' => $warung->id,
+                'role' => $role,
+            ]);
+        $token = $user->createToken('unbounded-pagination-page-test')->plainTextToken;
+        $this->createOneMatchingRow($path, $warung, $user);
+        $query = [
+            'page' => self::PAGE_ABOVE_PHP_INT_MAX,
+            'per_page' => '100',
+        ];
+
+        $this->assertOperationQueryMatchesOpenApi($query, $path, 'get');
+        $response = $this->withToken($token)
+            ->getJson('/api/v1'.$path.'?'.http_build_query($query))
+            ->assertOk();
+
+        $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
+        $this->assertSame([], $response->json('data'));
+        $this->assertSame(100, $response->json('meta.per_page'));
+        $this->assertSame(1, $response->json('meta.total'));
+        $this->assertSame(1, $response->json('meta.last_page'));
+        $this->assertMatchesRegularExpression(
+            '/"meta"\s*:\s*\{[^{}]*"page"\s*:\s*'.self::PAGE_ABOVE_PHP_INT_MAX.'(?=\s*[,}])/',
+            $response->getContent(),
+        );
     }
 
     /**

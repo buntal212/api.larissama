@@ -46,13 +46,14 @@ class UserController extends Controller
         $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
         $column = ltrim($sort, '-');
 
+        $page = $filters['page'] ?? '1';
         $paginator = ApiPagination::paginate(
             $query->orderBy($column, $direction)->orderBy('id', $direction),
             (int) ($filters['per_page'] ?? 20),
-            (int) ($filters['page'] ?? 1),
+            $page,
         );
 
-        return ApiPaginationResponse::make($paginator, UserResource::class, $request);
+        return ApiPaginationResponse::make($paginator, UserResource::class, $request, $page);
     }
 
     public function store(UserStoreRequest $request): JsonResponse
