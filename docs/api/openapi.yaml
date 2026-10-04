@@ -2,9 +2,10 @@ openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
-  description: Rancangan 2026-10-04; semua operasi DRAFT/NOT_STARTED. Bukan bukti server telah tersedia. Kandidat
-    auth bearer (D02), role D04, nominal D05, periode D08, HTTP D13. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md.
-    D09 belum menentukan mekanisme/header retry. Contoh sintetis; nomor contoh bukan format penomoran final.
+  description: Rancangan 2026-10-04; semua operasi DRAFT/NOT_STARTED. Mekanisme auth Sanctum bearer sudah dipilih
+    user tetapi belum diimplementasikan; detail token/config D02 masih terbuka. Role D04, nominal D05, periode D08,
+    HTTP D13 masih perlu finalisasi. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. D09 belum menentukan
+    mekanisme/header retry. Contoh sintetis; nomor contoh bukan format penomoran final.
 servers:
 - url: /api/v1
   description: Prefix kandidat; base URL environment belum ditetapkan.
@@ -165,8 +166,9 @@ paths:
       tags:
       - Auth
       summary: Cabut sesi/token aktif
-      description: 'Kandidat D02: cabut sesi/token aktif. Tetap mengikuti pemeriksaan status user/warung. Jika server
-        menolak akses, frontend dapat menghapus sesi lokal; itu tidak dianggap bukti revokasi server berhasil.'
+      description: Mencabut token Sanctum aktif setelah pemeriksaan user/warung. Jika server menolak akses karena
+        akun dinonaktifkan/kedaluwarsa, frontend tetap dapat membersihkan salinan token lokal; itu tidak membuktikan
+        token server tercabut.
       x-contract-status: DRAFT
       x-implementation-status: NOT_STARTED
       x-candidate-roles:
@@ -1963,7 +1965,8 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Kandidat D02; belum tersedia. Jangan menganggap token/JWT atau lifecycle final.
+      description: 'Mekanisme terpilih: Sanctum bearer token. Belum dipasang atau diimplementasikan. Sanctum personal
+        access token opaque; expiry/revokasi dan konfigurasi deployment masih D02.'
   parameters:
     Id:
       name: id
@@ -2265,7 +2268,8 @@ components:
       properties:
         access_token:
           type: string
-          description: Token kandidat D02; tidak boleh dicatat dalam log.
+          description: Sanctum bearer token opaque sesuai pilihan user; belum diimplementasikan. Jangan dicatat
+            dalam log atau parsing sebagai JWT.
         token_type:
           type: string
           const: Bearer
