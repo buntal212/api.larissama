@@ -25,7 +25,9 @@ info:
     API-PATH-ID-POSITIVE-CONFORMANCE-001 membuktikan seluruh sepuluh operasi ber-parameter {id} memakai
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
     REPORT-RBAC-CONFORMANCE-001 menguji kedua report: manager mendapat akses, kasir dan superadmin mendapat 403;
-    owner belum diberi izin report sampai keputusan D04 ditetapkan. Semua operasi masih DRAFT.
+    owner belum diberi izin report sampai keputusan D04 ditetapkan. API-END-TO-END-WORKFLOW-001 menguji satu alur HTTP
+    lintas provisioning, katalog, transaksi, laporan, dan logout pada MySQL 8.0.40; hasilnya parsial dan seluruh operasi
+    tetap DRAFT.
     SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 mencocokkan request/response OpenAPI untuk create sale dan purchase;
     superadmin tanpa warung mendapat 403 dan tidak menulis header/rincian. Matriks role lain tetap parsial.
     ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid: manager ditolak saat create sale dan kasir
