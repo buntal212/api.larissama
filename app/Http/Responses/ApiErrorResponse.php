@@ -19,7 +19,7 @@ class ApiErrorResponse
         return response()->json([
             'code' => $code,
             'message' => $message,
-            'errors' => $errors,
+            'errors' => (object) $errors,
             'request_id' => (string) Str::uuid(),
         ], $status);
     }
