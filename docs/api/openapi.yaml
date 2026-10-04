@@ -15,9 +15,9 @@ info:
     dengan schema untuk subset operasi/status; requestBody POST/PATCH admin/katalog,
     body/header POST sale/purchase, dan query terpilih pada list akses/katalog/transaksi
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`).
-    Request/query operasi lain, profil
-    `/warung`, D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance
-    menyeluruh belum diverifikasi.
+    CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
+    superadmin dan anonim; cakupan role owner pada D04 masih terbuka. Request/query operasi lain,
+    D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
     D04/D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
@@ -477,7 +477,7 @@ paths:
       tags:
       - Akses
       summary: Profil warung user aktif
-      description: 'DRAFT: implementasi awal tersedia, tetapi profil warung sendiri belum diuji dengan HTTP acceptance atau contract test.'
+      description: 'DRAFT: CURRENT-WARUNG-API-ACCEPTANCE-001 menguji manager/kasir membaca profil dari tenant pada token, superadmin 403, tanpa token 401, dan response terpilih terhadap schema. Cakupan role owner belum ditetapkan pada D04; conformance per operasi lainnya masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:

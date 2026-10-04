@@ -72,3 +72,5 @@ Catatan D16 2026-10-05: test MySQL langsung membuktikan enam composite FK menola
 ## Batas kontrak draft
 
 [OpenAPI](../api/openapi.yaml) adalah kandidat konkret untuk review dan mock terlabel. Seluruh operasi awal tetap berstatus DRAFT; metadata implementasi per operasi dapat berstatus IN_PROGRESS atau NOT_STARTED. Bearer Sanctum, expiry 30 hari, batas tanggal NULL, pembagian role inti, baseline decimal, replay idempoten, FK gabungan, serta konvensi wire D13 telah dipilih; detail policy, nominal yang tersisa, deployment, dan runtime conformance mengikuti D02/D04–D06/D08/D12/D13. Belum boleh diklaim tersedia di server. AI frontend harus memeriksa status handoff di [tracker](../../IMPLEMENTATION_PROGRESS.md) sebelum integrasi live.
+
+Catatan D04 2026-10-05: `CURRENT-WARUNG-API-ACCEPTANCE-001` membuktikan manager/kasir dapat membaca profil tenant sendiri, superadmin menerima 403, dan anonim 401; response terpilih cocok schema. Akses owner ke endpoint profil belum diputuskan, sehingga operasi tetap DRAFT.
