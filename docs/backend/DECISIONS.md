@@ -67,6 +67,8 @@ Rancangan delapan tabel dan skema migration yang sudah diterapkan ada di [databa
 
 Catatan D13 2026-10-05: keenam GET list menerima `page=9223372036854775807` dengan HTTP 200, `data=[]`, dan metadata total/last_page tetap benar setelah pagination bersama menghindari offset untuk page di luar jangkauan (`ACCESS-PAGINATION-LARGE-PAGE-CONFORMANCE-001`). OpenAPI tetap tidak memberi batas maksimum page baru. D13 masih PARTIAL; semua operasi tetap DRAFT sampai seluruh conformance selesai.
 
+Catatan D16 2026-10-05: test MySQL langsung membuktikan enam composite FK menolak relasi lintas warung, FK kategori menolak orphan, dan unique kode menu/nomor penjualan/pembelian membolehkan duplikasi antar-warung tetapi menolak duplikasi dalam warung (`TENANT-COMPOSITE-FK-CONSTRAINT-001`). Ini bukti constraint untuk migration saat ini, bukan penutupan upgrade/rollback migration atau seluruh T-DB-01/02.
+
 ## Batas kontrak draft
 
 [OpenAPI](../api/openapi.yaml) adalah kandidat konkret untuk review dan mock terlabel. Seluruh operasi awal tetap berstatus DRAFT; metadata implementasi per operasi dapat berstatus IN_PROGRESS atau NOT_STARTED. Bearer Sanctum, expiry 30 hari, batas tanggal NULL, pembagian role inti, baseline decimal, replay idempoten, FK gabungan, serta konvensi wire D13 telah dipilih; detail policy, nominal yang tersisa, deployment, dan runtime conformance mengikuti D02/D04–D06/D08/D12/D13. Belum boleh diklaim tersedia di server. AI frontend harus memeriksa status handoff di [tracker](../../IMPLEMENTATION_PROGRESS.md) sebelum integrasi live.
