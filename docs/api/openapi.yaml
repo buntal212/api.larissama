@@ -1311,6 +1311,7 @@ paths:
         pada kedua list ditolak dengan HTTP 422 schema-conformant dan error field yang tepat.
         TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
         TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas awal inklusif dan akhir eksklusif hari lokal Asia/Jakarta pada kedua list; zona lain belum dicakup.
+        SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; keputusan role lain tetap DRAFT.
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
@@ -1624,6 +1625,7 @@ paths:
         schema-conformant dan error field yang tepat.
         TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan filter date_from/date_to parsial ditolak 422; keduanya wajib dipasangkan.
         TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas awal inklusif dan akhir eksklusif hari lokal Asia/Jakarta pada kedua list; zona lain belum dicakup.
+        SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; keputusan role lain tetap DRAFT.
         API-END-TO-END-READBACK-001 menguji manager membaca list purchase sesudah pembelian ringkas/rinci dibuat lewat API.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS

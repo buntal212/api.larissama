@@ -51,7 +51,7 @@ Rancangan delapan tabel dan skema migration yang sudah diterapkan ada di [databa
 | D01 | PARTIAL | MySQL 8.0.40; transisi users masih menunggu inventaris | Pilihan user, 2026-10-04 |
 | D02 | PARTIAL | Sanctum bearer token 30 hari; login dibatasi 5 percobaan per menit per username dan IP; logout mencabut token aktif | Pilihan user, 2026-10-04; CORS/HTTPS deployment tersisa |
 | D03 | DECIDED | NULL berarti tanpa batas; tanggal terisi inklusif | Jawaban user, 2026-10-04 |
-| D04 | PARTIAL | Pembagian tugas inti role dan batas superadmin disetujui | Persetujuan user, 2026-10-04; detail policy baca/ubah dan riwayat tersisa |
+| D04 | PARTIAL | Pembagian tugas inti role dan batas superadmin disetujui | Persetujuan user, 2026-10-04; kandidat GET list sale/purchase menolak superadmin dengan 403 schema-conformant (`SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001`); detail policy lain, akses owner, dan riwayat kasir tersisa |
 | D05 | PARTIAL | Decimal eksak dua angka pecahan pada wire/penyimpanan; pembulatan half-up per rincian. Rumus/payment kode saat ini masih asumsi DRAFT. | Persetujuan baseline user, 2026-10-04; aturan qty, diskon, pembayaran, harga nol, dan batas bisnis tersisa |
 | D06 | OPEN | Belum ditetapkan | Keputusan produk/implementasi terkait |
 | D07 | DECIDED | Menu terdaftar saja; pembelian terpisah; tanpa stok/dapur/resep | Klarifikasi eksplisit user, 2026-10-04 |
