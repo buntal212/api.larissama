@@ -27,7 +27,7 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: belum diimplementasikan. Maksimum 5 percobaan login per menit untuk kombinasi username dan IP. Lihat docs/api/README.md sebelum integrasi.'
       x-contract-status: DRAFT
       x-implementation-status: NOT_STARTED
       x-candidate-roles: []
@@ -1962,8 +1962,8 @@ components:
       type: http
       scheme: bearer
       description: 'Mekanisme terpilih: Sanctum bearer token; `laravel/sanctum` v4.3.3 dan migration token sudah terpasang.
-        Token kedaluwarsa setelah 30 hari; logout mencabut token aktif. Endpoint auth belum diimplementasikan.
-        Personal access token opaque; CORS, HTTPS, rate limit, dan detail deployment masih D02.'
+        Token kedaluwarsa setelah 30 hari; logout mencabut token aktif. Login dibatasi 5 percobaan per menit per kombinasi username+IP.
+        Endpoint auth belum diimplementasikan. Personal access token opaque; CORS, HTTPS, dan detail deployment masih D02.'
   parameters:
     Id:
       name: id
@@ -2119,7 +2119,7 @@ components:
     Timestamp:
       type: string
       format: date-time
-      description: RFC3339 dengan offset; kandidat response UTC. Zona bisnis dan backdate menunggu D08.
+      description: RFC3339 dengan offset; timestamp disimpan/dikirim UTC. Tampilan dan periode mengikuti timezone warung; representasi timezone dan backdate menunggu D08.
     Date:
       type: string
       format: date

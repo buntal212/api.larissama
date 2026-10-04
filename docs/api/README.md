@@ -18,11 +18,11 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 | --- | --- |
 | Base URL | Diserahkan per environment saat handoff. Prefix `/api/v1` sudah ada pada `servers.url`; jangan menggandakannya. |
 | Media | Request/response JSON; kirim `Accept: application/json`, body dengan `Content-Type: application/json`. |
-| Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`; token berlaku 30 hari lalu user login ulang. Logout mencabut token aktif. Sanctum personal access token bersifat opaque; jangan parsing isinya sebagai JWT. CORS, HTTPS, dan rate limit masih perlu ditetapkan sebelum handoff. |
+| Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`; token berlaku 30 hari lalu user login ulang. Logout mencabut token aktif. Login dibatasi 5 percobaan per menit per username dan IP. Sanctum personal access token bersifat opaque; jangan parsing isinya sebagai JWT. Konfigurasi CORS dan HTTPS masih perlu ditetapkan sebelum deployment. |
 | Tenant | User biasa tidak mengirim pemilih warung. Backend menggunakan identitas user; path admin warung hanya untuk superadmin. `tanggal_mulai` NULL berarti tanpa batas mulai; `tanggal_berakhir` NULL berarti tanpa batas akhir; tanggal terisi berlaku inklusif. |
 | ID | String digit, misalnya `"1001"`; jangan konversi BIGINT menjadi Number. |
 | Nominal dan qty | String decimal dua angka pecahan, tanpa pemisah ribuan; contoh `"150000.00"`, `"0.50"`. Format lokal hanya untuk tampilan. Money transaksi mengikuti batas kolom; AggregateMoney laporan dapat melebihi kapasitas satu transaksi dan tetap string eksak. |
-| Tanggal | `tanggal` adalah RFC3339 ber-offset; filter periode memakai YYYY-MM-DD dalam timezone bisnis final. Response kandidat UTC. |
+| Tanggal | Timestamp disimpan dan dikirim dalam UTC. Tanggal tampilan dan filter periode mengikuti timezone lokal warung; rancangan belum menetapkan cara menyimpan timezone untuk tiap warung. `tanggal` request memakai RFC3339 ber-offset. |
 | Null | JSON `null` berarti tidak diisi/tidak berlaku sesuai schema. `0.00` adalah nominal nol yang diketahui, bukan pengganti null/error. |
 | Field input | `additionalProperties: false`: field server seperti total header, warung_id, user_id, nomor, dan status tidak dikirim pada create transaksi. |
 | Detail | Endpoint detail/transaksi baru mengembalikan `rincian`. Endpoint daftar hanya header; fetch detail untuk membuka transaksi. |
