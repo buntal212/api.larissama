@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Auth, administrasi, katalog, penjualan, pembelian, serta laporan memiliki implementasi awal, tetapi semua operasi tetap `DRAFT`: test aplikasi dan contract test belum dijalankan, dan sebagian rincian nominal/role masih belum final. File ini dapat dipakai untuk review dan mock berlabel, bukan integrasi live.
+Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Slice feature transaksi telah diuji melalui sebagian request HTTP di MySQL 8.0.40, tetapi auth/admin/katalog belum memiliki test feature dan belum ada validator yang membandingkan seluruh response runtime terhadap OpenAPI. Semua operasi tetap `DRAFT` karena keputusan nominal/role dan acceptance penuh masih terbuka. Gunakan file ini untuk review dan mock berlabel, bukan integrasi live.
 
 ## Status implementasi yang tersedia
 
@@ -9,7 +9,7 @@ Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi
 | Auth dan akses | `2cafc46` | Pint/PHP lint, 3 route, timezone sesi MySQL, migration timezone (`AUTH-API-001`, `DB-MIGRATION-003`) | Belum ada HTTP/app/contract test; DRAFT |
 | Administrasi warung dan user tenant | `0f7e39c` | Pint/PHP lint, 9 route, YAML parse (`ADMIN-API-001`) | Belum ada HTTP/app/contract test; DRAFT |
 | Kategori dan menu | `eb5ea04`, `e0e32b8` | Pint/PHP lint, 8 route, YAML parse, migration dan FK gabungan pada MySQL 8.0.40 (`CATALOG-API-001`, `DB-MIGRATION-004/005`) | Belum ada HTTP/app/contract test; DRAFT, rincian D04/D06/D13 masih perlu ditutup |
-| Penjualan, pembelian, laporan | `0ff1d08` | Pint/PHP lint, 8 route, OpenAPI parse/ref/contoh, empat migration header/detail dan FK gabungan pada MySQL 8.0.40 (`TRANSACTION-API-001`, `DB-MIGRATION-006`) | Belum ada HTTP/app/conformance test; DRAFT, detail D04/D05/D06/D08/D09/D10/D11/D13 dan bukti concurrency masih perlu ditutup |
+| Penjualan, pembelian, laporan | `0ff1d08`, `4b8f106`, `a7b5ffa` | Pint/PHP lint, 8 route, OpenAPI parse/ref/contoh, migration MySQL, serta feature HTTP untuk transaksi (`TRANSACTION-API-001`, `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`) | Sebagian HTTP test lulus; OpenAPI runtime conformance, cakupan acceptance penuh dan keputusan D04/D05/D06/D08/D09/D10/D11/D13 masih terbuka; DRAFT |
 
 Rincian hasil dan batas pemeriksaan ada di [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md). Jangan arahkan frontend ke server live sampai kontrak operasi berstatus `READY_FOR_FRONTEND`.
 

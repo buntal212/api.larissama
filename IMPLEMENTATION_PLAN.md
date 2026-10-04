@@ -90,4 +90,4 @@ AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lal
 - perilaku retry/correction jika fitur itu diserahkan;
 - run test yang mendukung dan keterbatasan yang masih berlaku.
 
-Pada baseline ini semua operasi DRAFT/NOT_STARTED. Belum ada endpoint bisnis yang dapat diklaim siap integrasi live. Pekerjaan berikutnya dimulai dari BE-001 dan BE-002; ini tidak mengubah tugas rancangan menjadi izin untuk langsung mengimplementasikan semua fitur.
+Semua operasi masih DRAFT/NOT_STARTED untuk handoff; belum ada endpoint bisnis siap integrasi live. BE-001 dan T-ENV-01 sudah selesai diverifikasi. Lanjutkan dependency yang masih terbuka mulai BE-002/BE-003/BE-004, lalu ikuti urutan task pada tracker sebelum gate modul. Status DRAFT tetap berlaku sampai keputusan, test, dan contract conformance slice terpenuhi.

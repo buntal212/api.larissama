@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
-  description: Rancangan 2026-10-04; semua operasi tetap DRAFT sampai keputusan dan test kontrak/fungsional lulus. Auth, administrasi, katalog, transaksi, dan laporan memiliki implementasi awal yang belum diverifikasi dengan test aplikasi/contract. Sanctum bearer 30 hari, timezone tenant, baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian D04/D05/D06/D08/D10/D11/D12/D13 masih menjadi gate. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan kontrak live.
+  description: Rancangan 2026-10-04; semua operasi tetap DRAFT sampai keputusan dan test kontrak/fungsional lulus. Slice transaksi memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report, tenant scope, snapshot, retry, dan atomicity; auth, admin, katalog, acceptance penuh, dan OpenAPI runtime conformance belum diverifikasi. Sanctum bearer 30 hari, timezone tenant, baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian D04/D05/D06/D08/D10/D11/D12/D13 masih menjadi gate. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan kontrak live.
 servers:
 - url: /api/v1
   description: Prefix kandidat; base URL environment belum ditetapkan.

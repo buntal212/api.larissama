@@ -1,14 +1,14 @@
 # Rancangan Backend LarisSama
 
-Status: implementasi backend sedang berjalan. Migration delapan tabel bisnis dan FK tenant gabungan berhasil diterapkan pada database development lokal MySQL 8.0.40; route awal auth, admin, katalog, transaksi, dan laporan tersedia. Database lama yang sudah berisi user belum dapat di-upgrade sampai pemetaan identitas dan tenant ditetapkan. Test aplikasi/contract belum dijalankan, sehingga semua operasi tetap DRAFT. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K16 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx yang parsial/terbuka masih menunggu penetapan atau bukti. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
+Status: implementasi backend sedang berjalan. Migration delapan tabel bisnis dan FK tenant gabungan berhasil diterapkan pada database development lokal MySQL 8.0.40; route awal auth, admin, katalog, transaksi, dan laporan tersedia. Database lama yang sudah berisi user belum dapat di-upgrade sampai pemetaan identitas dan tenant ditetapkan. Beberapa feature test transaksi sudah lulus, termasuk create, snapshot, scope tenant, laporan, retry, rollback, dan sebagian pembelian ringkas/rinci; cakupan auth/admin/katalog, seluruh acceptance transaksi, dan OpenAPI conformance belum lengkap. Semua operasi tetap DRAFT. Dasar: [delapan tabel](../../database/README.md), [aturan backend](../../AGENTS.md), dan keputusan K01–K16 di [register keputusan](DECISIONS.md). Pilihan bertanda Dxx yang parsial/terbuka masih menunggu penetapan atau bukti. Urutan pekerjaan dan bukti pelaksanaan berada di [tracker](../../IMPLEMENTATION_PROGRESS.md).
 
 ## Kondisi awal yang diamati
 
 - composer.json meminta PHP ^8.3 dan Laravel ^13.17; itu constraint proyek, bukan bukti runtime terpasang.
 - Schema `users` sudah memakai `nama`, `username`, `email` nullable unik, `warung_id`, `role`, dan `aktif`; model memiliki relasi ke `Warung`. Migration delapan tabel bisnis berhasil diterapkan pada clean-install lokal. Migration cache/jobs dan `personal_access_tokens` adalah infrastruktur.
-- `bootstrap/app.php` mendaftarkan API. Route tersedia untuk login, profil, logout, administrasi warung + owner awal, profil warung sendiri, user, katalog, penjualan, pembelian, dan laporan. Semua operasi bisnis masih DRAFT karena test tenant, role, nominal, HTTP, serta contract belum dijalankan.
-- Test yang tersedia hanya contoh Unit dan Feature. Tidak ada bukti tenant, nominal, transaksi, atau kontrak bisnis sudah lulus.
-- Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia di host, tetapi image Docker opsional menyediakan PHP 8.3.35 dan Composer 2.10.3. Clean-install migrations berjalan di MySQL 8.0.40 lokal; harness test dan upgrade data lama belum diverifikasi (lihat `DB-MIGRATION-001`).
+- `bootstrap/app.php` mendaftarkan API. Route tersedia untuk login, profil, logout, administrasi warung + owner awal, profil warung sendiri, user, katalog, penjualan, pembelian, dan laporan. Semua operasi masih DRAFT karena belum ada cakupan test/conformance penuh sesuai milestone.
+- Test transaksi terisolasi membuktikan sebagian request, role/scope, snapshot, agregasi periode, retry dan atomisitas di MySQL; rincian run ada di [tracker](../../IMPLEMENTATION_PROGRESS.md). Belum ada bukti lengkap auth, admin, katalog, semua matriks tenant/role, dan contract runtime.
+- Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia di host, tetapi image Docker opsional menyediakan PHP 8.3.35 dan Composer 2.10.3. Clean-install migrations serta harness test terisolasi diverifikasi pada MySQL 8.0.40; upgrade data lama belum diverifikasi (lihat `DB-MIGRATION-001`).
 
 ## Modul dan hasil bagi pengguna
 
