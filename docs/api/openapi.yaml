@@ -201,7 +201,7 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning dan ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET list: pencarian, filter aktif, sort, pagination, metadata, dan role boundary. Exact subset D13 diperiksa manual; OpenAPI runtime conformance penuh belum diuji.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. Status lainnya, request schema, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -355,7 +355,7 @@ paths:
       tags:
       - Admin
       summary: Detail warung untuk superadmin
-      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET detail, exact resource field set, ID tidak ada, dan role boundary. Exact subset D13 diperiksa manual; OpenAPI runtime conformance penuh belum diuji.'
+      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET detail; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/404. Status lainnya, request schema, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -408,7 +408,7 @@ paths:
       tags:
       - Admin
       summary: Ubah identitas/status/masa aktif warung
-      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji PATCH metadata/status, validasi input, tanggal terbalik, update kosong, row tetap utuh pada error, dan role boundary. Exact subset D13 diperiksa manual; OpenAPI runtime conformance penuh belum diuji.'
+      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji PATCH metadata/status dan validasi; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. Status lainnya, request schema, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
