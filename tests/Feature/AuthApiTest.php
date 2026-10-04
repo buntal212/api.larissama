@@ -304,6 +304,15 @@ class AuthApiTest extends TestCase
 
         $this->assertD13ErrorEnvelope($limited, 'RATE_LIMITED');
         $this->assertStringNotContainsString('invalid-rate-limit-secret', $limited->getContent());
+
+        $otherIp = $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.25'])
+            ->postJson('/api/v1/auth/login', [
+                'username' => strtolower($username),
+                'password' => 'invalid-rate-limit-secret',
+            ])
+            ->assertUnauthorized();
+
+        $this->assertD13ErrorEnvelope($otherIp, 'UNAUTHENTICATED');
     }
 
     /**
