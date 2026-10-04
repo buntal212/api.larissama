@@ -197,7 +197,7 @@ Rancangan menandai kedua tanggal sebagai nullable, tetapi belum menjelaskan arti
 
 ## Keputusan yang harus ditetapkan sebelum migration fitur
 
-1. Database produksi yang dituju. Konfigurasi proyek saat ini default ke SQLite dan juga menyediakan konfigurasi MySQL/MariaDB/PostgreSQL; rancangan belum memilih satu target.
+1. Vendor dan versi minimum database produksi serta collation yang dipakai. Keluarga MySQL/MariaDB sudah dipilih; validasi integrasi final menunggu target vendor/versi yang pasti.
 2. Arti `tanggal_mulai` atau `tanggal_berakhir` yang `NULL`.
 3. Apakah email nullable tetap unique global. Migration Laravel bawaan saat ini mewajibkan email dan membuatnya unique, sedangkan rancangan meminta email nullable.
 4. Aturan hapus/perubahan untuk warung, user, kategori, menu, penjualan, pembelian, dan rincian. Snapshot rincian perlu tetap utuh; transaksi tidak boleh hilang hanya karena master dihapus. Jika belum ada keputusan, gunakan `RESTRICT` sebagai default aman.
