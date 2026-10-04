@@ -45,8 +45,8 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 | T-DB-03 | Constraint dan relasi tenant | Kode/nomor boleh sama pada warung berbeda bila unique composite; duplikat dalam warung ditolak; orphan ditolak; relasi tenant mengikuti strategi FK+validasi yang disepakati. | D01,D12 |
 | T-AUTH-01 | Login benar/salah, me | Kredensial sah memberi identity/scope sesuai user; salah 401 tanpa informasi sensitif; /me mengembalikan identitas aktual. | D02,D03,D12 |
 | T-AUTH-02 | Nonaktif setelah token/sesi terbit | Login dan request bisnis berikutnya ditolak ketika user/warung dinonaktifkan; tidak ada perubahan data. | D02,D03 |
-| T-AUTH-03 | Masa aktif dan NULL | Tanggal mulai/akhir terisi inklusif; sebelum/sesudah ditolak. Seluruh kombinasi NULL mengikuti keputusan eksplisit, tidak diterka. | D03,D08 |
-| T-AUTH-04 | Logout dan sesi kadaluwarsa | Logout sukses 204 tanpa body, token/sesi yang dicabut tidak dapat dipakai kembali; expiry mengikuti D02. | D02 |
+| T-AUTH-03 | Masa aktif dan NULL | Batas tanggal terisi berlaku inklusif; tanggal sebelum mulai atau sesudah akhir ditolak. NULL pada tanggal_mulai tidak membatasi awal; NULL pada tanggal_berakhir tidak membatasi akhir; uji kedua NULL sekaligus serta masing-masing satu NULL. User dan warung tetap harus aktif. | D03,D08 |
+| T-AUTH-04 | Logout dan sesi kadaluwarsa | Token baru berlaku sebelum genap 30 hari; token ditolak saat mencapai expiry 30 hari. Logout sukses 204 tanpa body dan token yang dicabut tidak dapat dipakai kembali. | D02 |
 | T-AUTH-05 | Password, log, rate limit | Password tersimpan hash dan tidak keluar response/log; request login melebihi batas mendapat 429; fixture bukan kredensial nyata. | D02,D12 |
 | T-TEN-01 | Daftar/laporan A dengan data B | Tidak ada row, count, atau nominal B pada seluruh endpoint tenant, termasuk filter, search, pagination, dan summary. | D04 |
 | T-TEN-02 | Detail/update ID milik B | User A mendapat 404 sesuai D13; data B tidak berubah; lookup rincian selalu melalui header tenant. | D04,D13 |
