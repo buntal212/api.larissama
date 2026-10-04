@@ -1,6 +1,6 @@
 # Rancangan Test dan Kriteria Lulus
 
-Status awal dokumen ini adalah seluruh test aplikasi **NOT_RUN**. Sejak itu, run `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`, dan `TRANSACTION-TIMEZONE-001` menjalankan sebagian feature test transaksi pada MySQL 8.0.40; suite terbaru lulus 23 test / 103 assertions. Bukti dan batasnya ada di [tracker](../../IMPLEMENTATION_PROGRESS.md) serta artefak run terkait. Milestone dan handoff API belum lulus.
+Status awal dokumen ini adalah seluruh test aplikasi **NOT_RUN**. Sejak itu, run `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`, `TRANSACTION-TIMEZONE-001`, dan `TRANSACTION-REPORT-VALIDATION-001` menjalankan sebagian feature test transaksi pada MySQL 8.0.40; suite terbaru lulus 25 test / 117 assertions. Bukti dan batasnya ada di [tracker](../../IMPLEMENTATION_PROGRESS.md) serta artefak run terkait. Milestone dan handoff API belum lulus.
 
 Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung Dxx adalah kandidat: finalkan keputusan dan sesuaikan test sebelum test tersebut menjadi gate.
 
@@ -89,7 +89,7 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 
 | Gate | Test wajib dan hasil yang diterima |
 | --- | --- |
-| G0 / M0 | T-ENV-01 dan T-API-01 lulus; D01/D02/D03/D04/D08/D12/D13 yang dibutuhkan M1 ditetapkan; harness dan DB test siap. |
+| G0 / M0 | T-ENV-01 dan T-API-01 lulus; D01/D02/D03/D04/D08/D12 dan baseline wire D13 ditetapkan; harness dan DB test siap. |
 | G1 / M1 | T-DB-01/02/03 untuk warung/users, T-AUTH-01–05, T-TEN-01–03, T-RBAC-01, T-ADM-01–02, T-API-02/04 untuk operasi M1 semuanya lulus. |
 | G2 / M2 | T-DB-01/03 untuk katalog, T-CAT-01–02, T-TEN-01–03, T-RBAC-01, T-API-02/03/04 untuk katalog lulus. |
 | G3 / M3 | T-SAL-01–05, T-RET-01–04 untuk penjualan, T-REP-01/03/04, test DB/tenant/role/contract slice lulus. T-SAL-06 lulus atau scope defer telah diputuskan eksplisit. |
@@ -108,7 +108,7 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer instal
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-Validator OpenAPI tetap terpisah dari test HTTP. Runs `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`, dan `TRANSACTION-TIMEZONE-001` sudah menjalankan slice feature test transaksi pada DB MySQL terisolasi; suite `composer test` terbaru lulus 23 test / 103 assertions. Rincian hasil serta cakupan yang masih terbuka tercatat di tracker dan artefak run. Catat setiap run dengan command, environment, commit, hasil aktual, serta gap. Jangan mengklaim concurrency PASS bila barrier tidak benar-benar dilewati dua request.
+Validator OpenAPI tetap terpisah dari test HTTP. Runs `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`, `TRANSACTION-TIMEZONE-001`, dan `TRANSACTION-REPORT-VALIDATION-001` sudah menjalankan slice feature test transaksi pada DB MySQL terisolasi; suite `composer test` terbaru lulus 25 test / 117 assertions. T-REP-04 lulus untuk periode kosong serta tiga bentuk filter invalid pada kedua report. Rincian hasil serta cakupan yang masih terbuka tercatat di tracker dan artefak run. Konvensi wire D13 disetujui, tetapi T-API-01/02/03/04 tetap harus lulus sebelum contract handoff. Catat setiap run dengan command, environment, commit, hasil aktual, serta gap. Jangan mengklaim concurrency PASS bila barrier tidak benar-benar dilewati dua request.
 
 Setiap run dicatat dengan format berikut pada [tracker](../../IMPLEMENTATION_PROGRESS.md):
 

@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. Slice feature transaksi telah diuji melalui sebagian request HTTP di MySQL 8.0.40, tetapi auth/admin/katalog belum memiliki test feature dan belum ada validator yang membandingkan seluruh response runtime terhadap OpenAPI. Semua operasi tetap `DRAFT` karena keputusan nominal/role dan acceptance penuh masih terbuka. Gunakan file ini untuk review dan mock berlabel, bukan integrasi live.
+Versi kontrak: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi 28 operasi pada 18 path, beserta request/response schema dan contoh sintetis. User menyetujui baseline wire D13: `/api/v1`, ID/decimal string, response `data/meta`, pagination `page/per_page` maksimum 100, sort allowlist, dan error `code/message/errors/request_id`. Slice feature transaksi telah diuji sebagian pada MySQL 8.0.40; auth/admin/katalog belum memiliki test feature dan belum ada validator yang membandingkan seluruh response runtime terhadap OpenAPI. Semua operasi tetap `DRAFT` karena keputusan bisnis per operasi, acceptance penuh, serta conformance belum selesai. Gunakan file ini untuk review dan mock berlabel, bukan integrasi live.
 
 ## Status implementasi yang tersedia
 
@@ -8,8 +8,8 @@ Versi kandidat: **0.1.0-draft**, 2026-10-04. [openapi.yaml](openapi.yaml) berisi
 | --- | --- | --- | --- |
 | Auth dan akses | `2cafc46` | Pint/PHP lint, 3 route, timezone sesi MySQL, migration timezone (`AUTH-API-001`, `DB-MIGRATION-003`) | Belum ada HTTP/app/contract test; DRAFT |
 | Administrasi warung dan user tenant | `0f7e39c` | Pint/PHP lint, 9 route, YAML parse (`ADMIN-API-001`) | Belum ada HTTP/app/contract test; DRAFT |
-| Kategori dan menu | `eb5ea04`, `e0e32b8` | Pint/PHP lint, 8 route, YAML parse, migration dan FK gabungan pada MySQL 8.0.40 (`CATALOG-API-001`, `DB-MIGRATION-004/005`) | Belum ada HTTP/app/contract test; DRAFT, rincian D04/D06/D13 masih perlu ditutup |
-| Penjualan, pembelian, laporan | `0ff1d08`, `4b8f106`, `a7b5ffa` | Pint/PHP lint, 8 route, OpenAPI parse/ref/contoh, migration MySQL, serta feature HTTP untuk transaksi (`TRANSACTION-API-001`, `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`) | Sebagian HTTP test lulus; OpenAPI runtime conformance, cakupan acceptance penuh dan keputusan D04/D05/D06/D08/D09/D10/D11/D13 masih terbuka; DRAFT |
+| Kategori dan menu | `eb5ea04`, `e0e32b8` | Pint/PHP lint, 8 route, YAML parse, migration dan FK gabungan pada MySQL 8.0.40 (`CATALOG-API-001`, `DB-MIGRATION-004/005`) | Belum ada HTTP/app/contract test; DRAFT, rincian policy D04 dan arsip D06 masih perlu ditutup |
+| Penjualan, pembelian, laporan | `0ff1d08`, `4b8f106`, `a7b5ffa`, `89c74de`, `1ae3439` | Pint/PHP lint, 8 route, OpenAPI parse/ref/contoh, migration MySQL, feature HTTP untuk transaksi, report DST, periode kosong/invalid (`TRANSACTION-API-001`, `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`, `TRANSACTION-TIMEZONE-001`, `TRANSACTION-REPORT-VALIDATION-001`) | Sebagian HTTP test lulus; OpenAPI runtime conformance dan acceptance penuh serta keputusan D04/D05/D06/D08/D09/D10/D11 masih terbuka; DRAFT |
 
 Rincian hasil dan batas pemeriksaan ada di [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md). Jangan arahkan frontend ke server live sampai kontrak operasi berstatus `READY_FOR_FRONTEND`.
 
@@ -23,22 +23,26 @@ Rincian hasil dan batas pemeriksaan ada di [tracker implementasi](../../IMPLEMEN
 
 Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token, dan transaksi adalah data sintetis. Rincian pembelian minimal harus selalu didukung, tanpa menambahkan syarat master bahan atau qty pada formulir ringkas.
 
-## Kandidat konvensi umum (D02/D05/D08/D13)
+## Konvensi umum dan batas kontrak (D02/D05/D08/D13)
 
-| Aspek | Kontrak kandidat |
+Konvensi wire D13 pada baris terkait sudah disetujui user. Kontrak operation-level masih berstatus DRAFT sampai seluruh request/response runtime diuji terhadap OpenAPI.
+
+| Aspek | Aturan dan status |
 | --- | --- |
-| Base URL | Diserahkan per environment saat handoff. Prefix `/api/v1` sudah ada pada `servers.url`; jangan menggandakannya. |
+| Base URL | Prefix `/api/v1` disetujui D13 dan sudah ada pada `servers.url`; base URL environment diserahkan saat handoff. Jangan menggandakan prefix. |
 | Media | Request/response JSON; kirim `Accept: application/json`, body dengan `Content-Type: application/json`. |
 | Auth | User memilih Sanctum bearer melalui `Authorization: Bearer ...`; token berlaku 30 hari lalu user login ulang. Logout mencabut token aktif. Login dibatasi 5 percobaan per menit per username dan IP. Sanctum personal access token bersifat opaque; jangan parsing isinya sebagai JWT. Konfigurasi CORS dan HTTPS masih perlu ditetapkan sebelum deployment. |
 | Tenant | User biasa tidak mengirim pemilih warung. Backend menggunakan identitas user; path admin warung hanya untuk superadmin. `warung.timezone` memakai identifier IANA dan wajib diisi sebelum tenant dapat login. `tanggal_mulai` NULL berarti tanpa batas mulai; `tanggal_berakhir` NULL berarti tanpa batas akhir; tanggal terisi berlaku inklusif. |
-| ID | String digit, misalnya `"1001"`; jangan konversi BIGINT menjadi Number. |
-| Nominal dan qty | String decimal dua angka pecahan, tanpa pemisah ribuan; contoh `"150000.00"`, `"0.50"`. Format lokal hanya untuk tampilan. Money transaksi mengikuti batas kolom; AggregateMoney laporan dapat melebihi kapasitas satu transaksi dan tetap string eksak. |
+| ID | D13 disetujui: string digit, misalnya `"1001"`; jangan konversi BIGINT menjadi Number. |
+| Nominal dan qty | D13 menyetujui decimal sebagai string. Nominal memakai dua angka pecahan tanpa pemisah ribuan, misalnya `"150000.00"` dan qty `"0.50"`. Format lokal hanya untuk tampilan. Money transaksi mengikuti batas kolom; AggregateMoney laporan dapat melebihi kapasitas satu transaksi dan tetap string eksak. |
 | Tanggal | Timestamp disimpan dan dikirim dalam UTC. Tanggal tampilan dan filter periode mengikuti `warung.timezone`. `tanggal` request memakai RFC3339 ber-offset. Zona NULL/invalid menolak akses tenant. |
 | Null | JSON `null` berarti tidak diisi/tidak berlaku sesuai schema. `0.00` adalah nominal nol yang diketahui, bukan pengganti null/error. |
 | Field input | `additionalProperties: false`: field server seperti total header, warung_id, user_id, nomor, dan status tidak dikirim pada create transaksi. |
 | Detail | Endpoint detail/transaksi baru mengembalikan `rincian`. Endpoint daftar hanya header; fetch detail untuk membuka transaksi. |
-| Pagination | `page` >= 1, `per_page` 1–100, default 20. Response `meta` memuat page/per_page/total/last_page. Total adalah hasil filter seluruh halaman; hasil kosong memakai data=[], total=0, last_page=1. Halaman di atas last_page memberi data kosong dengan total asli. |
-| Sort | Hanya enum pada operasi; arah diikuti id sebagai tie-breaker. Default transaksi `-tanggal` dengan id menurun saat tanggal sama. Nilai tak didukung menghasilkan 422. |
+| Envelope sukses | D13 disetujui: resource berada pada `data`; response berpaginasi menyertakan `meta`. Perilaku spesifik mengikuti schema tiap operasi. |
+| Pagination | D13 disetujui: `page` >= 1 dan `per_page` maksimum 100. Default 20; `meta` memuat page/per_page/total/last_page. Total adalah hasil filter seluruh halaman; hasil kosong memakai data=[], total=0, last_page=1. Halaman di atas last_page memberi data kosong dengan total asli. |
+| Sort | D13 disetujui: sort memakai allowlist operasi. Arah diikuti id sebagai tie-breaker. Default transaksi `-tanggal` dengan id menurun saat tanggal sama. Nilai tak didukung menghasilkan 422. |
+| Error | D13 disetujui: response memakai `code`, `message`, `errors`, dan `request_id`. Kesesuaian error runtime pada semua status masih harus diuji. |
 | Periode | `date_from` dan `date_to` wajib untuk laporan. Pada daftar transaksi boleh keduanya kosong; bila salah satu diisi harus berpasangan. Awal <= akhir. |
 | Patch | Hanya field yang berubah. Field nullable dikosongkan dengan null; field dihilangkan berarti tidak diubah. Body kosong ditolak. |
 | Retry | Create penjualan/pembelian wajib memakai `Idempotency-Key`. Key yang sama dengan payload kanonis identik me-replay respons awal; key sama dengan payload berbeda memberi 409 `IDEMPOTENCY_KEY_REUSED`. Sampai frontend menerima status READY, retry otomatis belum boleh dianggap terverifikasi karena race/crash belum diuji. |
