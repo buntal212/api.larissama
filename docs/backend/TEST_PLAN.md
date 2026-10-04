@@ -1,6 +1,6 @@
 # Rancangan Test dan Kriteria Lulus
 
-Status awal dokumen ini adalah seluruh test aplikasi **NOT_RUN**. Sejak itu, run `TRANSACTION-FEATURE-001` dan `TRANSACTION-READ-001` menjalankan sebagian feature test transaksi pada MySQL 8.0.40; bukti dan batasnya ada di [tracker](../../IMPLEMENTATION_PROGRESS.md) serta artefak run terkait. Milestone dan handoff API belum lulus.
+Status awal dokumen ini adalah seluruh test aplikasi **NOT_RUN**. Sejak itu, run `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`, dan `TRANSACTION-TIMEZONE-001` menjalankan sebagian feature test transaksi pada MySQL 8.0.40; suite terbaru lulus 23 test / 103 assertions. Bukti dan batasnya ada di [tracker](../../IMPLEMENTATION_PROGRESS.md) serta artefak run terkait. Milestone dan handoff API belum lulus.
 
 Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung Dxx adalah kandidat: finalkan keputusan dan sesuaikan test sebelum test tersebut menjadi gate.
 
@@ -108,7 +108,7 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer instal
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-Validator OpenAPI tetap terpisah dari test HTTP. Runs `TRANSACTION-FEATURE-001` dan `TRANSACTION-READ-001` sudah menjalankan slice feature test transaksi pada DB MySQL terisolasi; suite `composer test` terbaru lulus 21 test / 95 assertions. Rincian hasil serta cakupan yang masih terbuka tercatat di tracker dan artefak run. Catat setiap run dengan command, environment, commit, hasil aktual, serta gap. Jangan mengklaim concurrency PASS bila barrier tidak benar-benar dilewati dua request.
+Validator OpenAPI tetap terpisah dari test HTTP. Runs `TRANSACTION-FEATURE-001`, `TRANSACTION-READ-001`, dan `TRANSACTION-TIMEZONE-001` sudah menjalankan slice feature test transaksi pada DB MySQL terisolasi; suite `composer test` terbaru lulus 23 test / 103 assertions. Rincian hasil serta cakupan yang masih terbuka tercatat di tracker dan artefak run. Catat setiap run dengan command, environment, commit, hasil aktual, serta gap. Jangan mengklaim concurrency PASS bila barrier tidak benar-benar dilewati dua request.
 
 Setiap run dicatat dengan format berikut pada [tracker](../../IMPLEMENTATION_PROGRESS.md):
 
