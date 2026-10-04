@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Carbon\CarbonInterface;
+use Carbon\CarbonImmutable;
 use Database\Factories\WarungFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'alamat',
     'telepon',
     'logo',
+    'timezone',
     'tanggal_mulai',
     'tanggal_berakhir',
     'aktif',
@@ -29,12 +30,19 @@ class Warung extends Model
         return $this->hasMany(User::class);
     }
 
-    public function allowsAccessOn(CarbonInterface $localDate): bool
+    public function allowsAccessAt(CarbonImmutable $instantUtc): bool
     {
-        $date = $localDate->toDateString();
+        if (! $this->aktif || ! is_string($this->timezone) || $this->timezone === '') {
+            return false;
+        }
 
-        return $this->aktif
-            && ($this->tanggal_mulai === null || $this->tanggal_mulai->toDateString() <= $date)
+        if (! in_array($this->timezone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
+            return false;
+        }
+
+        $date = $instantUtc->setTimezone($this->timezone)->toDateString();
+
+        return ($this->tanggal_mulai === null || $this->tanggal_mulai->toDateString() <= $date)
             && ($this->tanggal_berakhir === null || $this->tanggal_berakhir->toDateString() >= $date);
     }
 

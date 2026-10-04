@@ -23,6 +23,7 @@ class WarungFactory extends Factory
             'alamat' => null,
             'telepon' => null,
             'logo' => null,
+            'timezone' => 'Asia/Jakarta',
             'tanggal_mulai' => null,
             'tanggal_berakhir' => null,
             'aktif' => true,

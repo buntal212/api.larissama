@@ -2,11 +2,7 @@ openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
-  description: Rancangan 2026-10-04; semua operasi DRAFT/NOT_STARTED. Sanctum bearer dipilih, expiry token 30 hari,
-    dan package v4.3.3 serta migration token sudah terpasang; endpoint auth belum diimplementasikan. Detail deployment
-    D02, izin rinci D04, nominal D05, periode D08,
-    HTTP D13 masih perlu finalisasi. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. D09 belum menentukan
-    mekanisme/header retry. Contoh sintetis; nomor contoh bukan format penomoran final.
+  description: Rancangan 2026-10-04; semua operasi tetap DRAFT sampai keputusan dan test kontrak/fungsional lulus. Login/me/logout dan pemeriksaan status akun sudah diimplementasikan tetapi belum diverifikasi dengan test aplikasi/contract. Sanctum bearer 30 hari, rate limit login, serta zona waktu per warung tersedia. Detail deployment D02, izin rinci D04, nominal D05, periode D08, identitas D12, dan HTTP D13 masih perlu finalisasi. Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. D09 belum menentukan mekanisme/header retry. Contoh sintetis; nomor contoh bukan format penomoran final.
 servers:
 - url: /api/v1
   description: Prefix kandidat; base URL environment belum ditetapkan.
@@ -27,15 +23,14 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'DRAFT: belum diimplementasikan. Maksimum 5 percobaan login per menit untuk kombinasi username dan IP. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test. Maksimum 5 percobaan login per menit untuk kombinasi username dan IP.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles: []
       x-blocked-by:
-      - D02
-      - D04
-      - D13
+      - D08
       - D12
+      - D13
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -65,6 +60,7 @@ paths:
                     alamat: null
                     telepon: null
                     logo: null
+                    timezone: Asia/Jakarta
                     tanggal_mulai: '2026-10-01'
                     tanggal_berakhir: '2026-10-31'
                     aktif: true
@@ -100,17 +96,16 @@ paths:
       tags:
       - Auth
       summary: Identitas dan konteks akses aktif
-      description: 'DRAFT: belum diimplementasikan. Lihat docs/api/README.md sebelum integrasi.'
+      description: 'DRAFT: implementasi tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.'
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - superadmin
       - owner
       - manager
       - kasir
       x-blocked-by:
-      - D02
-      - D04
+      - D08
       - D13
       responses:
         '200':
@@ -138,6 +133,7 @@ paths:
                     alamat: null
                     telepon: null
                     logo: null
+                    timezone: Asia/Jakarta
                     tanggal_mulai: '2026-10-01'
                     tanggal_berakhir: '2026-10-31'
                     aktif: true
@@ -149,14 +145,6 @@ paths:
           $ref: '#/components/responses/Error401'
         '403':
           $ref: '#/components/responses/Error403'
-        '404':
-          $ref: '#/components/responses/Error404'
-        '409':
-          $ref: '#/components/responses/Error409'
-        '422':
-          $ref: '#/components/responses/Error422'
-        '429':
-          $ref: '#/components/responses/Error429'
         '500':
           $ref: '#/components/responses/Error500'
   /auth/logout:
@@ -165,19 +153,19 @@ paths:
       tags:
       - Auth
       summary: Cabut sesi/token aktif
-      description: Mencabut token Sanctum aktif setelah pemeriksaan user/warung. Jika server menolak akses karena
+      description: Implementasi tersedia, tetapi belum diverifikasi dengan test aplikasi dan contract test.
+        Mencabut token Sanctum aktif setelah pemeriksaan user/warung. Jika server menolak akses karena
         akun dinonaktifkan/kedaluwarsa, frontend tetap dapat membersihkan salinan token lokal; itu tidak membuktikan
         token server tercabut.
       x-contract-status: DRAFT
-      x-implementation-status: NOT_STARTED
+      x-implementation-status: IN_PROGRESS
       x-candidate-roles:
       - superadmin
       - owner
       - manager
       - kasir
       x-blocked-by:
-      - D02
-      - D04
+      - D08
       - D13
       responses:
         '204':
@@ -188,14 +176,6 @@ paths:
           $ref: '#/components/responses/Error401'
         '403':
           $ref: '#/components/responses/Error403'
-        '404':
-          $ref: '#/components/responses/Error404'
-        '409':
-          $ref: '#/components/responses/Error409'
-        '422':
-          $ref: '#/components/responses/Error422'
-        '429':
-          $ref: '#/components/responses/Error429'
         '500':
           $ref: '#/components/responses/Error500'
   /admin/warungs:
@@ -228,6 +208,7 @@ paths:
                   alamat: null
                   telepon: null
                   logo: null
+                  timezone: Asia/Jakarta
                   tanggal_mulai: '2026-10-01'
                   tanggal_berakhir: '2026-10-31'
                   aktif: true
@@ -300,6 +281,7 @@ paths:
                     alamat: null
                     telepon: null
                     logo: null
+                    timezone: Asia/Jakarta
                     tanggal_mulai: '2026-10-01'
                     tanggal_berakhir: '2026-10-31'
                     aktif: true
@@ -342,6 +324,7 @@ paths:
                 value:
                   kode: W-A
                   nama: Warung A
+                  timezone: Asia/Jakarta
                   tanggal_mulai: '2026-10-01'
                   tanggal_berakhir: '2026-10-31'
                   owner:
@@ -378,6 +361,7 @@ paths:
                   alamat: null
                   telepon: null
                   logo: null
+                  timezone: Asia/Jakarta
                   tanggal_mulai: '2026-10-01'
                   tanggal_berakhir: '2026-10-31'
                   aktif: true
@@ -430,6 +414,7 @@ paths:
                   alamat: null
                   telepon: null
                   logo: null
+                  timezone: Asia/Jakarta
                   tanggal_mulai: '2026-10-01'
                   tanggal_berakhir: '2026-10-31'
                   aktif: false
@@ -495,6 +480,7 @@ paths:
                   alamat: null
                   telepon: null
                   logo: null
+                  timezone: Asia/Jakarta
                   tanggal_mulai: '2026-10-01'
                   tanggal_berakhir: '2026-10-31'
                   aktif: true
@@ -1963,7 +1949,7 @@ components:
       scheme: bearer
       description: 'Mekanisme terpilih: Sanctum bearer token; `laravel/sanctum` v4.3.3 dan migration token sudah terpasang.
         Token kedaluwarsa setelah 30 hari; logout mencabut token aktif. Login dibatasi 5 percobaan per menit per kombinasi username+IP.
-        Endpoint auth belum diimplementasikan. Personal access token opaque; CORS, HTTPS, dan detail deployment masih D02.'
+        Route auth sudah dibuat tetapi belum lulus verifikasi aplikasi/kontrak. Personal access token opaque; CORS, HTTPS, dan detail deployment masih D02.'
   parameters:
     Id:
       name: id
@@ -2119,7 +2105,12 @@ components:
     Timestamp:
       type: string
       format: date-time
-      description: RFC3339 dengan offset; timestamp disimpan/dikirim UTC. Tampilan dan periode mengikuti timezone warung; representasi timezone dan backdate menunggu D08.
+      description: RFC3339 dengan offset; timestamp disimpan/dikirim UTC. Tampilan dan periode mengikuti identifier IANA di warung; zona kosong/invalid menolak akses, backdate menunggu D08.
+    Timezone:
+      type: string
+      minLength: 1
+      maxLength: 64
+      description: Identifier timezone IANA seperti Asia/Jakarta; divalidasi server.
     Date:
       type: string
       format: date
@@ -2165,6 +2156,10 @@ components:
             minLength: 1
             maxLength: 255
           - type: 'null'
+        timezone:
+          anyOf:
+          - $ref: '#/components/schemas/Timezone'
+          - type: 'null'
         tanggal_mulai:
           anyOf:
           - $ref: '#/components/schemas/Date'
@@ -2186,6 +2181,7 @@ components:
       - alamat
       - telepon
       - logo
+      - timezone
       - tanggal_mulai
       - tanggal_berakhir
       - aktif
@@ -2325,6 +2321,8 @@ components:
           type: string
           minLength: 1
           maxLength: 150
+        timezone:
+          $ref: '#/components/schemas/Timezone'
         alamat:
           $ref: '#/components/schemas/Note'
         telepon:
@@ -2349,6 +2347,7 @@ components:
       required:
       - kode
       - nama
+      - timezone
       - tanggal_mulai
       - tanggal_berakhir
       - owner
@@ -2365,6 +2364,8 @@ components:
           type: string
           minLength: 1
           maxLength: 150
+        timezone:
+          $ref: '#/components/schemas/Timezone'
         alamat:
           $ref: '#/components/schemas/Note'
         telepon:
@@ -3030,8 +3031,8 @@ components:
         date_to:
           $ref: '#/components/schemas/Date'
         timezone:
-          type: string
-          description: Timezone bisnis yang dipakai server (D08); bukan pemilih tenant.
+          $ref: '#/components/schemas/Timezone'
+          description: Identifier timezone warung yang dipakai server untuk periode ini.
       required:
       - date_from
       - date_to

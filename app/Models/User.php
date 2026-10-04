@@ -3,7 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Carbon\CarbonInterface;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -25,7 +25,7 @@ class User extends Authenticatable
         return $this->belongsTo(Warung::class);
     }
 
-    public function allowsApplicationAccessOn(CarbonInterface $localDate): bool
+    public function allowsApplicationAccessAt(CarbonImmutable $instantUtc): bool
     {
         if (! $this->aktif) {
             return false;
@@ -35,11 +35,15 @@ class User extends Authenticatable
             return $this->warung_id === null;
         }
 
+        if (! in_array($this->role, ['owner', 'manager', 'kasir'], true)) {
+            return false;
+        }
+
         if ($this->warung_id === null) {
             return false;
         }
 
-        return $this->warung?->allowsAccessOn($localDate) ?? false;
+        return $this->warung?->allowsAccessAt($instantUtc) ?? false;
     }
 
     /**

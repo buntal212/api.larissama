@@ -20,7 +20,7 @@ Rancangan ini mencakup delapan tabel bisnis: `warungs`, `users`, `kategori_menus
 - Satu warung dapat memiliki banyak user; setiap user biasa terhubung ke tepat satu warung.
 - `users.warung_id` boleh `NULL` hanya untuk `superadmin`.
 - Warung memiliki status aktif dan rentang masa aktif.
-- Timestamp disimpan dalam UTC. Tampilan waktu dan filter periode mengikuti timezone lokal warung. Usulan implementasi adalah kolom IANA `warungs.timezone`, default `Asia/Jakarta`; default ini belum dikonfirmasi user.
+- Aplikasi dan sesi koneksi MySQL memakai UTC. Timestamp disimpan/dikirim UTC; tampilan dan filter periode mengikuti timezone lokal warung. Kolom IANA `warungs.timezone` nullable tanpa default; sementara ini tenant tanpa timezone belum boleh login. Pengelola wajib mengisi timezone saat provisioning. Factory uji memakai `Asia/Jakarta` sebagai contoh sintetis.
 - Kategori menu dan menu milik satu warung.
 - Satu penjualan memiliki satu kasir dan banyak rincian.
 - Rincian penjualan menyimpan snapshot nama dan harga supaya perubahan data menu tidak mengubah riwayat transaksi.
@@ -61,7 +61,7 @@ Tipe berikut menjelaskan maksud desain. Migration harus memakai tipe Laravel yan
 | `alamat` | TEXT, nullable |
 | `telepon` | VARCHAR(30), nullable |
 | `logo` | VARCHAR(255), nullable |
-| `timezone` | VARCHAR(64), usulan identifier IANA, default `Asia/Jakarta`; belum diterapkan |
+| `timezone` | VARCHAR(64), identifier IANA, nullable tanpa default; wajib diisi sebelum akses tenant diaktifkan |
 | `tanggal_mulai` | DATE, nullable pada rancangan |
 | `tanggal_berakhir` | DATE, nullable pada rancangan |
 | `aktif` | BOOLEAN, default true |

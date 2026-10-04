@@ -21,6 +21,7 @@ class WarungResource extends JsonResource
             'alamat' => $this->alamat,
             'telepon' => $this->telepon,
             'logo' => $this->logo,
+            'timezone' => $this->timezone,
             'tanggal_mulai' => $this->tanggal_mulai?->toDateString(),
             'tanggal_berakhir' => $this->tanggal_berakhir?->toDateString(),
             'aktif' => $this->aktif,

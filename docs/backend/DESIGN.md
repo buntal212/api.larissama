@@ -6,7 +6,7 @@ Status: implementasi backend sedang berjalan. Migration `warungs` dan adaptasi `
 
 - composer.json meminta PHP ^8.3 dan Laravel ^13.17; itu constraint proyek, bukan bukti runtime terpasang.
 - Schema `users` sudah memakai `nama`, `username`, `email` nullable unik, `warung_id`, `role`, dan `aktif`; model memiliki relasi ke `Warung`. Migration `warungs` juga berhasil diterapkan pada clean-install lokal. Enam tabel bisnis lain belum ada. Migration cache/jobs dan `personal_access_tokens` adalah infrastruktur.
-- `bootstrap/app.php` mendaftarkan API; `routes/api.php` masih kosong dan belum menyediakan endpoint.
+- `bootstrap/app.php` mendaftarkan API. `routes/api.php` sekarang menyediakan login, profil, dan logout; endpoint bisnis masih belum tersedia.
 - Test yang tersedia hanya contoh Unit dan Feature. Tidak ada bukti tenant, nominal, transaksi, atau kontrak bisnis sudah lulus.
 - Pemeriksaan 2026-10-04: PHP dan Composer tidak tersedia di host, tetapi image Docker opsional menyediakan PHP 8.3.35 dan Composer 2.10.3. Clean-install migrations berjalan di MySQL 8.0.40 lokal; harness test dan upgrade data lama belum diverifikasi (lihat `DB-MIGRATION-001`).
 
@@ -107,7 +107,7 @@ Action menetapkan warung/user dari identitas terautentikasi, menghitung total se
 
 ### Laporan periode
 
-Kandidat D08: query `tanggal >= start_of_day(date_from, zone)` dan `tanggal < start_of_next_day(date_to, zone)` setelah dikonversi ke zona penyimpanan. Tanggal akhir inklusif bagi pengguna; jangan memakai 23:59:59 yang bisa melewatkan pecahan detik.
+Timestamp disimpan UTC. Setiap warung memakai identifier IANA pada `warungs.timezone`; zona kosong atau invalid menolak akses tenant sampai diperbaiki. Periksa masa aktif dengan mengubah waktu saat ini dari UTC ke timezone warung, lalu bandingkan tanggal lokal inklusif terhadap `tanggal_mulai`/`tanggal_berakhir`. Untuk laporan, ubah awal `date_from` dan awal hari setelah `date_to` dari timezone warung ke UTC, lalu query rentang `[awal, awal_hari_berikutnya)`; jangan memakai `23:59:59` yang bisa melewatkan pecahan detik.
 
 - Pendapatan: jumlah `penjualans.total` dengan status selesai pada periode. Tidak mengambil bayar/kembalian, nama/harga menu terbaru, atau total pembelian.
 - Pembelian: jumlah `pembelians.total` pada periode; aturan transaksi yang dikoreksi menunggu D11.
@@ -116,7 +116,7 @@ Kandidat D08: query `tanggal >= start_of_day(date_from, zone)` dan `tanggal < st
 
 ## Keamanan, operasional, dan handoff
 
-Password/token tidak keluar resource atau log. Sanctum bearer token dengan masa berlaku 30 hari sudah dipilih dan package v4.3.3 terpasang; konfigurasi kedaluwarsa dan logout harus menerapkan keputusan ini. Rate limit login, HTTPS/CORS, penyimpanan rahasia, dan detail deployment masih perlu ditetapkan sebelum BE-102/BE-502 selesai. Error JSON tidak menampilkan SQL atau kredensial; request ID membantu penelusuran. Halaman di luar scope menggunakan respons yang konsisten menurut D13.
+Password/token tidak keluar resource atau log. Login menerbitkan Sanctum bearer token selama 30 hari; rate limit membatasi 5 percobaan per menit berdasarkan username dan IP. Middleware memeriksa status user dan warung pada setiap request bearer. HTTPS/CORS, penyimpanan rahasia, dan detail deployment masih perlu ditetapkan sebelum BE-102/BE-502 selesai. Error JSON tidak menampilkan SQL atau kredensial; request ID membantu penelusuran. Halaman di luar scope menggunakan respons yang konsisten menurut D13.
 
 Runbook rilis yang dibuat pada BE-502 harus berisi prasyarat versi, konfigurasi tanpa rahasia, migrasi upgrade, backup/restore yang diuji pada salinan, rollback aplikasi, endpoint health, log, dan keterbatasan. Hindari migration destruktif pada data bersama.
 
