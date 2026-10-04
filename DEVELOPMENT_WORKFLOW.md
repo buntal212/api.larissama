@@ -16,6 +16,8 @@ Tanggung jawab implementasi adalah backend Laravel: schema/migration, aturan bis
 - Backend menentukan otorisasi, tenant scope, validasi, dan transisi bisnis.
 - Kontrak API menentukan bentuk request/response yang dipakai frontend.
 - Jika rancangan, migration, kontrak, dan kode tidak cocok, laporkan drift dan sumber konflik sebelum mengubah perilaku.
+- Gunakan [register keputusan](docs/backend/DECISIONS.md) untuk kebutuhan yang disepakati dan pilihan terbuka, [desain backend](docs/backend/DESIGN.md) untuk invariant, serta [test plan](docs/backend/TEST_PLAN.md) untuk acceptance.
+- [Tracker](IMPLEMENTATION_PROGRESS.md) mencatat status task, test, commit, dan kesiapan handoff; dokumen rancangan bukan bukti implementasi.
 
 ## Alur untuk setiap pekerjaan
 
@@ -90,56 +92,27 @@ Satu slice diterima bila:
 
 ## Urutan milestone LarisSama
 
-Urutan berikut adalah roadmap awal berdasarkan rancangan enam tabel. Ini bukan keputusan bisnis baru; aturan fitur yang belum ditetapkan harus disepakati sebelum slice terkait dimulai.
+Roadmap mengikuti rancangan delapan tabel. [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) adalah indeks rencana; task dan dependency rinci dipelihara hanya di [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md), sedangkan kriteria gate ada di [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
 
-### M0 — Kesiapan proyek
+| Milestone | Hasil dan gate |
+| --- | --- |
+| M0 | Runtime, keputusan awal, konvensi API, validator, harness dan DB test terisolasi; gate G0. |
+| M1 | Warung, users, auth, policy, tenant, administrasi dan kontrak akses; gate G1. |
+| M2 | Kategori/menu, validasi tenant, arsip dan kontrak katalog; gate G2. |
+| M3 | Penjualan header-rinci, snapshot, nominal, nomor/retry, riwayat dan laporan pendapatan; gate G3. |
+| M4 | Pembelian ringkas/rinci yang independen, nomor/retry, riwayat dan laporan total pembelian; gate G4. |
+| M5 | Regression, environment, runbook, integrasi/handoff frontend dan rilis; gate G5. |
 
-- Verifikasi runtime/toolchain, cara menjalankan backend dan frontend, serta status migration awal.
-- Putuskan database produksi, pendekatan autentikasi/API, representasi nominal decimal, dan aturan timezone yang dibutuhkan slice pertama.
-- Tentukan rencana penyesuaian tabel `users` bawaan Laravel tanpa menghilangkan data bila migration sudah dipakai.
-- Tentukan standar kontrak API dan siapkan lokasi spesifikasi OpenAPI 3.1 di `docs/api/openapi.yaml`. Versi/path API, skema autentikasi, response/error format, pagination, nullability, format tanggal, dan format nominal ditetapkan di tahap ini.
-- Jika perlu membuktikan koneksi frontend-backend, gunakan endpoint health/diagnostic yang tidak membuat fakta operasional.
+Jangan menaikkan status milestone hanya karena dokumen atau migration selesai. Operasi API tetap DRAFT sampai perilaku/izin final, implementasi, dan test yang diwajibkan tersedia. Handoff memakai operationId, versi spec, commit yang diuji, environment, dan bukti sesuai panduan API.
 
-**Gate M0:** toolchain dan kontrak komunikasi diketahui; keputusan yang diperlukan untuk login/tenant sudah tersedia; strategi migration awal dipahami; konvensi API dan file OpenAPI siap dipakai.
+## Disiplin perubahan dan commit
 
-### M1 — Warung, user, dan akses
-
-- Implementasikan `warungs` dan penyesuaian `users`.
-- Bangun login, role, tenant scope, status aktif, dan masa aktif warung.
-- Selesaikan arti tanggal nullable, keunikan email, dan jalur superadmin sebelum migration/endpoint yang bergantung padanya.
-- Dokumentasikan endpoint autentikasi, profil user, dan administrasi warung/user di OpenAPI sebelum handoff frontend.
-
-**Gate M1:** user tenant hanya dapat mengakses data warungnya; akses aktif/kedaluwarsa diperiksa backend; superadmin memiliki jalur yang ditentukan.
-
-### M2 — Kategori dan menu
-
-- Implementasikan `kategori_menus` dan `menus` beserta relasi, keunikan kode per warung, dan perlindungan dari relasi lintas warung.
-- Selesaikan CRUD/arsip dan perilaku penghapusan master sebelum menulis endpoint.
-- Dokumentasikan operasi kategori/menu, filter, validasi, dan contoh payload di OpenAPI untuk frontend.
-
-**Gate M2:** tenant tidak dapat membaca atau mengubah kategori/menu warung lain; validasi API dan UI konsisten.
-
-### M3 — Penjualan
-
-- Implementasikan header `penjualans` dan rincian `penjualan_rincis` secara atomik.
-- Tetapkan lebih dulu rumus subtotal/diskon, aturan pembayaran/kembalian, nomor transaksi, retry/idempotensi, dan pembatalan.
-- Simpan snapshot nama/harga; dukung item `luar_menu` dengan `menu_id = NULL` sesuai rancangan.
-- Dokumentasikan operasi penjualan, payload rincian, format decimal, hasil transaksi, error, dan retry di OpenAPI sebelum handoff alur kasir/riwayat.
-
-**Gate M3:** retry tidak menggandakan transaksi; angka dihitung/diterima backend sesuai aturan; riwayat mempertahankan snapshot; transaksi tenant terisolasi.
-
-### M4 — Pengerasan dan rilis
-
-- Tinjau migrasi upgrade, authorization, error handling, backup/recovery, konfigurasi environment, kecocokan OpenAPI dengan endpoint, dan alur end-to-end bersama frontend.
-- Tutup keputusan tersisa berdasarkan fitur yang benar-benar akan dirilis; jangan menambahkan domain baru tanpa kebutuhan.
-
-**Gate M4:** alur rilis dapat diulang dan keterbatasan/keputusan yang belum selesai tercatat.
-
-## Disiplin perubahan
-
-- Backend dan frontend adalah repo Git terpisah. Periksa status serta diff masing-masing repo; jangan mencampur perubahan yang tidak berkaitan.
-- Jaga setiap perubahan tetap reviewable sebagai satu fitur/perbaikan yang koheren. Migration, perilaku backend, kontrak API, dan UI yang membentuk satu slice sebaiknya ditinjau bersama.
-- Jangan membuat commit otomatis. Stage/commit hanya setelah diminta pengguna, dan pastikan hanya file untuk slice tersebut yang masuk.
+- Backend dan frontend adalah repo Git terpisah. Periksa status serta diff repo yang dikerjakan; scope saat ini backend dan dokumentasinya.
+- Pengguna sudah memberikan instruksi berkelanjutan: **setelah mengedit satu file, commit file itu sebelum mengedit file berikutnya**. Tidak perlu meminta izin commit ulang untuk perubahan dalam tugas yang telah diotorisasi.
+- Sebelum commit: review diff, stage path file itu saja, pastikan staged names sesuai, dan jalankan git diff --cached --check. Jangan menyertakan perubahan pengguna/tim yang tidak terkait.
+- Sesudah commit: catat hash dan periksa status. Jangan melakukan push, amend, atau rewrite commit bersama tanpa instruksi yang mengotorisasinya.
+- Satu slice dapat mempunyai beberapa commit file. Catat semuanya di tracker, lalu jalankan verifikasi slice yang lengkap. Commit checkpoint tidak berarti slice telah lulus test atau siap rilis.
+- Perubahan kontrak dan test yang diperlukan tetap bagian dari slice, walaupun commit dilakukan satu file sekali. Pertahankan urutan dependency agar penerus memahami checkpoint yang belum lengkap.
 
 ## Kondisi untuk berhenti dan meminta keputusan
 
