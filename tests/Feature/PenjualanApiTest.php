@@ -166,6 +166,31 @@ class PenjualanApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
     }
 
+    public function test_invalid_sale_list_status_and_date_filters_return_schema_conformant_validation_errors(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('feature-test')->plainTextToken;
+        $invalidQueries = [
+            ['query' => ['status' => 'tidak-valid'], 'error' => 'status'],
+            ['query' => ['date_from' => '04-10-2026', 'date_to' => '2026-10-04'], 'error' => 'date_from'],
+            ['query' => ['date_from' => '2026-10-05', 'date_to' => '2026-10-04'], 'error' => 'date_to'],
+        ];
+
+        foreach ($invalidQueries as $case) {
+            $response = $this->withToken($token)
+                ->getJson('/api/v1/penjualans?'.http_build_query($case['query']))
+                ->assertUnprocessable()
+                ->assertJsonPath('code', 'VALIDATION_ERROR')
+                ->assertJsonValidationErrors($case['error']);
+
+            $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
+        }
+
+        $this->assertDatabaseCount('penjualans', 0);
+        $this->assertDatabaseCount('penjualan_rincis', 0);
+    }
+
     public function test_sale_detail_keeps_original_menu_snapshot_after_menu_changes(): void
     {
         $warung = Warung::factory()->create();
