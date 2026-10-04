@@ -222,8 +222,9 @@ abstract class TestCase extends BaseTestCase
 
         $supportedKeywords = [
             'additionalProperties', 'anyOf', 'const', 'default', 'description', 'enum', 'format', 'items', 'maximum',
-            'maxItems', 'maxLength', 'minimum', 'minItems', 'minLength', 'pattern', 'properties',
+            'maxItems', 'maxLength', 'minimum', 'minItems', 'minLength', 'minProperties', 'pattern', 'properties',
             'oneOf', 'required', 'title', 'type',
+            'writeOnly',
         ];
         $unsupportedKeywords = array_diff(array_keys($schema), $supportedKeywords);
         if ($unsupportedKeywords !== []) {
@@ -278,6 +279,10 @@ abstract class TestCase extends BaseTestCase
         $errors = [];
         if (is_object($value)) {
             $properties = $schema['properties'] ?? [];
+            if (isset($schema['minProperties']) && count(get_object_vars($value)) < $schema['minProperties']) {
+                $errors[] = "{$path} has fewer properties than OpenAPI minProperties";
+            }
+
             foreach ($schema['required'] ?? [] as $requiredProperty) {
                 if (! property_exists($value, $requiredProperty)) {
                     $errors[] = "{$path}.{$requiredProperty} is required";

@@ -158,6 +158,17 @@ class AdminWarungManagementApiTest extends TestCase
         $this->assertStringContainsString('unexpected', implode("\n", $errors));
     }
 
+    public function test_openapi_request_schema_check_rejects_an_empty_patch_body(): void
+    {
+        $document = $this->openApiDocument();
+        $schema = $this->resolveOpenApiReference($document, '#/components/schemas/WarungUpdate');
+        $payload = json_decode('{}', false, 512, JSON_THROW_ON_ERROR);
+        $errors = $this->collectOpenApiSchemaErrors($payload, $schema, $document, '$');
+
+        $this->assertNotEmpty($errors);
+        $this->assertStringContainsString('minProperties', implode("\n", $errors));
+    }
+
     /**
      * @return array<string, array{string}>
      */
