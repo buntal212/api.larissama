@@ -138,6 +138,14 @@ Pra-implementasi dicatat; hasil belum dijalankan. Setelah test, perbarui tracker
 
 Run lulus pada 2026-10-05: Pint; `ApiListDefaultsConformanceTest` 6 test / 1718 assertions; suite penuh `php artisan test --display-warnings` 173 test / 23728 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Keenam request tanpa query string memakai `page=1`, `per_page=20`, serta sort default sesuai operasi. Urutan fixture dengan nilai berbeda dan metadata cocok dengan OpenAPI/runtime; response keenam route cocok schema. Compose dibersihkan. Tidak ada perubahan runtime/API/DB/tenant/role. Semua operasi tetap DRAFT dan gate conformance lain masih terbuka. Bukti ada di artefak [ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001](test-runs/ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001.md).
 
+## Rencana conformance bentuk numerik pagination
+
+Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Pada keenam GET list, kirim `page` dan `per_page` secara terpisah dengan representasi string desimal `1.0`, pecahan `1.5`, dan eksponen `1e2` (36 kombinasi). Pastikan OpenAPI parameter integer menolak tiap representasi, HTTP aktual merespons 422 dengan response schema sesuai dan error pada field yang diuji. Gunakan role sah setiap endpoint.
+
+Scope hanya feature conformance/input validation; tidak mengubah API, validator, paginator, database, tenant/role, atau dependencies. Acceptance: seluruh 36 request cocok hasil schema/HTTP 422; Pint dan suite penuh lulus pada MySQL 8.0.40 Compose disposable lalu stack dibersihkan. Operasi tetap DRAFT.
+
+Pra-implementasi dicatat; hasil belum dijalankan. Setelah test, perbarui tracker, README API/OpenAPI, DECISIONS, TEST_PLAN, dan artefak run. File kode direncanakan: `tests/Feature/ApiPaginationNumericTypeConformanceTest.php`.
+
 ## Rencana conformance halaman kosong pagination
 
 Task BE-003/104/202/203/303/403, subset T-API-02/03 dan D13. Pada masing-masing enam GET list, kirim request yang tidak mempunyai row cocok dan pastikan response HTTP 200 sesuai schema dengan `data=[]`, `total=0`, dan `last_page=1`. Sesudah membuat dua row yang cocok untuk endpoint tersebut, minta `page=3&per_page=1` dan pastikan `data=[]` tanpa menghilangkan total asli (`total=2`, `last_page=2`, `page=3`). Untuk list warung/user gunakan filter `q` tanpa kecocokan pada kasus kosong karena aktor/tenant test diperlukan; fixture seed kemudian dicocokkan dengan q. Validasi query terhadap OpenAPI dan response aktual terhadap schema.
