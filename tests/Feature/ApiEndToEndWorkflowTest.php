@@ -167,6 +167,65 @@ class ApiEndToEndWorkflowTest extends TestCase
             ->assertJsonPath('data.total', '95000.00');
         $this->assertOperationResponseMatchesOpenApi($detailedPurchase, '/pembelians', 'post');
 
+        $saleId = $saleResponse->json('data.id');
+        $saleListQuery = ['page' => '1', 'per_page' => '20'];
+        $this->assertOperationQueryMatchesOpenApi($saleListQuery, '/penjualans', 'get');
+        $saleList = $this->withFreshToken($managerToken)
+            ->getJson('/api/v1/penjualans?'.http_build_query($saleListQuery))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $saleId)
+            ->assertJsonPath('data.0.total', '30000.00');
+        $this->assertOperationResponseMatchesOpenApi($saleList, '/penjualans', 'get');
+
+        $saleDetail = $this->withFreshToken($managerToken)
+            ->getJson("/api/v1/penjualans/{$saleId}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $saleId)
+            ->assertJsonPath('data.rincian.0.menu_id', $menuId)
+            ->assertJsonPath('data.rincian.0.nama_menu', 'Nasi Goreng')
+            ->assertJsonPath('data.rincian.0.harga', '15000.00')
+            ->assertJsonPath('data.rincian.0.subtotal', '30000.00');
+        $this->assertOperationResponseMatchesOpenApi($saleDetail, '/penjualans/{id}', 'get');
+
+        $summaryPurchaseId = $summaryPurchase->json('data.id');
+        $detailedPurchaseId = $detailedPurchase->json('data.id');
+        $purchaseListQuery = ['page' => '1', 'per_page' => '20'];
+        $this->assertOperationQueryMatchesOpenApi($purchaseListQuery, '/pembelians', 'get');
+        $purchaseList = $this->withFreshToken($managerToken)
+            ->getJson('/api/v1/pembelians?'.http_build_query($purchaseListQuery))
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('data.0.id', $detailedPurchaseId)
+            ->assertJsonPath('data.1.id', $summaryPurchaseId);
+        $this->assertOperationResponseMatchesOpenApi($purchaseList, '/pembelians', 'get');
+
+        $summaryPurchaseDetail = $this->withFreshToken($managerToken)
+            ->getJson("/api/v1/pembelians/{$summaryPurchaseId}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $summaryPurchaseId)
+            ->assertJsonPath('data.total', '150000.00')
+            ->assertJsonPath('data.rincian.0.nama_item', 'Belanja di pasar')
+            ->assertJsonPath('data.rincian.0.qty', null)
+            ->assertJsonPath('data.rincian.0.satuan', null)
+            ->assertJsonPath('data.rincian.0.harga_satuan', null)
+            ->assertJsonPath('data.rincian.0.subtotal', '150000.00');
+        $this->assertOperationResponseMatchesOpenApi($summaryPurchaseDetail, '/pembelians/{id}', 'get');
+
+        $detailedPurchaseDetail = $this->withFreshToken($managerToken)
+            ->getJson("/api/v1/pembelians/{$detailedPurchaseId}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $detailedPurchaseId)
+            ->assertJsonPath('data.total', '95000.00')
+            ->assertJsonCount(2, 'data.rincian')
+            ->assertJsonPath('data.rincian.0.nama_item', 'Beras')
+            ->assertJsonPath('data.rincian.0.subtotal', '75000.00')
+            ->assertJsonPath('data.rincian.1.nama_item', 'Cabai')
+            ->assertJsonPath('data.rincian.1.subtotal', '20000.00');
+        $this->assertOperationResponseMatchesOpenApi($detailedPurchaseDetail, '/pembelians/{id}', 'get');
+
         $reportQuery = ['date_from' => '2026-10-04', 'date_to' => '2026-10-04'];
         $this->assertOperationQueryMatchesOpenApi($reportQuery, '/laporan/penjualan', 'get');
         $salesReport = $this->withFreshToken($managerToken)
