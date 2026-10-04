@@ -13,7 +13,8 @@ info:
     admin warung/user tenant, katalog, dan transaksi/laporan memiliki acceptance
     test parsial. Response runtime auth, admin, katalog, dan transaksi/laporan dicocokkan
     dengan schema untuk subset operasi/status; body/header request POST sale/purchase
-    dan query terpilih pada list/report transaksi juga diperiksa terhadap OpenAPI.
+    dan query terpilih pada list akses/katalog/transaksi serta report juga diperiksa
+    terhadap OpenAPI.
     Request/query operasi lain, profil
     `/warung`, D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance
     menyeluruh belum diverifikasi.
@@ -205,7 +206,7 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. Status lainnya, request schema, dan conformance seluruh operasi belum diuji.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI. Query invalid/unknown, max per_page, status lain, request schema, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -529,7 +530,7 @@ paths:
       tags:
       - Akses
       summary: Daftar users
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. Pagination/filter/sort dan request schema belum dicocokkan otomatis; conformance penuh belum selesai.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort fixture terpilih dengan parameter OpenAPI. Filter/query invalid/unknown, max per_page, request schema, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -773,7 +774,7 @@ paths:
       tags:
       - Katalog
       summary: Daftar kategori-menus
-      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar tenant manager, pencarian/filter/sort/pagination, serta kategori aktif untuk kasir meskipun filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema; request schema, status lain, dan seluruh query belum diverifikasi.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar tenant manager, pencarian/filter/sort/pagination, serta kategori aktif untuk kasir meskipun filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/q/aktif fixture terpilih dengan parameter OpenAPI. Query invalid/unknown, max per_page, request schema, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1015,7 +1016,7 @@ paths:
       tags:
       - Katalog
       summary: Daftar menus
-      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar manager/kasir, pencarian/filter kategori/sort/pagination, dan visibilitas kasir yang memaksa menu aktif dalam kategori aktif termasuk saat filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema; request schema, status lain, dan conformance penuh belum diuji.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar manager/kasir, pencarian/filter kategori/sort/pagination, dan visibilitas kasir yang memaksa menu aktif dalam kategori aktif termasuk saat filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan q/kategori_menu_id/per_page/sort dan halaman terpilih dengan parameter OpenAPI. Query invalid/unknown, max per_page, request schema, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
