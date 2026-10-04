@@ -206,7 +206,7 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP 422, schema response 422, dan error field per_page. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -530,7 +530,7 @@ paths:
       tags:
       - Akses
       summary: Daftar users
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP 422, schema response 422, dan error field per_page. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -774,7 +774,7 @@ paths:
       tags:
       - Katalog
       summary: Daftar kategori-menus
-      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar tenant manager, pencarian/filter/sort/pagination, serta kategori aktif untuk kasir meskipun filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/q/aktif fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP 422, schema response 422, dan error field per_page. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar tenant manager, pencarian/filter/sort/pagination, serta kategori aktif untuk kasir meskipun filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/q/aktif fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1016,7 +1016,7 @@ paths:
       tags:
       - Katalog
       summary: Daftar menus
-      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar manager/kasir, pencarian/filter kategori/sort/pagination, dan visibilitas kasir yang memaksa menu aktif dalam kategori aktif termasuk saat filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan q/kategori_menu_id/per_page/sort dan halaman terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP 422, schema response 422, dan error field per_page. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar manager/kasir, pencarian/filter kategori/sort/pagination, dan visibilitas kasir yang memaksa menu aktif dalam kategori aktif termasuk saat filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan q/kategori_menu_id/per_page/sort dan halaman terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1286,6 +1286,8 @@ paths:
         ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response;
         ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 membuktikan per_page=101 ditolak dengan HTTP 422, schema response 422,
         dan error field per_page; nilai/filter lain, status lain, dan gate penuh masih terbuka.
+        ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 membuktikan page=0 dan per_page=0 ditolak dengan HTTP 422,
+        schema response 422, dan error field terkait.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1586,6 +1588,8 @@ paths:
         ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response;
         ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 membuktikan per_page=101 ditolak dengan HTTP 422, schema response 422,
         dan error field per_page; nilai/filter lain, status lain, dan gate penuh masih terbuka.
+        ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 membuktikan page=0 dan per_page=0 ditolak dengan HTTP 422,
+        schema response 422, dan error field terkait.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
