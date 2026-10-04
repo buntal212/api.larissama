@@ -307,6 +307,12 @@ Pint lulus; focused 4/238; suite penuh `php artisan test --display-warnings` 233
 
 `USER-EMAIL-UNIQUENESS-001` lulus: Pint, focused 4 test / 242 assertions, dan suite penuh 237 test / 26301 assertions pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Email exact duplicate milik user tenant lain ditolak 422 dengan field error `email` saat create maupun update; tidak ada record yang berubah. Email eksplisit `null` dan email tak dikirim diterima sebagai null. Constraint `users_email_unique` diuji langsung di MySQL: duplicate lintas warung ditolak dan beberapa NULL diterima. Request/response skenario terpilih cocok dengan schema OpenAPI. Compose dibersihkan. Variasi huruf, normalisasi, dan mapping identitas lama tidak termasuk; D12 tetap PARTIAL dan operasi tetap DRAFT. Lihat [artefak run](test-runs/USER-EMAIL-UNIQUENESS-001.md).
 
+## Pra-implementasi perlindungan migrasi user lama T-DB-02
+
+Task BE-101/T-DB-02 dan D01/D12. Migration `2026_10_04_065854_adapt_users_for_larissama_tenants.php` saat ini menolak berjalan jika tabel `users` berisi data, sebelum mengganti kolom atau menambah kolom tenant. Tambah `tests/Feature/LegacyUserMigrationSafetyTest.php` untuk menjalankan method `up()` migration secara langsung terhadap database test MySQL disposable yang memiliki satu user tersimpan.
+
+Acceptance: migration melempar pesan preflight yang sudah ditetapkan; seluruh kolom tabel dan seluruh nilai row user sebelum/sesudah identik, termasuk ID, nama, email, password hash dan timestamps. Ini menguji penolakan aman saat data ada, bukan migrasi sukses atas schema legacy atau validitas pemetaan user ke warung. Tidak mengubah migration atau membuat pemetaan. Gunakan `RefreshDatabase`, Pint, focused/full suite MySQL 8.0.40, lalu bersihkan Compose. T-DB-02 untuk upgrade/backfill tetap terbuka.
+
 ## Gate milestone
 
 | Gate | Test wajib dan hasil yang diterima |
