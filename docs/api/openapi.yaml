@@ -13,7 +13,8 @@ info:
     admin warung/user tenant, katalog, dan transaksi/laporan memiliki acceptance
     test parsial. Response runtime auth, admin, katalog, dan transaksi/laporan dicocokkan
     dengan schema untuk subset operasi/status; body/header request POST sale/purchase
-    juga diperiksa untuk payload terpilih. Query schema, request operasi lain, profil
+    dan query terpilih pada list/report transaksi juga diperiksa terhadap OpenAPI.
+    Request/query operasi lain, profil
     `/warung`, D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance
     menyeluruh belum diverifikasi.
     Sanctum bearer 30 hari, timezone tenant,
@@ -1277,9 +1278,12 @@ paths:
       tags:
       - Penjualan
       summary: Riwayat Penjualan
-      description: 'Implementasi awal tersedia tetapi masih DRAFT; belum siap integrasi live. Setiap item berasal
+      description: >-
+        Implementasi awal tersedia tetapi masih DRAFT; belum siap integrasi live. Setiap item berasal
         dari menu terdaftar; kasir hanya membaca penjualan miliknya, manager membaca seluruh penjualan warung.
-        TRANSACTION-CONFORMANCE-001 mencocokkan response 200 dengan schema; request schema, status lain, dan gate penuh masih terbuka.'
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200 dengan schema. TRANSACTION-QUERY-CONFORMANCE-001
+        mencocokkan page/per_page/sort/status pada query sukses terpilih; nilai dan filter lain, status lain,
+        dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1574,8 +1578,11 @@ paths:
       tags:
       - Pembelian
       summary: Riwayat Pembelian
-      description: 'Implementasi awal tersedia tetapi masih DRAFT; seluruh data dibatasi ke warung pengguna.
-        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/403; request schema, status lain, dan gate penuh masih terbuka.'
+      description: >-
+        Implementasi awal tersedia tetapi masih DRAFT; seluruh data dibatasi ke warung pengguna.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/403. TRANSACTION-QUERY-CONFORMANCE-001
+        mencocokkan page/per_page/sort untuk dua halaman query sukses terpilih; nilai dan filter lain,
+        status lain, dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1855,9 +1862,12 @@ paths:
       tags:
       - Laporan
       summary: Pendapatan penjualan pada periode
-      description: 'Implementasi awal menjumlahkan total penjualan berstatus selesai dan menghitung header di
-        periode timezone warung. Tidak menjumlahkan bayar atau join rincian; masih DRAFT sampai gate lulus.
-        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422; request schema, status lain, dan gate penuh masih terbuka.'
+      description: >-
+        Implementasi awal menjumlahkan total penjualan berstatus selesai dan menghitung header di periode
+        timezone warung. Tidak menjumlahkan bayar atau join rincian; masih DRAFT sampai gate lulus.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
+        mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
+        dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1919,9 +1929,12 @@ paths:
       tags:
       - Laporan
       summary: Total pembelian pada periode
-      description: Implementasi awal menjumlahkan total dan menghitung header pembelian di periode timezone warung;
+      description: >-
+        Implementasi awal menjumlahkan total dan menghitung header pembelian di periode timezone warung;
         tidak join rincian atau mengurangi dari pendapatan sebagai laba. Masih DRAFT sampai gate lulus.
-        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422; request schema, status lain, dan gate penuh masih terbuka.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
+        mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
+        dan gate penuh masih terbuka.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
