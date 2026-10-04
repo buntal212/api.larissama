@@ -435,3 +435,9 @@ FAIL tidak dihapus oleh rerun; catat perbaikan dan run baru. NOT_APPLICABLE meme
 ## Conformance 401 semua operasi bearer T-API-04
 
 `PROTECTED-OPERATIONS-401-CONFORMANCE-001` membaca daftar operasi dari OpenAPI dan menguji semua 27 operasi selain login yang mewajibkan bearer. Request anonim menghasilkan HTTP 401 dengan `code=UNAUTHENTICATED`, `request_id` non-kosong, dan response sesuai schema OpenAPI; focused 27/783. Pint dan suite penuh terbaru 281/27257 lulus pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40; tidak ada trigger tersisa dan Compose dibersihkan. Login publik diuji pada auth conformance terpisah. Ini hanya menutup jalur 401 anonim, bukan semua status, request, role, atau seluruh T-API-02/04; semua operasi tetap DRAFT. Rincian: [artefak run](test-runs/PROTECTED-OPERATIONS-401-CONFORMANCE-001.md).
+
+## Rencana sinkronisasi operasi OpenAPI dengan route Laravel
+
+`API-ROUTE-INVENTORY-CONFORMANCE-001`, T-API-01/02 dan D13. Tambahkan feature test tanpa akses database yang memuat `docs/api/openapi.yaml` dan membaca route terdaftar dari Laravel. Bentuk identitas dengan method HTTP dan path setelah prefix server `/api/v1`; pastikan setiap operation OpenAPI menunjuk tepat satu route runtime, tidak ada duplikasi method/path, dan setiap route runtime di bawah prefix tersebut terdokumentasi. Abaikan alias `HEAD` yang otomatis menyertai route `GET`; operasi HTTP lain yang dinyatakan pada OpenAPI tetap diperiksa. Sertakan operationId/path/method pada pesan mismatch.
+
+Acceptance: inventaris 28 operasi pada 18 path cocok dua arah tanpa route hilang, route tambahan, atau pasangan duplikat; tidak ada query DB atau side effect; Pint, focused test, dan suite penuh lulus pada MySQL 8.0.40 Compose disposable, lalu stack dibersihkan. Scope hanya pengujian kontrak, tanpa mengubah route/controller/OpenAPI/dependency. Operasi tetap DRAFT karena gate conformance request/response, keputusan dan milestone lainnya belum selesai.
