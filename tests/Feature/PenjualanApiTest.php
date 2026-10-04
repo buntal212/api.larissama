@@ -166,6 +166,24 @@ class PenjualanApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
     }
 
+    public function test_superadmin_cannot_list_sales_for_a_tenant(): void
+    {
+        $warung = Warung::factory()->create();
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $sale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $cashier->id]);
+        $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
+        $token = $superadmin->createToken('feature-test')->plainTextToken;
+        $query = ['page' => '1', 'per_page' => '20', 'sort' => '-tanggal'];
+
+        $this->assertOperationQueryMatchesOpenApi($query, '/penjualans', 'get');
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/penjualans?'.http_build_query($query))
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
+        $this->assertDatabaseHas('penjualans', ['id' => $sale->id, 'warung_id' => $warung->id]);
+    }
+
     public function test_invalid_sale_list_status_and_date_filters_return_schema_conformant_validation_errors(): void
     {
         $warung = Warung::factory()->create();
