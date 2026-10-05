@@ -4,6 +4,7 @@
 
 - Tanggal: 2026-10-05 (Asia/Jakarta)
 - Status: PASS
+- Commit kode/test: `da0d64630cb7a54eedc6312c23c43f1a0da12115`
 - Test: `tests/Feature/UserApiTest.php`
 - Lingkungan: Docker Compose project `larissama-backend-test`, PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 (`larissama_test` disposable)
 - Pint: PASS
