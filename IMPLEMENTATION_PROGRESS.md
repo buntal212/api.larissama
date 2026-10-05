@@ -12,6 +12,8 @@ Slice terakhir selesai: `TRANSACTION-500-ERROR-CONFORMANCE-001`, T-API-02/04. Co
 
 Slice terakhir selesai: `IDEMPOTENCY-KEY-WHITESPACE-CONFORMANCE-001`, T-API-01/02. Commit `c6f5aa1` menyelaraskan pattern OpenAPI dengan larangan whitespace di tepi yang sudah ada pada runtime. Whitespace edge ditolak tanpa write; spasi internal pada key 255 karakter diterima. Focused 1/725, validator OAS PASS, Pint 144 file, suite penuh 329/52158; Compose dibersihkan. Bukti: [hasil run](docs/backend/test-runs/IDEMPOTENCY-KEY-WHITESPACE-CONFORMANCE-001.md). Semua operasi tetap DRAFT.
 
+Slice aktif: `API-PATH-ID-OVERFLOW-CONFORMANCE-001`, T-API-02/04. Uji detail/update untuk ID positif lebih besar daripada PHP_INT_MAX dan kapasitas MySQL unsigned BIGINT, dengan 404 Error404 schema-conformant dan no-write. Kriteria tercatat di [TEST_PLAN](docs/backend/TEST_PLAN.md); belum ada perubahan runtime/kontrak.
+
 ## Ringkasan pelaksanaan
 
 | Milestone | Task implementasi | DONE | Gate |
