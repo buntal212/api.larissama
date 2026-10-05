@@ -1,6 +1,6 @@
 # Tracker Implementasi Backend LarisSama
 
-Snapshot saat ini, commit `2032836`: 30 handler terdaftar; full suite MySQL 8.0.40 PASS 501/73.750; validator OpenAPI 3.1 PASS. Siklus fresh-install/rollback/pasang-ulang seluruh 16 migration juga lulus pada MySQL 8.0.40. Semua 30 kontrak masih DRAFT, jadi belum ada live integration handoff. User mengonfirmasi produksi fresh/empty; backfill data lama tidak diperlukan untuk rilis awal, dan guard tetap menolak database non-kosong yang belum dipetakan. Task tracker 14/29 (48%); lingkup/kriteria task ada pada tabel backlog di bawah.
+Snapshot saat ini, commit `fb70dde` (migrations diuji pada source `2032836`): 30 handler terdaftar; full suite MySQL 8.0.40 PASS 501/73.750; validator OpenAPI 3.1 PASS. Siklus fresh-install/rollback/pasang-ulang seluruh 16 migration juga lulus pada MySQL 8.0.40. Semua 30 kontrak masih DRAFT, jadi belum ada live integration handoff. User mengonfirmasi produksi fresh/empty; backfill data lama tidak diperlukan untuk rilis awal, dan guard tetap menolak database non-kosong yang belum dipetakan. Task tracker 14/29 (48%); lingkup/kriteria task ada pada tabel backlog di bawah.
 
 Migration, FK tenant, transaksi, laporan dan role diuji pada MySQL 8.0.40. Test runner disposable sudah dibersihkan setelah run. Frontend dapat membangun seluruh UI/model/adapter terhadap schema dan mock; live integration menunggu gate conformance dan environment. Roadmap: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Kriteria: [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
 
