@@ -3,8 +3,10 @@
 namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
 
+#[FailOnUnknownFields]
 class LoginRequest extends FormRequest
 {
     /**

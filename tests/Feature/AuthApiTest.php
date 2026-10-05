@@ -169,6 +169,27 @@ class AuthApiTest extends TestCase
         $this->assertSame(0, User::query()->count());
     }
 
+    public function test_login_rejects_unknown_fields_and_does_not_issue_a_token(): void
+    {
+        $user = User::factory()->create([
+            'username' => 'unknown-login-field-user',
+            'password' => 'valid-login-secret',
+        ]);
+        $payload = [
+            'username' => $user->username,
+            'password' => 'valid-login-secret',
+            'warung_id' => '999999999',
+        ];
+
+        $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/auth/login', 'post');
+        $response = $this->postJson('/api/v1/auth/login', $payload)->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, '/auth/login', 'post');
+        $this->assertD13ErrorEnvelope($response, 'VALIDATION_ERROR', 'warung_id');
+        $this->assertSame(0, $user->tokens()->count());
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
     /**
      * @return array<string, array{string}>
      */
