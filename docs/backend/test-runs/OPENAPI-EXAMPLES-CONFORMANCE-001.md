@@ -4,6 +4,7 @@
 
 - Tanggal: 2026-10-05 (Asia/Jakarta)
 - Status: PASS
+- Commit: `525ef35`
 - Baseline sebelum test: `accaef8`
 - Test: `tests/Feature/ApiOpenApiExamplesConformanceTest.php`
 - SHA-256 test: `0b741103d7e01c713cd6c7d69fc84b752350e98ffffd83542ba7366b9b5b9339`
