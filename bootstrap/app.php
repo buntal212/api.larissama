@@ -78,7 +78,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     default => $status >= 500 ? 'INTERNAL_ERROR' : 'BAD_REQUEST',
                 };
                 $message = match ($code) {
-                    'BAD_REQUEST' => 'Request tidak dapat diproses.',
+                    'BAD_REQUEST' => $status === 400 ? 'JSON request tidak dapat dibaca.' : 'Request tidak dapat diproses.',
                     'UNAUTHENTICATED' => 'Login diperlukan atau kredensial/token tidak valid.',
                     'FORBIDDEN' => 'Akses ditolak.',
                     'NOT_FOUND' => 'Resource tidak ditemukan dalam akses yang tersedia.',
