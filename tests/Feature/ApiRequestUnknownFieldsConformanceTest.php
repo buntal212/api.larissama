@@ -6,6 +6,7 @@ use App\Models\KategoriMenu;
 use App\Models\Menu;
 use App\Models\Pembelian;
 use App\Models\PembelianRinci;
+use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -235,6 +236,66 @@ class ApiRequestUnknownFieldsConformanceTest extends TestCase
         ]);
         $this->assertSame(1, PembelianRinci::query()->where('pembelian_id', $purchase->id)->count());
         $this->assertSame(0, DB::table('pembelian_koreksis')->count());
+    }
+
+    public function test_sale_correction_and_return_operations_reject_tenant_fields_without_mutating_history(): void
+    {
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $sale = Penjualan::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $owner->id,
+            'catatan' => 'Catatan awal',
+        ]);
+        $ownerToken = $owner->createToken('unknown-field-sale-correction')->plainTextToken;
+
+        $cases = [
+            [
+                'method' => 'PATCH',
+                'uri' => '/api/v1/penjualans/'.$sale->id,
+                'openapi_path' => '/penjualans/{id}',
+                'headers' => ['Idempotency-Key' => 'unknown-field-sale-update'],
+                'body' => ['alasan' => 'Perbarui catatan.', 'catatan' => 'Nilai tetap'],
+            ],
+            [
+                'method' => 'POST',
+                'uri' => '/api/v1/penjualans/'.$sale->id.'/pembatalan',
+                'openapi_path' => '/penjualans/{id}/pembatalan',
+                'headers' => ['Idempotency-Key' => 'unknown-field-sale-cancel'],
+                'body' => ['alasan' => 'Batalkan duplikat.'],
+            ],
+            [
+                'method' => 'POST',
+                'uri' => '/api/v1/penjualans/'.$sale->id.'/retur',
+                'openapi_path' => '/penjualans/{id}/retur',
+                'headers' => ['Idempotency-Key' => 'unknown-field-sale-return'],
+                'body' => ['nominal' => '1.00', 'alasan' => 'Retur barang.'],
+            ],
+        ];
+
+        foreach ($cases as $case) {
+            $body = [...$case['body'], 'warung_id' => (string) $warung->id];
+            $method = strtolower($case['method']);
+            $this->assertOperationRequestDoesNotMatchOpenApi($body, $case['openapi_path'], $method);
+
+            $response = $this->withToken($ownerToken)->json(
+                $case['method'],
+                $case['uri'],
+                $body,
+                $case['headers'],
+            )->assertUnprocessable();
+
+            $this->assertOperationResponseMatchesOpenApi($response, $case['openapi_path'], $method);
+            $response->assertJsonPath('code', 'VALIDATION_ERROR')->assertJsonValidationErrors('warung_id');
+        }
+
+        $this->assertDatabaseHas('penjualans', [
+            'id' => $sale->id,
+            'catatan' => 'Catatan awal',
+            'status' => 'selesai',
+        ]);
+        $this->assertSame(0, DB::table('penjualan_koreksis')->count());
+        $this->assertSame(0, DB::table('penjualan_returs')->count());
     }
 
     /**

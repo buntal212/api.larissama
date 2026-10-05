@@ -134,14 +134,37 @@ class IdempotencyKeyHeaderConformanceTest extends TestCase
                 'action' => 'cancel',
                 'payload' => ['alasan' => 'Transaksi duplikat.'],
             ],
+            [
+                'path' => '/penjualans/{id}',
+                'method' => 'PATCH',
+                'action' => 'sale-update',
+                'payload' => ['alasan' => 'Koreksi catatan.', 'catatan' => 'Catatan diperbaiki.'],
+            ],
+            [
+                'path' => '/penjualans/{id}/pembatalan',
+                'method' => 'POST',
+                'action' => 'sale-cancel',
+                'payload' => ['alasan' => 'Transaksi salah input.'],
+            ],
+            [
+                'path' => '/penjualans/{id}/retur',
+                'method' => 'POST',
+                'action' => 'sale-return',
+                'payload' => ['nominal' => '1.00', 'alasan' => 'Pengembalian barang.'],
+            ],
         ];
 
         foreach ($operations as $index => $operation) {
-            $purchase = Pembelian::factory()->create([
-                'warung_id' => $warung->id,
-                'user_id' => $owner->id,
-            ]);
-            $url = '/api/v1/pembelians/'.$purchase->id.($operation['action'] === 'cancel' ? '/pembatalan' : '');
+            $purchase = null;
+            $sale = null;
+            if (str_starts_with($operation['action'], 'sale-')) {
+                $sale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
+                $target = $sale;
+            } else {
+                $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
+                $target = $purchase;
+            }
+            $url = '/api/v1'.str_replace('/{id}', '/'.$target->id, $operation['path']);
             $headerSchema = $this->requiredIdempotencyHeaderSchema($operation['path'], strtolower($operation['method']));
 
             $invalidHeaders = [
@@ -171,8 +194,15 @@ class IdempotencyKeyHeaderConformanceTest extends TestCase
                     ->assertJsonValidationErrors('Idempotency-Key');
 
                 $this->assertOperationResponseMatchesOpenApi($response, $operation['path'], strtolower($operation['method']));
-                $this->assertSame('tercatat', $purchase->fresh()->status);
-                $this->assertSame(0, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase->id)->count());
+                if ($purchase instanceof Pembelian) {
+                    $this->assertSame('tercatat', $purchase->fresh()->status);
+                    $this->assertSame(0, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase->id)->count());
+                } else {
+                    $this->assertInstanceOf(Penjualan::class, $sale);
+                    $this->assertSame('selesai', $sale->fresh()->status);
+                    $this->assertSame(0, DB::table('penjualan_koreksis')->where('penjualan_id', $sale->id)->count());
+                    $this->assertSame(0, DB::table('penjualan_returs')->where('penjualan_id', $sale->id)->count());
+                }
             }
 
             $boundaryKey = str_repeat(chr(97 + $index), 255);
@@ -191,22 +221,43 @@ class IdempotencyKeyHeaderConformanceTest extends TestCase
             )->assertCreated();
 
             $this->assertOperationResponseMatchesOpenApi($created, $operation['path'], strtolower($operation['method']));
-            $this->assertDatabaseHas('pembelian_koreksis', [
-                'pembelian_id' => $purchase->id,
-                'user_id' => $owner->id,
-                'idempotency_key' => $boundaryKey,
-            ]);
-            $this->assertSame($operation['action'] === 'cancel' ? 'dibatalkan' : 'tercatat', $purchase->fresh()->status);
+            if ($purchase instanceof Pembelian) {
+                $this->assertDatabaseHas('pembelian_koreksis', [
+                    'pembelian_id' => $purchase->id,
+                    'user_id' => $owner->id,
+                    'idempotency_key' => $boundaryKey,
+                ]);
+                $this->assertSame($operation['action'] === 'cancel' ? 'dibatalkan' : 'tercatat', $purchase->fresh()->status);
+            } elseif ($operation['action'] === 'sale-return') {
+                $this->assertInstanceOf(Penjualan::class, $sale);
+                $this->assertDatabaseHas('penjualan_returs', [
+                    'penjualan_id' => $sale->id,
+                    'user_id' => $owner->id,
+                    'idempotency_key' => $boundaryKey,
+                ]);
+            } else {
+                $this->assertInstanceOf(Penjualan::class, $sale);
+                $this->assertDatabaseHas('penjualan_koreksis', [
+                    'penjualan_id' => $sale->id,
+                    'user_id' => $owner->id,
+                    'idempotency_key' => $boundaryKey,
+                ]);
+                $this->assertSame($operation['action'] === 'sale-cancel' ? 'batal' : 'selesai', $sale->fresh()->status);
+            }
         }
     }
 
     /** @return array{required: bool, schema: array<string, mixed>} */
     private function requiredIdempotencyHeaderSchema(string $path, string $method = 'post'): array
     {
-        $operation = $this->openApiDocument()['paths'][$path][$method] ?? null;
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path][$method] ?? null;
         $this->assertIsArray($operation);
 
-        foreach ($operation['parameters'] ?? [] as $parameter) {
+        foreach ($operation['parameters'] ?? [] as $parameterDefinition) {
+            $parameter = isset($parameterDefinition['$ref'])
+                ? $this->resolveOpenApiReference($document, $parameterDefinition['$ref'])
+                : $parameterDefinition;
             if (($parameter['in'] ?? null) === 'header' && ($parameter['name'] ?? null) === 'Idempotency-Key') {
                 $this->assertSame('string', $parameter['schema']['type'] ?? null);
                 $this->assertSame(1, $parameter['schema']['minLength'] ?? null);
@@ -219,7 +270,7 @@ class IdempotencyKeyHeaderConformanceTest extends TestCase
             }
         }
 
-        $this->fail("OpenAPI {$path} POST must declare Idempotency-Key.");
+        $this->fail("OpenAPI {$path} ".strtoupper($method).' must declare Idempotency-Key.');
     }
 
     /** @param array<string, mixed> $operation @return array{headers: int, details: int} */

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\KategoriMenu;
 use App\Models\Menu;
 use App\Models\Pembelian;
+use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,6 +29,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'kategori_menu_id' => $category->id,
         ]);
         $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
+        $sale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
         $ownerToken = $owner->createToken('malformed-json-owner')->plainTextToken;
         $superadminToken = $superadmin->createToken('malformed-json-superadmin')->plainTextToken;
 
@@ -46,6 +48,9 @@ class ApiMalformedJsonConformanceTest extends TestCase
             ['path' => '/api/v1/pembelians', 'contract_path' => '/pembelians', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'malformed-purchase-001'],
             ['path' => "/api/v1/pembelians/{$purchase->id}", 'contract_path' => '/pembelians/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'malformed-purchase-update-001'],
             ['path' => "/api/v1/pembelians/{$purchase->id}/pembatalan", 'contract_path' => '/pembelians/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'malformed-purchase-cancel-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}", 'contract_path' => '/penjualans/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'malformed-sale-update-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}/pembatalan", 'contract_path' => '/penjualans/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'malformed-sale-cancel-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}/retur", 'contract_path' => '/penjualans/{id}/retur', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'malformed-sale-return-001'],
         ];
 
         $tableCounts = $this->trackedTableCounts();
@@ -112,6 +117,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'kategori_menu_id' => $category->id,
         ]);
         $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
+        $sale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
         $ownerToken = $owner->createToken('empty-body-owner')->plainTextToken;
         $superadminToken = $superadmin->createToken('empty-body-superadmin')->plainTextToken;
 
@@ -129,6 +135,9 @@ class ApiMalformedJsonConformanceTest extends TestCase
             ['path' => '/api/v1/pembelians', 'contract_path' => '/pembelians', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-purchase-001'],
             ['path' => "/api/v1/pembelians/{$purchase->id}", 'contract_path' => '/pembelians/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-purchase-update-001'],
             ['path' => "/api/v1/pembelians/{$purchase->id}/pembatalan", 'contract_path' => '/pembelians/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-purchase-cancel-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}", 'contract_path' => '/penjualans/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-sale-update-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}/pembatalan", 'contract_path' => '/penjualans/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-sale-cancel-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}/retur", 'contract_path' => '/penjualans/{id}/retur', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-sale-return-001'],
         ];
 
         $tableCounts = $this->trackedTableCounts();
@@ -201,6 +210,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'kategori_menu_id' => $category->id,
         ]);
         $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
+        $sale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
         $ownerToken = $owner->createToken('json-root-owner')->plainTextToken;
         $superadminToken = $superadmin->createToken('json-root-superadmin')->plainTextToken;
 
@@ -218,6 +228,9 @@ class ApiMalformedJsonConformanceTest extends TestCase
             ['path' => '/api/v1/pembelians', 'contract_path' => '/pembelians', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'json-root-purchase-001'],
             ['path' => "/api/v1/pembelians/{$purchase->id}", 'contract_path' => '/pembelians/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'json-root-purchase-update-001'],
             ['path' => "/api/v1/pembelians/{$purchase->id}/pembatalan", 'contract_path' => '/pembelians/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'json-root-purchase-cancel-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}", 'contract_path' => '/penjualans/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'json-root-sale-update-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}/pembatalan", 'contract_path' => '/penjualans/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'json-root-sale-cancel-001'],
+            ['path' => "/api/v1/penjualans/{$sale->id}/retur", 'contract_path' => '/penjualans/{id}/retur', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'json-root-sale-return-001'],
         ];
         $bodyVariants = [
             'null' => 'null',
@@ -310,7 +323,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
     /** @return array<string, int> */
     private function trackedTableCounts(): array
     {
-        return collect(['warungs', 'users', 'kategori_menus', 'menus', 'penjualans', 'penjualan_rincis', 'pembelians', 'pembelian_rincis', 'pembelian_koreksis'])
+        return collect(['warungs', 'users', 'kategori_menus', 'menus', 'penjualans', 'penjualan_rincis', 'penjualan_koreksis', 'penjualan_returs', 'pembelians', 'pembelian_rincis', 'pembelian_koreksis'])
             ->mapWithKeys(fn (string $table): array => [$table => DB::table($table)->count()])
             ->all();
     }
