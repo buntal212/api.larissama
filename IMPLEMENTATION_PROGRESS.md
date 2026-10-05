@@ -4,6 +4,8 @@ Status per 2026-10-05. Migration `warungs`, tenant `users`, timezone, kategori/m
 
 Slice terakhir selesai: `MALFORMED-JSON-400-CONFORMANCE-001`, T-API-02/04. Commit kode/test `dd9e0c6`; 11 operasi request-body kini mengembalikan 400 schema-conformant untuk JSON rusak, termasuk error envelope D13 dan no-write. Focused 1/306, Pint 143 file, suite penuh 327/51176; Docker test dibersihkan. Artefak dan batas cakupan ada di [hasil run](docs/backend/test-runs/MALFORMED-JSON-400-CONFORMANCE-001.md). Operasi masih DRAFT.
 
+Slice aktif: `IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001`, T-API-02/04. Rencana: uji header hilang/kosong/256 karakter serta batas positif 255 pada create sale dan purchase; kontrak mensyaratkan 1–255 karakter. Kriteria dan batas D09 dicatat di [TEST_PLAN](docs/backend/TEST_PLAN.md); belum ada perubahan kode.
+
 ## Ringkasan pelaksanaan
 
 | Milestone | Task implementasi | DONE | Gate |
