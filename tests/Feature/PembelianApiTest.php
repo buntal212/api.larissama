@@ -156,6 +156,69 @@ class PembelianApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($report, '/laporan/pembelian', 'get');
     }
 
+    public function test_manager_can_correct_purchase_in_their_warung(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $purchase = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'catatan' => 'Catatan awal.',
+        ]);
+        $payload = ['alasan' => 'Catatan struk dirapikan.', 'catatan' => 'Catatan dari manager.'];
+        $headers = ['Idempotency-Key' => 'manager-purchase-correction-001'];
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians/{id}', 'patch');
+
+        $response = $this->withToken($manager->createToken('manager-purchase-correction')->plainTextToken)
+            ->patchJson('/api/v1/pembelians/'.$purchase->id, $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.jenis', 'ubah')
+            ->assertJsonPath('data.user_id', (string) $manager->id)
+            ->assertJsonPath('data.sebelum.catatan', 'Catatan awal.')
+            ->assertJsonPath('data.sesudah.catatan', 'Catatan dari manager.');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians/{id}', 'patch');
+
+        $this->assertDatabaseHas('pembelians', ['id' => $purchase->id, 'catatan' => 'Catatan dari manager.']);
+        $this->assertDatabaseHas('pembelian_koreksis', [
+            'pembelian_id' => $purchase->id,
+            'user_id' => $manager->id,
+            'jenis' => 'ubah',
+            'alasan' => $payload['alasan'],
+        ]);
+    }
+
+    public function test_owner_can_cancel_purchase_in_their_warung(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $purchase = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'status' => 'tercatat',
+        ]);
+        $payload = ['alasan' => 'Owner mengonfirmasi transaksi tercatat ganda.'];
+        $headers = ['Idempotency-Key' => 'owner-purchase-cancel-001'];
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians/{id}/pembatalan', 'post');
+
+        $response = $this->withToken($owner->createToken('owner-purchase-cancel')->plainTextToken)
+            ->postJson('/api/v1/pembelians/'.$purchase->id.'/pembatalan', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.jenis', 'batalkan')
+            ->assertJsonPath('data.user_id', (string) $owner->id)
+            ->assertJsonPath('data.sebelum.status', 'tercatat')
+            ->assertJsonPath('data.sesudah.status', 'dibatalkan');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians/{id}/pembatalan', 'post');
+
+        $this->assertDatabaseHas('pembelians', ['id' => $purchase->id, 'status' => 'dibatalkan']);
+        $this->assertDatabaseHas('pembelian_koreksis', [
+            'pembelian_id' => $purchase->id,
+            'user_id' => $owner->id,
+            'jenis' => 'batalkan',
+            'alasan' => $payload['alasan'],
+        ]);
+    }
+
     public function test_unprivileged_and_cross_tenant_users_cannot_correct_purchase(): void
     {
         $warung = Warung::factory()->create();

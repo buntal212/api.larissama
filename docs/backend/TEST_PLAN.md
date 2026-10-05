@@ -877,3 +877,7 @@ User menetapkan masa berlaku `Idempotency-Key` tujuh hari. `T-RET-05` memverifik
 ## Role dan tenant boundary pembatalan pembelian D11
 
 `D11-CANCEL-RBAC-CONFORMANCE-001` mengirim body serta `Idempotency-Key` yang schema-valid ke `POST /api/v1/pembelians/{id}/pembatalan`. Kasir dan superadmin mendapat 403; manager tenant lain mendapat 404. Semua response cocok schema OpenAPI dan header/status/detail/audit tetap tanpa perubahan. Focused `PembelianApiTest` 28/6.157 PASS; Pint PASS; Compose MySQL 8.0.40 dibersihkan. Bukti ini menambah role/tenant deny cases, bukan kesiapan penuh operationId. [Artefak](test-runs/D11-CANCEL-RBAC-CONFORMANCE-001.md).
+
+## Jalur sukses role owner/manager untuk koreksi dan pembatalan D11
+
+`D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001` melengkapi positive role matrix: manager dapat mengoreksi dan owner dapat membatalkan pembelian tenant sendiri. Body request dan response 201 cocok schema OpenAPI; event audit mencatat aktor/alasan/snapshot yang benar. Bersama owner-koreksi/manager-pembatalan yang telah ada, ini menguji kedua role pada kedua operasi. `PembelianApiTest` 30/6.455 PASS; Pint dan validator OAS PASS; Compose dibersihkan. Ditambah [uji role deny pembatalan](test-runs/D11-CANCEL-RBAC-CONFORMANCE-001.md), owner/manager diizinkan dan kasir/superadmin/tenant lain ditolak pada scope yang diuji; operationId tetap DRAFT.
