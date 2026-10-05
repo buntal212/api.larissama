@@ -39,6 +39,17 @@ class PasswordMinimumConformanceTest extends TestCase
         $this->assertArrayHasKey('owner.password', $provision->json('errors'));
         $this->assertSame(0, Warung::query()->count());
         $this->assertSame(1, User::query()->count());
+
+        $minimumProvisionPayload = $provisionPayload;
+        $minimumProvisionPayload['kode'] = 'WRG-PASSWORD-EIGHT';
+        $minimumProvisionPayload['owner']['username'] = 'owner-password-eight';
+        $minimumProvisionPayload['owner']['password'] = '12345678';
+        $this->assertOperationRequestMatchesOpenApi($minimumProvisionPayload, [], '/admin/warungs', 'post');
+        $minimumProvision = $this->withToken($superadminToken)
+            ->postJson('/api/v1/admin/warungs', $minimumProvisionPayload)
+            ->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($minimumProvision, '/admin/warungs', 'post');
+        $this->assertDatabaseHas('users', ['username' => 'owner-password-eight']);
     }
 
     public function test_tenant_user_creation_and_password_replacement_require_eight_characters(): void
@@ -59,6 +70,16 @@ class PasswordMinimumConformanceTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($create, '/users', 'post');
         $this->assertArrayHasKey('password', $create->json('errors'));
         $this->assertSame(1, User::query()->count());
+
+        $minimumCreatePayload = $createPayload;
+        $minimumCreatePayload['username'] = 'kasir-password-eight';
+        $minimumCreatePayload['password'] = '12345678';
+        $this->assertOperationRequestMatchesOpenApi($minimumCreatePayload, [], '/users', 'post');
+        $minimumCreate = $this->withToken($ownerToken)
+            ->postJson('/api/v1/users', $minimumCreatePayload)
+            ->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($minimumCreate, '/users', 'post');
+        $this->assertDatabaseHas('users', ['username' => 'kasir-password-eight']);
 
         $target = User::factory()->create([
             'warung_id' => $warung->id,
