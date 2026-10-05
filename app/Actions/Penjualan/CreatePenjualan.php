@@ -3,6 +3,7 @@
 namespace App\Actions\Penjualan;
 
 use App\Exceptions\IdempotencyKeyConflictException;
+use App\Models\KategoriMenu;
 use App\Models\Menu;
 use App\Models\Penjualan;
 use App\Models\User;
@@ -38,11 +39,17 @@ class CreatePenjualan
                 $menus = Menu::query()
                     ->where('warung_id', $actor->warung_id)
                     ->whereIn('id', $menuIds)
-                    ->where('aktif', true)
                     ->orderBy('id')
                     ->lockForUpdate()
                     ->get()
                     ->keyBy(fn (Menu $menu): int => (int) $menu->getKey());
+                $categories = KategoriMenu::query()
+                    ->where('warung_id', $actor->warung_id)
+                    ->whereIn('id', $menus->pluck('kategori_menu_id')->unique())
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy(fn (KategoriMenu $category): int => (int) $category->getKey());
 
                 $lineData = [];
                 $subtotal = BigDecimal::zero();
@@ -50,10 +57,11 @@ class CreatePenjualan
                 foreach ($input['rincian'] as $index => $line) {
                     $menuId = (int) $line['menu_id'];
                     $menu = $menus->get($menuId);
+                    $category = $menu instanceof Menu ? $categories->get((int) $menu->kategori_menu_id) : null;
 
-                    if (! $menu instanceof Menu) {
+                    if (! $menu instanceof Menu || ! $menu->aktif || ! $category instanceof KategoriMenu || ! $category->aktif) {
                         throw ValidationException::withMessages([
-                            "rincian.$index.menu_id" => ['Menu tidak tersedia atau tidak aktif pada warung ini.'],
+                            "rincian.$index.menu_id" => ['Menu harus aktif dan termasuk kategori aktif pada warung ini.'],
                         ]);
                     }
 

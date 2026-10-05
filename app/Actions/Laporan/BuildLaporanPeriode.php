@@ -16,7 +16,7 @@ class BuildLaporanPeriode
     /** @return array<string, mixed> */
     public function penjualan(User $actor, string $dateFrom, string $dateTo): array
     {
-        $timezone = (string) $actor->warung()->value('timezone');
+        $timezone = (string) ($actor->warung?->timezone ?? '');
         [$startUtc, $endExclusiveUtc] = $this->periodBounds->utcBounds($dateFrom, $dateTo, $timezone);
         $totals = Penjualan::query()
             ->where('warung_id', $actor->warung_id)
@@ -36,7 +36,7 @@ class BuildLaporanPeriode
     /** @return array<string, mixed> */
     public function pembelian(User $actor, string $dateFrom, string $dateTo): array
     {
-        $timezone = (string) $actor->warung()->value('timezone');
+        $timezone = (string) ($actor->warung?->timezone ?? '');
         [$startUtc, $endExclusiveUtc] = $this->periodBounds->utcBounds($dateFrom, $dateTo, $timezone);
         $totals = Pembelian::query()
             ->where('warung_id', $actor->warung_id)

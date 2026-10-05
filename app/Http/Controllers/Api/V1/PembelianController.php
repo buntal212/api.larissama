@@ -30,7 +30,7 @@ class PembelianController extends Controller
         $query = Pembelian::query()->where('warung_id', $actor->warung_id);
 
         if (isset($filters['date_from'], $filters['date_to'])) {
-            $timezone = (string) $actor->warung()->value('timezone');
+            $timezone = (string) ($actor->warung?->timezone ?? '');
             [$startUtc, $endExclusiveUtc] = $periodBounds->utcBounds($filters['date_from'], $filters['date_to'], $timezone);
             $query->where('tanggal', '>=', $startUtc)->where('tanggal', '<', $endExclusiveUtc);
         }
