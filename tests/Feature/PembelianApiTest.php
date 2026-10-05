@@ -17,6 +17,42 @@ class PembelianApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_purchase_timestamp_is_stored_as_utc_and_listed_by_warung_local_date(): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('purchase-utc-instant-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T23:30:00-04:00',
+            'rincian' => [['nama_item' => 'Belanja malam', 'subtotal' => '1000.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-utc-instant-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $created = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', '2026-10-05T03:30:00.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($created, '/pembelians', 'post');
+
+        $purchaseId = (int) $created->json('data.id');
+        $this->assertSame('2026-10-05 03:30:00', DB::table('pembelians')->where('id', $purchaseId)->value('tanggal'));
+
+        foreach ([
+            ['date' => '2026-10-04', 'expected_ids' => []],
+            ['date' => '2026-10-05', 'expected_ids' => [(string) $purchaseId]],
+        ] as $period) {
+            $query = ['date_from' => $period['date'], 'date_to' => $period['date']];
+            $this->assertOperationQueryMatchesOpenApi($query, '/pembelians', 'get');
+            $listed = $this->withToken($token)
+                ->getJson('/api/v1/pembelians?'.http_build_query($query))
+                ->assertOk();
+
+            $this->assertSame($period['expected_ids'], array_column($listed->json('data'), 'id'));
+            $this->assertOperationResponseMatchesOpenApi($listed, '/pembelians', 'get');
+        }
+    }
+
     public function test_manager_can_record_purchase_using_only_item_name_and_amount(): void
     {
         $warung = Warung::factory()->create();

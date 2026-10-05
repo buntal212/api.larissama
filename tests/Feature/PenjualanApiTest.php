@@ -8,11 +8,51 @@ use App\Models\PenjualanRinci;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PenjualanApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_sale_timestamp_is_stored_as_utc_and_listed_by_warung_local_date(): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $cashier->createToken('sale-utc-instant-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T23:30:00-04:00',
+            'bayar' => '1000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-utc-instant-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $created = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', '2026-10-05T03:30:00.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($created, '/penjualans', 'post');
+
+        $saleId = (int) $created->json('data.id');
+        $this->assertSame('2026-10-05 03:30:00', DB::table('penjualans')->where('id', $saleId)->value('tanggal'));
+
+        foreach ([
+            ['date' => '2026-10-04', 'expected_ids' => []],
+            ['date' => '2026-10-05', 'expected_ids' => [(string) $saleId]],
+        ] as $period) {
+            $query = ['date_from' => $period['date'], 'date_to' => $period['date']];
+            $this->assertOperationQueryMatchesOpenApi($query, '/penjualans', 'get');
+            $listed = $this->withToken($token)
+                ->getJson('/api/v1/penjualans?'.http_build_query($query))
+                ->assertOk();
+
+            $this->assertSame($period['expected_ids'], array_column($listed->json('data'), 'id'));
+            $this->assertOperationResponseMatchesOpenApi($listed, '/penjualans', 'get');
+        }
+    }
 
     public function test_kasir_creates_sale_using_menu_snapshot_and_backend_totals(): void
     {
