@@ -8,6 +8,7 @@ use App\Models\Menu;
 use App\Models\Penjualan;
 use App\Models\User;
 use App\Support\CanonicalRequestPayload;
+use App\Support\IdempotencyKeyWindow;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
@@ -20,7 +21,10 @@ class CreatePenjualan
 {
     private const string MAXIMUM_MONEY = '9999999999999.99';
 
-    public function __construct(private readonly CanonicalRequestPayload $payloadHasher) {}
+    public function __construct(
+        private readonly CanonicalRequestPayload $payloadHasher,
+        private readonly IdempotencyKeyWindow $idempotencyKeyWindow,
+    ) {}
 
     /** @param array<string, mixed> $input */
     public function execute(User $actor, string $idempotencyKey, array $input): Penjualan
@@ -129,6 +133,7 @@ class CreatePenjualan
                     'no_transaksi' => 'PJ-'.Str::ulid(),
                     'idempotency_key' => $idempotencyKey,
                     'payload_hash' => $payloadHash,
+                    'idempotency_expires_at' => $this->idempotencyKeyWindow->expiresAt(),
                     'tanggal' => CarbonImmutable::parse((string) $input['tanggal'])->utc()->toDateTimeString(),
                     'subtotal' => (string) $subtotal->toScale(2, RoundingMode::HalfUp),
                     'diskon' => (string) $headerDiscount->toScale(2),
@@ -161,12 +166,24 @@ class CreatePenjualan
 
     private function findByKey(User $actor, string $idempotencyKey): ?Penjualan
     {
-        return Penjualan::query()
+        $sale = Penjualan::query()
             ->where('warung_id', $actor->warung_id)
             ->where('user_id', $actor->getKey())
             ->where('idempotency_key', $idempotencyKey)
-            ->with('rincian')
+            ->lockForUpdate()
             ->first();
+
+        if ($sale === null) {
+            return null;
+        }
+
+        if ($this->idempotencyKeyWindow->hasExpired($sale->idempotency_expires_at)) {
+            $this->idempotencyKeyWindow->release($sale);
+
+            return null;
+        }
+
+        return $sale->load('rincian');
     }
 
     private function replayOrFail(Penjualan $sale, string $payloadHash): Penjualan

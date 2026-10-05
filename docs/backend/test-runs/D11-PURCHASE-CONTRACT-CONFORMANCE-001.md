@@ -21,4 +21,4 @@
 
 ## Batas bukti
 
-Request/response D11 kini memiliki bukti untuk body valid, field asing, batas header, sukses, replay, dan beberapa response error serta role. Belum seluruh kombinasi status/payload diuji. Kebijakan D09 tentang retensi key setelah header dihapus masih terbuka. OperationId D11 tetap `DRAFT`; hasil ini tidak menyatakan kesiapan integrasi API live.
+Request/response D11 kini memiliki bukti untuk body valid, field asing, batas header, sukses, replay, dan beberapa response error serta role. Belum seluruh kombinasi status/payload diuji. Masa berlaku D09 tujuh hari diputuskan sesudah run ini dan diuji terpisah di `IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001`. OperationId D11 tetap `DRAFT`; hasil ini tidak menyatakan kesiapan integrasi API live.

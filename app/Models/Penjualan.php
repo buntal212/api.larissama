@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'warung_id', 'user_id', 'no_transaksi', 'idempotency_key', 'payload_hash', 'tanggal',
+    'warung_id', 'user_id', 'no_transaksi', 'idempotency_key', 'payload_hash', 'idempotency_expires_at', 'tanggal',
     'subtotal', 'diskon', 'total', 'bayar', 'kembalian', 'metode_pembayaran', 'status', 'catatan',
 ])]
 class Penjualan extends Model
@@ -37,6 +37,7 @@ class Penjualan extends Model
     {
         return [
             'tanggal' => 'immutable_datetime',
+            'idempotency_expires_at' => 'immutable_datetime',
             'subtotal' => 'decimal:2',
             'diskon' => 'decimal:2',
             'total' => 'decimal:2',

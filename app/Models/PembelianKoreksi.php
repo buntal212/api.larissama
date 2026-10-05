@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'warung_id', 'pembelian_id', 'user_id', 'jenis', 'alasan', 'sebelum', 'sesudah', 'idempotency_key', 'payload_hash',
+    'warung_id', 'pembelian_id', 'user_id', 'jenis', 'alasan', 'sebelum', 'sesudah', 'idempotency_key', 'payload_hash', 'idempotency_expires_at',
 ])]
 class PembelianKoreksi extends Model
 {
@@ -16,6 +16,7 @@ class PembelianKoreksi extends Model
         return [
             'sebelum' => 'array',
             'sesudah' => 'array',
+            'idempotency_expires_at' => 'immutable_datetime',
         ];
     }
 

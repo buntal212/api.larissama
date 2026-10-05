@@ -22,4 +22,4 @@ Migration conformance memeriksa kolom status pembelian dan tabel `pembelian_kore
 
 ## Batas bukti
 
-Operasi `updatePembelian` dan `cancelPembelian` masih `DRAFT`; request/response conformance runtime lengkap untuk kedua operasi baru belum dilakukan. D09 retensi key idempotensi setelah header pembelian dihapus belum diputuskan. Run ini tidak mengklaim seluruh kontrak API siap integrasi frontend.
+Operasi `updatePembelian` dan `cancelPembelian` masih `DRAFT`; request/response conformance runtime lengkap untuk kedua operasi baru belum dilakukan. Pada tanggal run ini durasi expiry D09 masih belum diputuskan; user kemudian menetapkan tujuh hari, dengan bukti batas waktu di `IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001`. Run ini tidak mengklaim seluruh kontrak API siap integrasi frontend.

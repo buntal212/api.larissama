@@ -6,6 +6,7 @@ use App\Exceptions\IdempotencyKeyConflictException;
 use App\Models\Pembelian;
 use App\Models\User;
 use App\Support\CanonicalRequestPayload;
+use App\Support\IdempotencyKeyWindow;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
@@ -18,7 +19,10 @@ class CreatePembelian
 {
     private const string MAXIMUM_MONEY = '9999999999999.99';
 
-    public function __construct(private readonly CanonicalRequestPayload $payloadHasher) {}
+    public function __construct(
+        private readonly CanonicalRequestPayload $payloadHasher,
+        private readonly IdempotencyKeyWindow $idempotencyKeyWindow,
+    ) {}
 
     /** @param array<string, mixed> $input */
     public function execute(User $actor, string $idempotencyKey, array $input): Pembelian
@@ -86,6 +90,7 @@ class CreatePembelian
                     'no_transaksi' => 'PB-'.Str::ulid(),
                     'idempotency_key' => $idempotencyKey,
                     'payload_hash' => $payloadHash,
+                    'idempotency_expires_at' => $this->idempotencyKeyWindow->expiresAt(),
                     'tanggal' => CarbonImmutable::parse((string) $input['tanggal'])->utc()->toDateTimeString(),
                     'total' => (string) $total->toScale(2, RoundingMode::HalfUp),
                     'status' => 'tercatat',
@@ -113,12 +118,24 @@ class CreatePembelian
 
     private function findByKey(User $actor, string $idempotencyKey): ?Pembelian
     {
-        return Pembelian::query()
+        $purchase = Pembelian::query()
             ->where('warung_id', $actor->warung_id)
             ->where('user_id', $actor->getKey())
             ->where('idempotency_key', $idempotencyKey)
-            ->with('rincian')
+            ->lockForUpdate()
             ->first();
+
+        if ($purchase === null) {
+            return null;
+        }
+
+        if ($this->idempotencyKeyWindow->hasExpired($purchase->idempotency_expires_at)) {
+            $this->idempotencyKeyWindow->release($purchase);
+
+            return null;
+        }
+
+        return $purchase->load('rincian');
     }
 
     private function replayOrFail(Pembelian $purchase, string $payloadHash): Pembelian

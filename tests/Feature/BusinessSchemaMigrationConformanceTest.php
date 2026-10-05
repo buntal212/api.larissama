@@ -44,7 +44,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertColumn('menus', 'harga_modal', 'decimal', null, 15, 2, true);
         $this->assertColumn('penjualans', 'tanggal', 'datetime', null, null, null, false, 0);
         $this->assertColumn('penjualans', 'total', 'decimal', null, 15, 2, false);
-        $this->assertColumn('penjualans', 'idempotency_key', 'varchar', 255, null, null, false);
+        $this->assertColumn('penjualans', 'idempotency_key', 'varchar', 255, null, null, true);
+        $this->assertColumn('penjualans', 'idempotency_expires_at', 'datetime', null, null, null, true, 6);
         $this->assertColumn('penjualan_rincis', 'menu_id', 'bigint', null, 20, 0, false);
         $this->assertColumn('penjualan_rincis', 'qty', 'decimal', null, 10, 2, false);
         $this->assertColumn('penjualan_rincis', 'subtotal', 'decimal', null, 15, 2, false);
@@ -117,8 +118,9 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'no_transaksi' => 'varchar(50)|NO|<NULL>|<NONE>|<NULL>',
-                'idempotency_key' => 'varchar(255)|NO|<NULL>|<NONE>|<NULL>',
-                'payload_hash' => 'char(64)|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
+                'idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
                 'tanggal' => 'datetime|NO|<NULL>|<NONE>|0',
                 'subtotal' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
                 'diskon' => 'decimal(15,2)|NO|0.00|<NONE>|<NULL>',
@@ -150,8 +152,9 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'no_transaksi' => 'varchar(50)|NO|<NULL>|<NONE>|<NULL>',
-                'idempotency_key' => 'varchar(255)|NO|<NULL>|<NONE>|<NULL>',
-                'payload_hash' => 'char(64)|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
+                'idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
                 'tanggal' => 'datetime|NO|<NULL>|<NONE>|0',
                 'total' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
                 'status' => 'varchar(20)|NO|tercatat|<NONE>|<NULL>',
@@ -180,8 +183,9 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'alasan' => 'varchar(1000)|NO|<NULL>|<NONE>|<NULL>',
                 'sebelum' => 'json|NO|<NULL>|<NONE>|<NULL>',
                 'sesudah' => 'json|NO|<NULL>|<NONE>|<NULL>',
-                'idempotency_key' => 'varchar(255)|NO|<NULL>|<NONE>|<NULL>',
-                'payload_hash' => 'char(64)|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
+                'idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
                 'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
                 'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
             ],

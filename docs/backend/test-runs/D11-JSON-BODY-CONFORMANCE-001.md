@@ -29,4 +29,4 @@ Dengan run ini seluruh 13 operasi yang mewajibkan request body memiliki cakupan 
 
 ## Batas bukti
 
-Ini hanya mencakup parsing JSON, body kosong, dan bentuk root; bukan seluruh validasi bisnis setiap request. Semua operasi tetap `DRAFT`; masa berlaku Idempotency-Key D09 masih menunggu durasi keputusan user.
+Ini hanya mencakup parsing JSON, body kosong, dan bentuk root; bukan seluruh validasi bisnis setiap request. Semua operasi tetap `DRAFT`; keputusan durasi D09 tujuh hari baru diputuskan setelah run ini; bukti batas expiry tercatat terpisah pada `IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001`.

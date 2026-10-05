@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'warung_id', 'user_id', 'no_transaksi', 'idempotency_key', 'payload_hash', 'tanggal', 'total', 'status', 'catatan',
+    'warung_id', 'user_id', 'no_transaksi', 'idempotency_key', 'payload_hash', 'idempotency_expires_at', 'tanggal', 'total', 'status', 'catatan',
 ])]
 class Pembelian extends Model
 {
@@ -45,6 +45,7 @@ class Pembelian extends Model
     {
         return [
             'tanggal' => 'immutable_datetime',
+            'idempotency_expires_at' => 'immutable_datetime',
             'total' => 'decimal:2',
         ];
     }

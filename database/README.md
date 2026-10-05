@@ -122,8 +122,9 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
 | `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
 | `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
-| `idempotency_key` | VARCHAR(255), unik bersama `(warung_id, user_id)` pada endpoint penjualan |
-| `payload_hash` | CHAR(64), hash SHA-256 payload kanonis; internal, tidak dikirim ke API |
+| `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint penjualan saat terisi |
+| `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
+| `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
 | `tanggal` | DATETIME |
 | `subtotal` | DECIMAL(15,2) |
 | `diskon` | DECIMAL(15,2), default 0 |
@@ -135,7 +136,7 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Nomor teknis saat ini memakai prefix `PJ-` dan ULID. Key idempotensi bertahan selama header transaksi tersimpan; payload yang sama me-replay response awal dan payload berbeda untuk key sama menghasilkan 409. Format nomor dan scope retry merupakan pilihan implementasi sementara D09 dan perlu dibuktikan pada concurrency.
+Nomor teknis memakai prefix `PJ-` dan ULID. Kolom internal `idempotency_expires_at` menetapkan window 7 hari sejak request pertama. Selama window, payload kanonis yang sama me-replay response awal dan payload berbeda dengan key sama menghasilkan 409. Pada request berikutnya yang memakai key sama di atau sesudah expiry, `idempotency_key`, `payload_hash`, dan `idempotency_expires_at` lama dikosongkan secara lazy lalu request diproses baru. Tidak ada job pembersih berkala; row yang key-nya tidak dipakai ulang tetap utuh. Header transaksi, rincian, dan audit tidak dihapus. Metadata expiry diterapkan pada tabel penjualan, pembelian, dan event koreksi agar fakta historis tetap ada.
 
 Relasi: satu warung dan satu user tenant dapat terkait dengan banyak penjualan. Hanya user tenant yang berwenang membuat transaksi melalui API saat ini; superadmin tidak memiliki jalur transaksi atas nama tenant.
 
@@ -165,15 +166,16 @@ Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu`
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
 | `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
 | `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
-| `idempotency_key` | VARCHAR(255), unik bersama `(warung_id, user_id)` pada endpoint pembelian |
-| `payload_hash` | CHAR(64), hash SHA-256 payload kanonis; internal, tidak dikirim ke API |
+| `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint pembelian saat terisi |
+| `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
+| `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
 | `tanggal` | DATETIME |
 | `total` | DECIMAL(15,2), jumlah seluruh subtotal rincian |
 | `status` | VARCHAR(20), `tercatat` atau `dibatalkan`; default `tercatat` |
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Nomor teknis saat ini memakai prefix `PB-` dan ULID. Pembatalan mengubah status ke `dibatalkan` tanpa menghapus header/rincian. Koreksi mengubah tanggal/catatan dan/atau mengganti seluruh rincian; event append-only menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan key idempotensi pada `pembelian_koreksis` dalam transaksi yang sama.
+Nomor teknis memakai prefix `PB-` dan ULID. Pembatalan mengubah status ke `dibatalkan` tanpa menghapus header/rincian. Koreksi mengubah tanggal/catatan dan/atau mengganti seluruh rincian; event audit append-only menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan metadata idempotensi 7 hari pada `pembelian_koreksis` dalam transaksi yang sama. Jika key dipakai lagi setelah expiry, metadata retry event lama dibersihkan lazy tanpa mengubah snapshot audit.
 
 Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. Owner dan manager dapat membuat, membaca, mengoreksi, serta membatalkan pembelian di warung sendiri; kasir dan superadmin tidak memiliki akses transaksi pembelian.
 
@@ -187,11 +189,12 @@ Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. 
 | `jenis` | VARCHAR(20), `ubah` atau `batalkan` |
 | `alasan` | VARCHAR(1000), wajib |
 | `sebelum`, `sesudah` | JSON snapshot status, tanggal, total, catatan, dan rincian |
-| `idempotency_key` | VARCHAR(255), unik bersama `(warung_id, user_id, jenis)` |
-| `payload_hash` | CHAR(64), hash SHA-256 payload kanonis |
+| `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id, jenis)` saat terisi |
+| `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis |
+| `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
 | `created_at`, `updated_at` | timestamp; `created_at` adalah waktu audit |
 
-Baris koreksi bersifat append-only. FK RESTRICT menjaga agar header atau user pencatat tidak menghapus riwayat. Retry identik me-replay event yang sama; key operasi sama dengan payload berbeda menghasilkan 409. Laporan hanya menjumlahkan header berstatus `tercatat`.
+Baris koreksi bersifat append-only. FK RESTRICT menjaga agar header atau user pencatat tidak menghapus riwayat. Retry identik selama tujuh hari me-replay event yang sama; key operasi sama dengan payload berbeda menghasilkan 409. Saat key dipakai ulang setelah expiry, metadata retry lama dibersihkan dan key dapat mencatat event baru; kedua snapshot audit tetap tersedia. Laporan hanya menjumlahkan header berstatus `tercatat`.
 
 ### `pembelian_rincis`
 

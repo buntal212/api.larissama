@@ -8,6 +8,7 @@ use App\Models\Pembelian;
 use App\Models\PembelianKoreksi;
 use App\Models\User;
 use App\Support\CanonicalRequestPayload;
+use App\Support\IdempotencyKeyWindow;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
@@ -19,7 +20,10 @@ class CorrectPembelian
 {
     private const string MAXIMUM_MONEY = '9999999999999.99';
 
-    public function __construct(private readonly CanonicalRequestPayload $payloadHasher) {}
+    public function __construct(
+        private readonly CanonicalRequestPayload $payloadHasher,
+        private readonly IdempotencyKeyWindow $idempotencyKeyWindow,
+    ) {}
 
     /** @param array<string, mixed> $input */
     public function update(User $actor, int $purchaseId, string $idempotencyKey, array $input): PembelianKoreksi
@@ -84,6 +88,7 @@ class CorrectPembelian
                     'sesudah' => $after,
                     'idempotency_key' => $idempotencyKey,
                     'payload_hash' => $payloadHash,
+                    'idempotency_expires_at' => $this->idempotencyKeyWindow->expiresAt(),
                 ]);
             }, 3);
         } catch (QueryException $exception) {
@@ -240,12 +245,25 @@ class CorrectPembelian
 
     private function findByKey(User $actor, string $kind, string $idempotencyKey): ?PembelianKoreksi
     {
-        return PembelianKoreksi::query()
+        $correction = PembelianKoreksi::query()
             ->where('warung_id', $actor->warung_id)
             ->where('user_id', $actor->getKey())
             ->where('jenis', $kind)
             ->where('idempotency_key', $idempotencyKey)
+            ->lockForUpdate()
             ->first();
+
+        if ($correction === null) {
+            return null;
+        }
+
+        if ($this->idempotencyKeyWindow->hasExpired($correction->idempotency_expires_at)) {
+            $this->idempotencyKeyWindow->release($correction);
+
+            return null;
+        }
+
+        return $correction;
     }
 
     private function replayOrFail(PembelianKoreksi $correction, string $payloadHash): PembelianKoreksi
