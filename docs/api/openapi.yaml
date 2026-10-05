@@ -1491,7 +1491,7 @@ paths:
           minLength: 1
           maxLength: 255
           pattern: '^\S(?:.*\S)?$'
-        description: Key unik per warung, user, dan endpoint selama 7 hari sejak request pertama; 1–255 karakter tanpa whitespace di awal/akhir. Pada request sesudah expiry, key yang sama diproses sebagai request baru.
+        description: Key unik per warung, user, dan endpoint selama 7 hari sejak request pertama; 1–255 karakter tanpa whitespace di awal/akhir. Setelah expiry, key lama tidak me-replay respons dan pemakaian ulang diproses sebagai request baru. Metadata lama dibersihkan saat transaksi request baru commit; jika request ditolak aturan bisnis dan rollback, metadata expired dapat tetap tersimpan tetapi tidak berlaku untuk replay.
       requestBody:
         required: true
         content:
@@ -1811,7 +1811,7 @@ paths:
           minLength: 1
           maxLength: 255
           pattern: '^\S(?:.*\S)?$'
-        description: Key unik per warung, user, dan endpoint selama 7 hari sejak request pertama; 1–255 karakter tanpa whitespace di awal/akhir. Pada request sesudah expiry, key yang sama diproses sebagai request baru.
+        description: Key unik per warung, user, dan endpoint selama 7 hari sejak request pertama; 1–255 karakter tanpa whitespace di awal/akhir. Setelah expiry, key lama tidak me-replay respons dan pemakaian ulang diproses sebagai request baru. Metadata lama dibersihkan saat transaksi request baru commit; jika request ditolak aturan bisnis dan rollback, metadata expired dapat tetap tersimpan tetapi tidak berlaku untuk replay.
       requestBody:
         required: true
         content:
@@ -1930,7 +1930,7 @@ paths:
           minLength: 1
           maxLength: 255
           pattern: '^\S(?:.*\S)?$'
-        description: Key unik per warung, user, dan jenis operasi koreksi selama 7 hari sejak request pertama. Retry identik me-replay event; pada retry sesudah expiry key yang sama dapat membuat event audit baru.
+        description: Key unik per warung, user, dan jenis operasi koreksi selama 7 hari sejak request pertama. Retry identik me-replay event; setelah expiry key yang sama dapat membuat event audit baru. Metadata expired dibersihkan jika transaksi baru commit; penolakan aturan bisnis yang rollback tidak membuatnya berlaku kembali untuk replay.
       requestBody:
         required: true
         content:
@@ -1998,7 +1998,7 @@ paths:
           minLength: 1
           maxLength: 255
           pattern: '^\S(?:.*\S)?$'
-        description: Key unik per warung, user, dan jenis operasi pembatalan selama 7 hari sejak request pertama. Retry identik me-replay event; sesudah expiry key yang sama dapat diproses kembali, tunduk pada status pembelian.
+        description: Key unik per warung, user, dan jenis operasi pembatalan selama 7 hari sejak request pertama. Retry identik me-replay event; sesudah expiry key yang sama dapat diproses kembali, tunduk pada status pembelian. Jika status menolak request dan transaksi rollback, metadata expired dapat tetap tersimpan tetapi tidak berlaku untuk replay.
       requestBody:
         required: true
         content:

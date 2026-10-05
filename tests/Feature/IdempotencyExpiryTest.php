@@ -141,4 +141,62 @@ class IdempotencyExpiryTest extends TestCase
         $this->assertSame(2, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase['id'])->count());
         $this->assertDatabaseHas('pembelians', ['id' => $purchase['id'], 'catatan' => 'Keterangan kedua']);
     }
+
+    public function test_expired_purchase_cancellation_key_is_reusable_for_a_different_purchase(): void
+    {
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-05T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('idempotency-seven-day-cancel')->plainTextToken;
+        $purchase = $this->withToken($token)->postJson('/api/v1/pembelians', [
+            'tanggal' => '2026-10-04T10:00:00Z',
+            'rincian' => [['nama_item' => 'Belanja pasar', 'subtotal' => '25000.00']],
+        ], ['Idempotency-Key' => 'expiry-cancel-create-001'])->assertCreated()->json('data');
+        $payload = ['alasan' => 'Transaksi tercatat dua kali.'];
+        $headers = ['Idempotency-Key' => 'expiry-cancel-001'];
+
+        $first = $this->withToken($token)->postJson('/api/v1/pembelians/'.$purchase['id'].'/pembatalan', $payload, $headers)->assertCreated();
+        $correctionId = (int) $first->json('data.id');
+        $this->assertSame('2026-10-12 12:00:00.000000', DB::table('pembelian_koreksis')->where('id', $correctionId)->value('idempotency_expires_at'));
+
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-12T11:59:59.999999Z'));
+        $this->withToken($token)->postJson('/api/v1/pembelians/'.$purchase['id'].'/pembatalan', $payload, $headers)
+            ->assertCreated()->assertJsonPath('data.id', (string) $correctionId);
+        $this->assertSame(1, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase['id'])->count());
+
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-12T12:00:00Z'));
+        $expiredRetry = $this->withToken($token)->postJson('/api/v1/pembelians/'.$purchase['id'].'/pembatalan', $payload, $headers)
+            ->assertConflict()
+            ->assertJsonPath('code', 'PEMBELIAN_SUDAH_DIBATALKAN');
+        $this->assertOperationResponseMatchesOpenApi($expiredRetry, '/pembelians/{id}/pembatalan', 'post');
+
+        $otherPurchase = $this->withToken($token)->postJson('/api/v1/pembelians', [
+            'tanggal' => '2026-10-04T11:00:00Z',
+            'rincian' => [['nama_item' => 'Belanja sayur', 'subtotal' => '10000.00']],
+        ], ['Idempotency-Key' => 'expiry-cancel-create-002'])->assertCreated()->json('data');
+        $secondCancellation = $this->withToken($token)->postJson('/api/v1/pembelians/'.$otherPurchase['id'].'/pembatalan', [
+            'alasan' => 'Transaksi lain juga tercatat dua kali.',
+        ], $headers)->assertCreated();
+        $secondCorrectionId = (int) $secondCancellation->json('data.id');
+        $this->assertNotSame($correctionId, $secondCorrectionId);
+        $this->assertOperationResponseMatchesOpenApi($secondCancellation, '/pembelians/{id}/pembatalan', 'post');
+
+        $this->assertDatabaseHas('pembelian_koreksis', [
+            'id' => $correctionId,
+            'idempotency_key' => null,
+            'payload_hash' => null,
+            'idempotency_expires_at' => null,
+            'alasan' => $payload['alasan'],
+        ]);
+        $this->assertDatabaseHas('pembelians', ['id' => $purchase['id'], 'status' => 'dibatalkan']);
+        $this->assertDatabaseHas('pembelians', ['id' => $otherPurchase['id'], 'status' => 'dibatalkan']);
+        $this->assertDatabaseHas('pembelian_koreksis', [
+            'id' => $secondCorrectionId,
+            'pembelian_id' => $otherPurchase['id'],
+            'idempotency_key' => 'expiry-cancel-001',
+            'jenis' => 'batalkan',
+        ]);
+        $this->assertSame(1, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase['id'])->count());
+        $this->assertSame(1, DB::table('pembelian_koreksis')->where('pembelian_id', $otherPurchase['id'])->count());
+    }
 }

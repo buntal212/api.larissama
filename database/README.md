@@ -136,7 +136,7 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Nomor teknis memakai prefix `PJ-` dan ULID. Kolom internal `idempotency_expires_at` menetapkan window 7 hari sejak request pertama. Selama window, payload kanonis yang sama me-replay response awal dan payload berbeda dengan key sama menghasilkan 409. Pada request berikutnya yang memakai key sama di atau sesudah expiry, `idempotency_key`, `payload_hash`, dan `idempotency_expires_at` lama dikosongkan secara lazy lalu request diproses baru. Tidak ada job pembersih berkala; row yang key-nya tidak dipakai ulang tetap utuh. Header transaksi, rincian, dan audit tidak dihapus. Metadata expiry diterapkan pada tabel penjualan, pembelian, dan event koreksi agar fakta historis tetap ada.
+Nomor teknis memakai prefix `PJ-` dan ULID. Kolom internal `idempotency_expires_at` menetapkan window 7 hari sejak request pertama. Selama window, payload kanonis yang sama me-replay response awal dan payload berbeda dengan key sama menghasilkan 409. Setelah expiry, key lama tidak lagi me-replay response dan pemakaian ulang key diproses sebagai request baru. Pengosongan metadata lama bersifat lazy dan ikut transaksi request: bila validasi bisnis menolak request lalu transaksi rollback, metadata expired boleh tetap tersimpan secara fisik, tetapi pencarian berikutnya tetap memperlakukannya sebagai expired. Tidak ada job pembersih berkala; row yang key-nya tidak dipakai ulang tetap utuh. Header transaksi, rincian, dan audit tidak dihapus. Metadata expiry diterapkan pada tabel penjualan, pembelian, dan event koreksi agar fakta historis tetap ada.
 
 Relasi: satu warung dan satu user tenant dapat terkait dengan banyak penjualan. Hanya user tenant yang berwenang membuat transaksi melalui API saat ini; superadmin tidak memiliki jalur transaksi atas nama tenant.
 
@@ -175,7 +175,7 @@ Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu`
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Nomor teknis memakai prefix `PB-` dan ULID. Pembatalan mengubah status ke `dibatalkan` tanpa menghapus header/rincian. Koreksi mengubah tanggal/catatan dan/atau mengganti seluruh rincian; event audit append-only menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan metadata idempotensi 7 hari pada `pembelian_koreksis` dalam transaksi yang sama. Jika key dipakai lagi setelah expiry, metadata retry event lama dibersihkan lazy tanpa mengubah snapshot audit.
+Nomor teknis memakai prefix `PB-` dan ULID. Pembatalan mengubah status ke `dibatalkan` tanpa menghapus header/rincian. Koreksi mengubah tanggal/catatan dan/atau mengganti seluruh rincian; event audit append-only menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan metadata idempotensi 7 hari pada `pembelian_koreksis` dalam transaksi yang sama. Jika key dipakai lagi setelah expiry, metadata retry event lama dilepas saat transaksi baru commit tanpa mengubah snapshot audit. Bila request baru ditolak aturan status lalu rollback, metadata lama dapat tetap tersimpan namun sudah tidak berlaku untuk replay.
 
 Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. Owner dan manager dapat membuat, membaca, mengoreksi, serta membatalkan pembelian di warung sendiri; kasir dan superadmin tidak memiliki akses transaksi pembelian.
 
@@ -194,7 +194,7 @@ Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. 
 | `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
 | `created_at`, `updated_at` | timestamp; `created_at` adalah waktu audit |
 
-Baris koreksi bersifat append-only. FK RESTRICT menjaga agar header atau user pencatat tidak menghapus riwayat. Retry identik selama tujuh hari me-replay event yang sama; key operasi sama dengan payload berbeda menghasilkan 409. Saat key dipakai ulang setelah expiry, metadata retry lama dibersihkan dan key dapat mencatat event baru; kedua snapshot audit tetap tersedia. Laporan hanya menjumlahkan header berstatus `tercatat`.
+Baris koreksi bersifat append-only. FK RESTRICT menjaga agar header atau user pencatat tidak menghapus riwayat. Retry identik selama tujuh hari me-replay event yang sama; key operasi sama dengan payload berbeda menghasilkan 409. Saat key dipakai ulang setelah expiry, metadata retry lama dilepas jika transaksi event baru commit; kedua snapshot audit tetap tersedia. Bila request baru gagal dan rollback, metadata expired boleh tetap tersimpan secara fisik, tetapi tidak dapat me-replay event lama. Laporan hanya menjumlahkan header berstatus `tercatat`.
 
 ### `pembelian_rincis`
 
