@@ -11,6 +11,7 @@ use App\Models\Warung;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PenjualanCorrectionApiTest extends TestCase
@@ -221,6 +222,53 @@ class PenjualanCorrectionApiTest extends TestCase
             'nominal' => '0.01', 'alasan' => 'Retur melebihi saldo.',
         ], ['Idempotency-Key' => 'sale-return-excess-001'])->assertConflict();
         $this->assertOperationResponseMatchesOpenApi($excessive, '/penjualans/{id}/retur', 'post');
+    }
+
+    public function test_returned_sales_cannot_be_corrected_or_cancelled_and_cancelled_sales_cannot_be_returned(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-08T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id]);
+        $token = $manager->createToken('sale-state-conflict-test')->plainTextToken;
+
+        $returnedSale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
+        $this->withToken($token)->postJson('/api/v1/penjualans/'.$returnedSale->id.'/retur', [
+            'nominal' => '10.00', 'alasan' => 'Sebagian dikembalikan.',
+        ], ['Idempotency-Key' => 'sale-state-return-001'])->assertCreated();
+
+        $correction = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$returnedSale->id, [
+            'alasan' => 'Koreksi setelah retur.', 'catatan' => 'Tidak boleh diterapkan.',
+        ], ['Idempotency-Key' => 'sale-state-correction-001'])->assertConflict();
+        $this->assertOperationResponseMatchesOpenApi($correction, '/penjualans/{id}', 'patch');
+        $this->assertSame('PENJUALAN_TIDAK_AKTIF', $correction->json('code'));
+
+        $cancelReturned = $this->withToken($token)->postJson(
+            '/api/v1/penjualans/'.$returnedSale->id.'/pembatalan',
+            ['alasan' => 'Batalkan setelah retur.'],
+            ['Idempotency-Key' => 'sale-state-cancel-returned-001'],
+        )->assertConflict();
+        $this->assertOperationResponseMatchesOpenApi($cancelReturned, '/penjualans/{id}/pembatalan', 'post');
+        $this->assertSame('PENJUALAN_TIDAK_AKTIF', $cancelReturned->json('code'));
+        $this->assertSame('diretur_sebagian', $returnedSale->fresh()->status);
+        $this->assertSame(0, DB::table('penjualan_koreksis')->where('penjualan_id', $returnedSale->id)->count());
+        $this->assertSame(1, DB::table('penjualan_returs')->where('penjualan_id', $returnedSale->id)->count());
+
+        $cancelledSale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
+        $this->withToken($token)->postJson(
+            '/api/v1/penjualans/'.$cancelledSale->id.'/pembatalan',
+            ['alasan' => 'Transaksi dibatalkan.'],
+            ['Idempotency-Key' => 'sale-state-cancel-001'],
+        )->assertCreated();
+
+        $returnCancelled = $this->withToken($token)->postJson('/api/v1/penjualans/'.$cancelledSale->id.'/retur', [
+            'nominal' => '10.00', 'alasan' => 'Retur setelah dibatalkan.',
+        ], ['Idempotency-Key' => 'sale-state-return-cancelled-001'])->assertConflict();
+        $this->assertOperationResponseMatchesOpenApi($returnCancelled, '/penjualans/{id}/retur', 'post');
+        $this->assertSame('PENJUALAN_DIBATALKAN', $returnCancelled->json('code'));
+        $this->assertSame('batal', $cancelledSale->fresh()->status);
+        $this->assertDatabaseMissing('penjualan_returs', ['penjualan_id' => $cancelledSale->id]);
     }
 
     private function sale(Warung $warung, User $cashier, Menu $menu, CarbonImmutable $createdAt): Penjualan
