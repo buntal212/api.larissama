@@ -9,6 +9,15 @@ use Tests\TestCase;
 
 class ProtectedOperation401ConformanceTest extends TestCase
 {
+    public function test_api_authentication_error_is_json_without_accept_header(): void
+    {
+        $response = $this->get('/api/v1/auth/me');
+
+        $response->assertUnauthorized();
+        $response->assertJsonPath('code', 'UNAUTHENTICATED');
+        $this->assertOperationResponseMatchesOpenApi($response, '/auth/me', 'get');
+    }
+
     #[DataProvider('protectedOperations')]
     public function test_anonymous_request_returns_schema_conformant_401(
         string $path,
