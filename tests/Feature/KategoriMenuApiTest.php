@@ -297,6 +297,79 @@ class KategoriMenuApiTest extends TestCase
         $this->assertDatabaseHas('menus', ['id' => $menu->id, 'nama' => 'Menu Privat']);
     }
 
+    public function test_superadmin_cannot_create_or_update_tenant_categories_or_menus_with_valid_payloads(): void
+    {
+        $warung = Warung::factory()->create();
+        $category = KategoriMenu::factory()->create([
+            'warung_id' => $warung->id,
+            'nama' => 'Kategori Tetap',
+        ]);
+        $menu = Menu::factory()->create([
+            'warung_id' => $warung->id,
+            'kategori_menu_id' => $category->id,
+            'kode' => 'M-TETAP',
+            'nama' => 'Menu Tetap',
+            'harga' => '10000.00',
+        ]);
+        $superadmin = User::factory()->superadmin()->create();
+        $token = $superadmin->createToken('superadmin-catalog-write-test')->plainTextToken;
+        $this->assertNull($superadmin->warung_id);
+
+        $categoryCreate = ['nama' => 'Kategori Ditolak', 'urutan' => 5];
+        $this->assertOperationRequestMatchesOpenApi($categoryCreate, [], '/kategori-menus', 'post');
+        $categoryCreateResponse = $this->withToken($token)
+            ->postJson('/api/v1/kategori-menus', $categoryCreate)
+            ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($categoryCreateResponse, '/kategori-menus', 'post');
+        $this->assertD13ErrorEnvelope($categoryCreateResponse, 'FORBIDDEN');
+
+        $categoryUpdate = ['nama' => 'Kategori Berubah', 'urutan' => 6];
+        $this->assertOperationRequestMatchesOpenApi($categoryUpdate, [], '/kategori-menus/{id}', 'patch');
+        $categoryUpdateResponse = $this->withToken($token)
+            ->patchJson('/api/v1/kategori-menus/'.$category->id, $categoryUpdate)
+            ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($categoryUpdateResponse, '/kategori-menus/{id}', 'patch');
+        $this->assertD13ErrorEnvelope($categoryUpdateResponse, 'FORBIDDEN');
+
+        $menuCreate = [
+            'kategori_menu_id' => (string) $category->id,
+            'kode' => 'M-DITOLAK',
+            'nama' => 'Menu Ditolak',
+            'harga' => '12000.00',
+        ];
+        $this->assertOperationRequestMatchesOpenApi($menuCreate, [], '/menus', 'post');
+        $menuCreateResponse = $this->withToken($token)
+            ->postJson('/api/v1/menus', $menuCreate)
+            ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($menuCreateResponse, '/menus', 'post');
+        $this->assertD13ErrorEnvelope($menuCreateResponse, 'FORBIDDEN');
+
+        $menuUpdate = ['nama' => 'Menu Berubah', 'harga' => '11000.00'];
+        $this->assertOperationRequestMatchesOpenApi($menuUpdate, [], '/menus/{id}', 'patch');
+        $menuUpdateResponse = $this->withToken($token)
+            ->patchJson('/api/v1/menus/'.$menu->id, $menuUpdate)
+            ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($menuUpdateResponse, '/menus/{id}', 'patch');
+        $this->assertD13ErrorEnvelope($menuUpdateResponse, 'FORBIDDEN');
+
+        $this->assertDatabaseCount('kategori_menus', 1);
+        $this->assertDatabaseCount('menus', 1);
+        $this->assertDatabaseHas('kategori_menus', [
+            'id' => $category->id,
+            'warung_id' => $warung->id,
+            'nama' => 'Kategori Tetap',
+            'urutan' => $category->urutan,
+        ]);
+        $this->assertDatabaseHas('menus', [
+            'id' => $menu->id,
+            'warung_id' => $warung->id,
+            'kategori_menu_id' => $category->id,
+            'kode' => 'M-TETAP',
+            'nama' => 'Menu Tetap',
+            'harga' => '10000.00',
+        ]);
+    }
+
     public function test_database_restricts_hard_delete_of_category_that_has_menu(): void
     {
         $warung = Warung::factory()->create();
