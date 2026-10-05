@@ -186,6 +186,57 @@ class PenjualanCorrectionApiTest extends TestCase
         $this->assertSame('2020-01-01 20:04:05', $sale->fresh()->getRawOriginal('tanggal'));
     }
 
+    public function test_sale_correction_rejects_invalid_payment_and_discount_without_writes(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-08T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id]);
+        $sale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
+        $token = $owner->createToken('sale-correction-validation-test')->plainTextToken;
+
+        $cases = [
+            [
+                'payload' => ['alasan' => 'Diskon melebihi subtotal.', 'diskon' => '100.01'],
+                'key' => 'sale-correction-discount-limit-001',
+                'errors' => ['diskon'],
+            ],
+            [
+                'payload' => ['alasan' => 'Pembayaran non-tunai kurang.', 'bayar' => '99.00', 'metode_pembayaran' => 'qris'],
+                'key' => 'sale-correction-payment-amount-001',
+                'errors' => ['bayar'],
+            ],
+            [
+                'payload' => ['alasan' => 'Metode pembayaran tidak dikirim.', 'bayar' => '100.00'],
+                'key' => 'sale-correction-payment-pair-001',
+                'errors' => ['bayar', 'metode_pembayaran'],
+            ],
+        ];
+
+        foreach ($cases as $case) {
+            $headers = ['Idempotency-Key' => $case['key']];
+            $this->assertOperationRequestMatchesOpenApi($case['payload'], $headers, '/penjualans/{id}', 'patch');
+            $response = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$sale->id, $case['payload'], $headers)
+                ->assertUnprocessable();
+            $this->assertOperationResponseMatchesOpenApi($response, '/penjualans/{id}', 'patch');
+            $this->assertSame('VALIDATION_ERROR', $response->json('code'));
+            foreach ($case['errors'] as $field) {
+                $this->assertArrayHasKey($field, $response->json('errors'));
+            }
+        }
+
+        $this->assertDatabaseHas('penjualans', [
+            'id' => $sale->id,
+            'subtotal' => '100.00',
+            'diskon' => '0.00',
+            'total' => '100.00',
+            'bayar' => '100.00',
+            'metode_pembayaran' => 'cash',
+        ]);
+        $this->assertSame(0, DB::table('penjualan_koreksis')->where('penjualan_id', $sale->id)->count());
+    }
+
     public function test_only_owner_and_manager_can_mutate_sales_inside_their_warung(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-08T12:00:00Z'));
