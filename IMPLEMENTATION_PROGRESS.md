@@ -470,3 +470,7 @@ Kontrak OpenAPI dan `Warung::allowsAccessAt()` menetapkan perilaku sementara: te
 ## Pra-implementasi validasi timezone pada admin warung D08
 
 `WarungStoreRequest`/`WarungUpdateRequest` memakai rule Laravel `timezone`, sedangkan OpenAPI membatasi identifier ke string dan mendelegasikan daftar IANA ke server. Tambah dua feature case dengan `Invalid/Timezone`: provisioning dengan payload lain valid harus 422 tanpa warung atau owner baru; update superadmin harus 422 dan raw snapshot target sama. Pastikan body invalid tersebut tetap lolos bentuk schema OpenAPI, error menunjuk `timezone`, response Error422 cocok, dan tidak mengubah runtime bila sudah sesuai.
+
+## Validasi timezone pada API admin warung D08 — 2026-10-05
+
+`WARUNG-TIMEZONE-INPUT-VALIDATION-CONFORMANCE-001` lulus pada test commit `42c217cf3e8dd5d3a94558f0fc6ea0093190e00e`. `POST /admin/warungs` dan `PATCH /admin/warungs/{id}` menolak `Invalid/Timezone` dengan 422 schema-conformant; request stringnya sendiri lolos schema OpenAPI, sehingga error membuktikan validasi server IANA. Tidak ada warung/owner baru dan target patch tidak berubah. Pint lulus; focused dua test admin 13/1648; suite penuh 371/56556 dalam 37.27 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40. Compose dibersihkan dan `ps -a` kosong. Tidak ada perubahan runtime/schema/dependency. Artefak: [WARUNG-TIMEZONE-INPUT-VALIDATION-CONFORMANCE-001](docs/backend/test-runs/WARUNG-TIMEZONE-INPUT-VALIDATION-CONFORMANCE-001.md).
