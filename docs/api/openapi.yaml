@@ -17,7 +17,7 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06 untuk transaksi atas menu nonaktif, dan OpenAPI runtime conformance menyeluruh belum diverifikasi.
+    D06 untuk sale baru kini menetapkan menu dan kategorinya harus aktif; implementasi dan test subset tercatat, sementara pembatalan/koreksi masih belum diputuskan. OpenAPI runtime conformance menyeluruh belum diverifikasi.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 27 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
     API-ROUTE-INVENTORY-CONFORMANCE-001 mencocokkan dua arah seluruh 28 method/path OpenAPI dengan route Laravel;
@@ -37,7 +37,7 @@ info:
     ditolak saat create purchase, tanpa write header/rincian. Owner diizinkan membuat keduanya; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji create sale/purchase dan response terhadap schema.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
-    Conformance role D04, aturan bisnis D05/D06/D08/D10/D11/D12 serta conformance D13 masih menjadi gate.
+    Conformance role D04, aturan bisnis D05/D08/D10/D11/D12, pembatalan/koreksi pada D06, serta conformance D13 masih menjadi gate.
     Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh
     sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan
     kontrak live.
@@ -964,7 +964,7 @@ paths:
       tags:
       - Katalog
       summary: Ubah KategoriMenu
-      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update kategori oleh manager dalam tenant sendiri, penolakan warung_id, 404 tenant lain, dan 403 role lain. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI; payload invalid/status lain belum diuji. Perubahan status tersedia; aturan transaksi untuk katalog nonaktif mengikuti D06 yang belum final.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update kategori oleh manager dalam tenant sendiri, penolakan warung_id, 404 tenant lain, dan 403 role lain. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI; payload invalid/status lain belum diuji. Perubahan status tersedia; sale baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`), sementara pembatalan/koreksi masih belum diputuskan.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1168,7 +1168,7 @@ paths:
       tags:
       - Katalog
       summary: Detail Menu
-      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji detail dalam tenant sendiri, 404 untuk ID tenant lain, dan batas kasir pada menu/kategori nonaktif. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema; status lain dan conformance penuh belum diuji. Apakah transaksi boleh memakai katalog nonaktif masih mengikuti D06 dan belum diuji.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji detail dalam tenant sendiri, 404 untuk ID tenant lain, dan batas kasir pada menu/kategori nonaktif. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema; status lain dan conformance penuh belum diuji. Penjualan baru hanya menerima menu aktif dalam kategori aktif sesuai D06; katalog nonaktif menghasilkan 422 pada POST sale (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`).'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1223,7 +1223,7 @@ paths:
       tags:
       - Katalog
       summary: Ubah Menu
-      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update nama/harga/status oleh manager dalam tenant sendiri, kategori silang ditolak, 404 tenant lain, dan 403 role lain. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI; payload invalid, status lain, dan conformance penuh belum diuji. Perilaku transaksi terhadap menu nonaktif belum ditetapkan D06.'
+      description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update nama/harga/status oleh manager dalam tenant sendiri, kategori silang ditolak, 404 tenant lain, dan 403 role lain. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI; payload invalid, status lain, dan conformance penuh belum diuji. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); pembatalan/koreksi tetap terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1378,13 +1378,13 @@ paths:
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        description: Awal hari lokal inklusif (D08); kirim bersama date_to. Respons 422 pada date_from bila batas awal UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: false
       - name: date_to
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        description: Tanggal akhir lokal inklusif (D08); date_from <= date_to. Respons 422 pada date_to bila batas akhir-eksklusif UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: false
       - name: status
         in: query
@@ -1404,7 +1404,9 @@ paths:
         Implementasi awal menyimpan header dan rincian atomik; warung/user/nomor/total dari backend.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. Aturan nominal lain masih D05 dan operasi tetap DRAFT, belum dapat dipakai live.
-        Setiap item wajib berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422;
+        Setiap item wajib berasal dari menu aktif dalam kategori aktif. `TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`
+        membuktikan menu nonaktif atau kategori nonaktif ditolak 422 pada rincian tanpa write, sedangkan katalog aktif menerima sale.
+        TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422;
         TRANSACTION-REQUEST-CONFORMANCE-001 mencocokkan body/header pada request create/replay/conflict terpilih dan
         tenant-crossing 422 schema-valid (menu_id berupa string). SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 menguji
         payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
@@ -1688,13 +1690,13 @@ paths:
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        description: Awal hari lokal inklusif (D08); kirim bersama date_to. Respons 422 pada date_from bila batas awal UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: false
       - name: date_to
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        description: Tanggal akhir lokal inklusif (D08); date_from <= date_to. Respons 422 pada date_to bila batas akhir-eksklusif UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: false
     post:
       operationId: createPembelian
@@ -1963,13 +1965,13 @@ paths:
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        description: Awal hari lokal inklusif (D08); kirim bersama date_to. Respons 422 pada date_from bila batas awal UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: true
       - name: date_to
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        description: Tanggal akhir lokal inklusif (D08); date_from <= date_to. Respons 422 pada date_to bila batas akhir-eksklusif UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: true
   /laporan/pembelian:
     get:
@@ -2031,13 +2033,13 @@ paths:
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+        description: Awal hari lokal inklusif (D08); kirim bersama date_to. Respons 422 pada date_from bila batas awal UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: true
       - name: date_to
         in: query
         schema:
           $ref: '#/components/schemas/Date'
-        description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+        description: Tanggal akhir lokal inklusif (D08); date_from <= date_to. Respons 422 pada date_to bila batas akhir-eksklusif UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: true
 components:
   securitySchemes:
@@ -2089,14 +2091,14 @@ components:
       in: query
       schema:
         $ref: '#/components/schemas/Date'
-      description: Awal periode lokal inklusif (D08); kirim berpasangan dengan date_to.
+      description: Awal hari lokal inklusif (D08); kirim bersama date_to. Respons 422 pada date_from bila batas awal UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
       example: '2026-10-04'
     DateTo:
       name: date_to
       in: query
       schema:
         $ref: '#/components/schemas/Date'
-      description: Akhir periode lokal inklusif (D08); date_from <= date_to.
+      description: Tanggal akhir lokal inklusif (D08); date_from <= date_to. Respons 422 pada date_to bila batas akhir-eksklusif UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
       example: '2026-10-04'
   responses:
     Error400:

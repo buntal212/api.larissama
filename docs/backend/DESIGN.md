@@ -91,7 +91,7 @@ Matriks ini diputuskan user pada 2026-10-05. Owner berarti pemilik warung dan se
 | INV03 | User aktif dan warung aktif dalam masa berlaku. | Periksa login serta setiap request; `tanggal_mulai` NULL tidak membatasi awal, `tanggal_berakhir` NULL tidak membatasi akhir, dan tanggal terisi inklusif; token kedaluwarsa atau status nonaktif tidak boleh diterima. |
 | INV04 | Header memiliki >= 1 detail, tanpa penyimpanan sebagian. | Validasi array dan DB transaction; kegagalan detail me-rollback header, total, nomor, serta efek retry. |
 | INV05 | Nominal eksak dan dihitung backend. | Wire dan penyimpanan memakai decimal string eksak dua angka pecahan; round half-up per rincian. Batas lain/rumus final mengikuti D05; total dari detail, bukan total client. |
-| INV06 | Setiap penjualan memilih menu terdaftar pada warung yang sama; riwayat menyimpan nama/harga jual saat transaksi. | `menu_id` wajib pada detail, menu di-resolve di scope warung dan snapshot disimpan dalam action; perubahan master tidak menulis ulang rincian. |
+| INV06 | Setiap penjualan baru memilih menu aktif dalam kategori aktif pada warung yang sama; riwayat menyimpan nama/harga jual saat transaksi. | `menu_id` wajib pada detail, menu dan kategori di-resolve serta dikunci dalam scope warung, lalu snapshot disimpan dalam action; menu/kategori nonaktif ditolak, dan perubahan master tidak menulis ulang rincian. |
 | INV07 | Pembelian ringkas sah. | `nama_item` + `subtotal` menjadi satu detail; qty/satuan/harga_satuan nullable. |
 | INV08 | Pembelian tidak memengaruhi penjualan/menu/stok. | Action hanya menulis pembelian dan infrastruktur yang disetujui. |
 | INV09 | Retry/concurrency tidak menggandakan transaksi. | `Idempotency-Key` durable disimpan bersama transaksi; payload sama replay hasil awal, payload berbeda pada key sama menghasilkan 409. Buktikan dengan dua request/koneksi sebelum handoff. |
@@ -100,7 +100,7 @@ Matriks ini diputuskan user pada 2026-10-05. Owner berarti pemilik warung dan se
 
 ### Penjualan
 
-Action membaca setiap menu dalam scope warung, memeriksa aktif, mengambil harga/nama jual yang sah saat pencatatan, menghitung setiap subtotal, lalu menyimpan header dan semua snapshot detail. Setiap rincian harus mempunyai `menu_id`; transaksi dengan item bebas tidak diterima. Harga kiriman client tidak menjadi otoritas. D05 menentukan respons terhadap perubahan harga bersamaan; snapshot harus konsisten dengan pembacaan dalam transaksi.
+Action membaca dan mengunci setiap menu serta kategori dalam scope warung, memastikan keduanya aktif, mengambil harga/nama jual yang sah saat pencatatan, menghitung setiap subtotal, lalu menyimpan header dan semua snapshot detail. Setiap rincian harus mempunyai `menu_id`; transaksi dengan item bebas atau katalog nonaktif tidak diterima. Harga kiriman client tidak menjadi otoritas. D05 menentukan respons terhadap perubahan harga bersamaan; snapshot harus konsisten dengan pembacaan dalam transaksi.
 
 Baseline nominal D05 sudah disetujui: wire/penyimpanan decimal string dengan dua angka pecahan dan pembulatan half-up per rincian. Rumus diskon, validasi pembayaran cash/QRIS/transfer, harga nol, batas angka, dan qty pecahan tetap perlu dicatat sebelum aksi penjualan final. `bayar` bukan pendapatan; pendapatan memakai `total` sesuai D08. Kebijakan cancel penjualan masih D06.
 
