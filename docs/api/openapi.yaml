@@ -37,7 +37,7 @@ info:
     ditolak saat create purchase, tanpa write header/rincian. Owner diizinkan membuat keduanya; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji create sale/purchase dan response terhadap schema.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
-    D05 dan D08 telah diputuskan; sisa gate mencakup role/runtime conformance D04/D13, bentuk rincian D10,
+    D05, D08, dan bentuk subtotal pembelian D10 telah diputuskan; sisa gate mencakup role/runtime conformance D04/D13,
     migrasi identitas lama D12, koreksi penjualan D06, serta rancangan API tambahan untuk koreksi pembelian D11.
     Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh
     sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan
@@ -1693,7 +1693,7 @@ paths:
       description: >-
         Implementasi awal menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
-        memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; D11 memerlukan operasi tambahan
+        memakai key sama menghasilkan 409. D10 menetapkan subtotal wajib dan dihitung backend pada bentuk qty/harga; D11 memerlukan operasi tambahan
         edit/pembatalan dengan alasan audit, di luar 28 operasi awal. Operasi tetap DRAFT.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; TRANSACTION-REQUEST-CONFORMANCE-001
         mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. PURCHASE-REQUEST-SHAPE-CONFORMANCE-001
@@ -1713,7 +1713,6 @@ paths:
       - D02
       - D13
       - D09
-      - D10
       - D11
       responses:
         '201':
@@ -3005,8 +3004,8 @@ components:
       - nama_item
       - qty
       - harga_satuan
-      description: 'Kandidat D10: subtotal dihitung backend; jika dikirim, harus cocok dengan hasil hitung D05,
-        jika tidak 422.'
+      description: 'Hitungan D10: subtotal dihitung backend memakai aturan pembulatan D05. Bila subtotal turut dikirim,
+        nilainya harus cocok dengan hasil hitung atau request ditolak 422. Pada bentuk nominal, subtotal wajib dikirim.'
     PembelianCreate:
       type: object
       additionalProperties: false

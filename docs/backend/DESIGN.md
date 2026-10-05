@@ -108,7 +108,7 @@ Action menyimpan kunci idempotensi, hash payload kanonis, header, dan detail dal
 
 ### Pembelian
 
-Ringkas: satu detail `nama_item="Belanja di pasar"`, `subtotal="150000.00"`; qty/satuan/harga_satuan NULL. Rinci: beberapa nama bahan dengan qty/harga_satuan, subtotal dihitung backend. Bentuk wire kandidat berada di OpenAPI; D10 menutup kasus input sebagian dan mismatch subtotal. Tidak ada lookup menu atau syarat master bahan.
+Rincian nominal: `nama_item` dan `subtotal` wajib; qty/satuan/harga_satuan boleh NULL. Rincian hitungan: `nama_item`, qty, dan harga_satuan wajib; keduanya berpasangan, `satuan` opsional, dan subtotal dihitung backend. Nilai subtotal selalu disimpan dan tidak boleh NULL; bila client mengirim subtotal pada bentuk hitungan sebagai pembanding, nilainya harus sama dengan hasil hitung backend atau request ditolak 422. Rincian nominal dan hitungan boleh dicampur, dan total header menjumlahkan subtotal seluruh baris. Tidak ada lookup menu atau syarat master bahan.
 
 Action menetapkan warung/user dari identitas terautentikasi, menghitung total semua detail, dan menyimpan semuanya atomik. Input header.total tidak dipercaya. Bentuk ringkas dan rinci menggunakan endpoint serta tabel yang sama. Tidak ada status `selesai`/`batal` pembelian yang boleh dibuat diam-diam; D11 harus menambah schema dan kontrak jika dibutuhkan.
 
