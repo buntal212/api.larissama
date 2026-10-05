@@ -273,18 +273,60 @@ class PenjualanCorrectionApiTest extends TestCase
         $foreignWarung = Warung::factory()->create();
         $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
         $foreignManager = User::factory()->create(['warung_id' => $foreignWarung->id, 'role' => 'manager']);
+        $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
         $menu = Menu::factory()->create(['warung_id' => $warung->id]);
         $sale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
         $payload = ['alasan' => 'Catatan salah.', 'catatan' => 'Koreksi akses.'];
         $headers = ['Idempotency-Key' => 'sale-denied-correction-001'];
         $cashierToken = $cashier->createToken('sale-denied-correction-test')->plainTextToken;
         $foreignToken = $foreignManager->createToken('sale-foreign-correction-test')->plainTextToken;
+        $superadminToken = $superadmin->createToken('sale-superadmin-correction-test')->plainTextToken;
 
         $hidden = $this->withToken($foreignToken)->patchJson('/api/v1/penjualans/'.$sale->id, $payload, $headers)->assertNotFound();
         $this->assertOperationResponseMatchesOpenApi($hidden, '/penjualans/{id}', 'patch');
         Auth::forgetGuards();
         $denied = $this->withToken($cashierToken)->patchJson('/api/v1/penjualans/'.$sale->id, $payload, $headers)->assertForbidden();
         $this->assertOperationResponseMatchesOpenApi($denied, '/penjualans/{id}', 'patch');
+
+        $deniedActors = [
+            ['token' => $cashierToken, 'status' => 403, 'label' => 'cashier'],
+            ['token' => $foreignToken, 'status' => 404, 'label' => 'foreign-manager'],
+            ['token' => $superadminToken, 'status' => 403, 'label' => 'superadmin'],
+        ];
+        $deniedOperations = [
+            [
+                'path' => '/penjualans/{id}/pembatalan',
+                'method' => 'post',
+                'request_path' => '/pembatalan',
+                'payload' => ['alasan' => 'Uji akses pembatalan.'],
+            ],
+            [
+                'path' => '/penjualans/{id}/retur',
+                'method' => 'post',
+                'request_path' => '/retur',
+                'payload' => ['nominal' => '10.00', 'alasan' => 'Uji akses retur.'],
+            ],
+        ];
+
+        foreach ($deniedOperations as $operation) {
+            $operationSale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
+
+            foreach ($deniedActors as $actor) {
+                $headers = ['Idempotency-Key' => 'sale-'.$actor['label'].$operation['request_path']];
+                $request = $this->withToken($actor['token'])->postJson(
+                    '/api/v1/penjualans/'.$operationSale->id.$operation['request_path'],
+                    $operation['payload'],
+                    $headers,
+                )->assertStatus($actor['status']);
+
+                $this->assertOperationResponseMatchesOpenApi($request, $operation['path'], $operation['method']);
+                Auth::forgetGuards();
+            }
+
+            $this->assertSame('selesai', $operationSale->fresh()->status);
+            $this->assertDatabaseMissing('penjualan_koreksis', ['penjualan_id' => $operationSale->id]);
+            $this->assertDatabaseMissing('penjualan_returs', ['penjualan_id' => $operationSale->id]);
+        }
 
         $this->assertSame(null, $sale->refresh()->catatan);
         $this->assertDatabaseCount('penjualan_koreksis', 0);
