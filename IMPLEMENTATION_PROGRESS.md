@@ -446,3 +446,7 @@ Hasil ini hanya menutup kombinasi tiga role dan empat operasi user; matriks D04 
 ## Pra-implementasi request body tanpa payload T-API-02
 
 Gap: OpenAPI menyatakan body wajib pada 11 operasi, tetapi test sebelumnya hanya mengirim JSON rusak atau object kosong. Scope berikutnya: probe 11 request HTTP dengan `Content-Type: application/json` dan body kosong, memakai identitas/target yang lolos authorization dan idempotency header valid. Kriteria: 422 Error422 schema-conformant, request_id UUID, error validasi non-empty, dan tidak ada write/perubahan target. Tidak mengubah runtime atau aturan payload kecuali test menunjukkan mismatch; D13 dan semua operasi tetap DRAFT.
+
+## Conformance request body wajib tanpa payload — 2026-10-05
+
+`EMPTY-BODY-REQUIRED-CONFORMANCE-001` lulus pada test commit `67e2dcd4bc455bceeefc5be508242a4f2a2dd7b6`. Sebelas operasi dengan `requestBody.required: true` merespons 422 `VALIDATION_ERROR` ketika HTTP JSON body berukuran nol; `errors` non-empty, `request_id` UUID, dan response cocok schema OpenAPI. Tidak ada row domain atau target fixture yang berubah. Pint lulus; focused `ApiMalformedJsonConformanceTest` 2/598; suite penuh 362/54070 dalam 37.50 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40. Compose `larissama-empty-body-test` dibersihkan dan `ps -a` kosong. Tidak ada perubahan runtime/schema/dependency; T-API-02/04 dan seluruh operasi tetap DRAFT. Artefak: [EMPTY-BODY-REQUIRED-CONFORMANCE-001](docs/backend/test-runs/EMPTY-BODY-REQUIRED-CONFORMANCE-001.md).
