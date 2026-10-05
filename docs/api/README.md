@@ -6,14 +6,18 @@ Versi kontrak: **0.1.0-draft**, 2026-10-05. [openapi.yaml](openapi.yaml) berisi 
 
 ## Implementasi backend dan status kontrak
 
-`x-implementation-status: DONE` berarti implementasi fitur operationId tersebut selesai di repository. `x-contract-status: DRAFT` tetap berarti kontrak/runtime belum diserahkan untuk integrasi live. Frontend boleh mulai UI, model, dan adapter memakai schema/contoh OpenAPI untuk operasi berstatus implementasi DONE, tetapi tetap memakai mock sampai status handoff di tracker berubah dan environment integrasi tersedia.
+`x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: DRAFT` berarti kontrak/runtime belum diserahkan untuk integrasi live. Frontend dapat mulai UI, model, dan adapter untuk semua operasi dengan schema/contoh OpenAPI dan mock; gunakan live API hanya setelah status handoff di tracker berubah dan environment integrasi tersedia.
 
-Slice fitur backend yang selesai mencakup operationId berikut:
+Implementasi handler tersedia untuk seluruh 30 operationId:
 
-- Penjualan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `getLaporanPenjualan`.
-- Pembelian: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
+- Auth: `login`, `getCurrentUser`, `logout`.
+- Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `getCurrentWarung`.
+- User: `listUsers`, `createUser`, `getUser`, `updateUser`.
+- Katalog: `listKategoriMenus`, `createKategoriMenu`, `getKategoriMenu`, `updateKategoriMenu`, `listMenus`, `createMenu`, `getMenu`, `updateMenu`.
+- Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `getLaporanPenjualan`.
+- Pembelian/laporan: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
 
-Semua 30 `x-contract-status` masih DRAFT. Operasi di atas tidak memerlukan implementasi ulang dari frontend; kontraknya tetap mengikuti OpenAPI dan mock sampai gate handoff tercatat di [tracker progres](../../IMPLEMENTATION_PROGRESS.md). Rencana urutan milestone dan dependency backend ada di [IMPLEMENTATION_PLAN.md](../../IMPLEMENTATION_PLAN.md).
+Semua 30 `x-implementation-status` bernilai DONE, tetapi seluruh `x-contract-status` tetap DRAFT. Ini mengizinkan frontend membangun terhadap mock, bukan integrasi live. Status task/gate yang belum selesai ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md); urutan milestone dan dependency backend ada di [IMPLEMENTATION_PLAN.md](../../IMPLEMENTATION_PLAN.md).
 
 ## Validasi spesifikasi
 

@@ -1,6 +1,6 @@
 # Rencana Pelaksanaan Backend LarisSama
 
-Status: rencana pelaksanaan yang diperbarui 2026-10-05. Implementasi backend Laravel sedang berjalan. Tracker saat ini mencatat 8/29 task selesai (28%), 10/30 operationId dengan implementasi fitur DONE, dan 0/30 operasi siap integrasi live karena seluruh kontrak masih DRAFT. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
+Status: rencana pelaksanaan yang diperbarui 2026-10-05. Handler tersedia untuk 30/30 operationId; tracker mencatat 10/29 task selesai (34%) karena gate integrasi, conformance, dan handoff masih berjalan. Saat ini 0/30 operasi siap integrasi live karena seluruh kontrak masih DRAFT. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
 
 ## Dokumen yang dipakai
 

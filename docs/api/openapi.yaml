@@ -64,7 +64,7 @@ paths:
       summary: Login user
       description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Request/status lain dan conformance lengkap belum diverifikasi. Maksimum 5 percobaan login per menit untuk username lowercase dan IP; uppercase ditolak dan tidak dinormalisasi.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles: []
       x-blocked-by:
       - D12
@@ -136,7 +136,7 @@ paths:
       summary: Identitas dan konteks akses aktif
       description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Status 400/500 dan conformance lainnya belum diverifikasi; waktu transaksi tetap disimpan UTC dan ditampilkan menurut timezone warung.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
       - owner
@@ -196,7 +196,7 @@ paths:
         user/warung sebelum logout; jika akun sudah nonaktif atau kedaluwarsa, frontend tetap dapat menghapus token
         lokal, tetapi request logout tidak mencabut record token di server.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
       - owner
@@ -223,7 +223,7 @@ paths:
       summary: Daftar warung untuk superadmin
       description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -292,7 +292,7 @@ paths:
       summary: Buat warung dan owner awal
       description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji provisioning owner/hash/rollback; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422/500. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -374,7 +374,7 @@ paths:
       summary: Detail warung untuk superadmin
       description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET detail; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/404. Status lainnya, request schema, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -426,7 +426,7 @@ paths:
       summary: Ubah identitas/status/masa aktif warung
       description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji PATCH metadata/status dan validasi; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI. Payload/status lain dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
       x-blocked-by:
@@ -489,7 +489,7 @@ paths:
       summary: Profil warung user aktif
       description: 'DRAFT: CURRENT-WARUNG-API-ACCEPTANCE-001 menguji manager/kasir membaca profil dari tenant pada token, superadmin 403, tanpa token 401, dan response terpilih terhadap schema. OWNER-TENANT-ACCESS-CONFORMANCE-001 mencocokkan response profil owner dengan schema. Conformance status dan operasi lain masih terbuka.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -542,7 +542,7 @@ paths:
       summary: Daftar users
       description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       x-blocked-by:
@@ -609,7 +609,7 @@ paths:
       summary: Tambah User
       description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan membuat superadmin; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid dan status lain belum diverifikasi. Username/email hanya menerima huruf kecil; angka pada username diperbolehkan.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       x-blocked-by:
@@ -671,7 +671,7 @@ paths:
       summary: Detail User
       description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji detail user sendiri dan 404 untuk tenant lain; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404. Status lain dan role boundary detail belum diverifikasi; user baru wajib memakai username/email lowercase, sedangkan pemetaan data lama masih D12.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       x-blocked-by:
@@ -721,7 +721,7 @@ paths:
       summary: Ubah User
       description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji update tenant sendiri, 404 tenant lain, dan penolakan injeksi; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan role boundary detail belum diverifikasi; username/email lowercase mengikuti D12, sementara migrasi identitas lama belum ditetapkan.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       x-blocked-by:
@@ -782,7 +782,7 @@ paths:
       summary: Daftar kategori-menus
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar tenant manager, pencarian/filter/sort/pagination, serta kategori aktif untuk kasir meskipun filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/q/aktif fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -852,7 +852,7 @@ paths:
       summary: Tambah KategoriMenu
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji create kategori oleh manager, resource tenant-scoped, dan penolakan warung_id/aktor selain manager. CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI; payload invalid, status lain, conformance penuh, dan role matrix masih terbuka.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -912,7 +912,7 @@ paths:
       summary: Detail KategoriMenu
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji detail kategori manager dalam tenant sendiri; kasir membaca kategori aktif dan mendapat 404 untuk kategori nonaktif; ID tenant lain memberi 404. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema; status lain dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -963,7 +963,7 @@ paths:
       summary: Ubah KategoriMenu
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update kategori oleh manager dalam tenant sendiri, penolakan warung_id, 404 tenant lain, dan 403 role lain. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI; payload invalid/status lain belum diuji. Perubahan status tersedia; sale baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`), sementara pembatalan/koreksi masih belum diputuskan.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1024,7 +1024,7 @@ paths:
       summary: Daftar menus
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji daftar manager/kasir, pencarian/filter kategori/sort/pagination, dan visibilitas kasir yang memaksa menu aktif dalam kategori aktif termasuk saat filter meminta aktif=false. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan q/kategori_menu_id/per_page/sort dan halaman terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1100,7 +1100,7 @@ paths:
       summary: Tambah Menu
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji create menu oleh manager dengan harga decimal string, kode unik per warung, dan kategori tenant sendiri. Kategori tenant lain, warung_id, harga_modal, gambar, dan format harga invalid ditolak. CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI; payload invalid, status lain, dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1165,7 +1165,7 @@ paths:
       summary: Detail Menu
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji detail dalam tenant sendiri, 404 untuk ID tenant lain, dan batas kasir pada menu/kategori nonaktif. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema; status lain dan conformance penuh belum diuji. Penjualan baru hanya menerima menu aktif dalam kategori aktif sesuai D06; katalog nonaktif menghasilkan 422 pada POST sale (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`).'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1219,7 +1219,7 @@ paths:
       summary: Ubah Menu
       description: 'DRAFT: CATALOG-API-ACCEPTANCE-001 menguji update nama/harga/status oleh manager dalam tenant sendiri, kategori silang ditolak, 404 tenant lain, dan 403 role lain. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422 dengan schema. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI; payload invalid, status lain, dan conformance penuh belum diuji. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); pembatalan/koreksi tetap terbuka.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
