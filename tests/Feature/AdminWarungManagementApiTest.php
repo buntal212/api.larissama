@@ -147,6 +147,24 @@ class AdminWarungManagementApiTest extends TestCase
         ]);
     }
 
+    public function test_superadmin_cannot_update_warung_to_an_unknown_timezone(): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $superadmin = User::factory()->superadmin()->create();
+        $token = $superadmin->createToken('admin-warung-management-test')->plainTextToken;
+        $payload = ['timezone' => 'Invalid/Timezone'];
+        $this->assertOperationRequestMatchesOpenApi($payload, [], '/admin/warungs/{id}', 'patch');
+
+        $before = $warung->fresh()->getRawOriginal();
+        $response = $this->withToken($token)
+            ->patchJson('/api/v1/admin/warungs/'.$warung->id, $payload)
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs/{id}', 'patch');
+        $this->assertD13ErrorEnvelope($response, 'VALIDATION_ERROR', 'timezone');
+        $this->assertSame($before, $warung->fresh()->getRawOriginal());
+    }
+
     public function test_openapi_response_schema_check_rejects_an_undocumented_field(): void
     {
         $document = $this->openApiDocument();

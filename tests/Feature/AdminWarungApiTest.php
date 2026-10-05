@@ -81,6 +81,26 @@ class AdminWarungApiTest extends TestCase
         $this->assertSame(0, Warung::query()->count());
     }
 
+    public function test_superadmin_rejects_timezone_outside_the_iana_database_when_provisioning(): void
+    {
+        $superadmin = User::factory()->superadmin()->create();
+        $token = $superadmin->createToken('admin-feature-test')->plainTextToken;
+        $payload = $this->warungPayload('WRG-INVALID-TZ', 'owner-invalid-tz');
+        $payload['timezone'] = 'Invalid/Timezone';
+
+        $this->assertOperationRequestMatchesOpenApi($payload, [], '/admin/warungs', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/admin/warungs', $payload)
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'post');
+        $this->assertD13ErrorEnvelope($response, 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('timezone', $response->json('errors'));
+        $this->assertSame(0, Warung::query()->count());
+        $this->assertSame(1, User::query()->count(), 'Invalid timezone must not create the owner.');
+        $this->assertDatabaseMissing('users', ['username' => $payload['owner']['username']]);
+    }
+
     /**
      * @return array<string, array{string}>
      */
