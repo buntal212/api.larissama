@@ -869,3 +869,7 @@ User menetapkan masa berlaku `Idempotency-Key` tujuh hari. `T-RET-05` memverifik
 ## 401 anonim pada kedua operasi D11
 
 `D11-PROTECTED-401-CONFORMANCE-001` reruns `ProtectedOperation401ConformanceTest`, yang membaca operasi dari OpenAPI dan mengecualikan login publik. Kini seluruh 29 operasi yang meminta bearer token, termasuk PATCH koreksi dan POST pembatalan pembelian, diuji tanpa token: HTTP 401 `UNAUTHENTICATED`, `request_id` non-kosong, response schema-conformant. Focused 29 test/841 assertions PASS pada MySQL 8.0.40 Compose; test stack dibersihkan. Cakupan ini hanya status anonim, bukan role atau kesiapan frontend. Artefak: [D11-PROTECTED-401-CONFORMANCE-001](test-runs/D11-PROTECTED-401-CONFORMANCE-001.md).
+
+## Inventaris route dan path ID sesudah penambahan D11
+
+`D11-ROUTE-AND-ID-CONFORMANCE-001` mengulang `ApiRouteOpenApiConformanceTest` sesudah PATCH koreksi dan POST pembatalan ditambahkan. Cakupan sekarang 30 method/path pada 19 path, cocok dua arah dengan route Laravel. Dua operasi D11 juga termasuk dalam 12 route berparameter ID: nilai `0`, angka berawalan nol, dan teks mendapat 404 schema-conformant; ID positif mencapai middleware autentikasi. Focused 13/881 PASS tanpa MySQL; Compose runner/network dibersihkan. Lihat [artefak run](test-runs/D11-ROUTE-AND-ID-CONFORMANCE-001.md).
