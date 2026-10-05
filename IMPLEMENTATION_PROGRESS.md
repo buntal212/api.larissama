@@ -6,6 +6,8 @@ Slice terakhir selesai: `MALFORMED-JSON-400-CONFORMANCE-001`, T-API-02/04. Commi
 
 Slice terakhir selesai: `IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001`, T-API-02/04. Commit test `e8069b5`; dua create transaksi menolak header hilang/kosong/256 karakter dengan 422 schema-conformant tanpa write, dan menerima panjang 255 dengan 201. Focused 1/625, Pint 144 file, suite penuh 328/51801; Compose dibersihkan. Artefak: [hasil run](docs/backend/test-runs/IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001.md). Runtime tidak berubah; semua operasi tetap DRAFT.
 
+Slice aktif: `OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001`, T-API-01/D13. Perluas test contoh OpenAPI untuk memeriksa `example`/`examples` pada parameter reusable dan operation-level terhadap schema; fokus awal DateFrom/DateTo. Belum ada perubahan kode.
+
 ## Ringkasan pelaksanaan
 
 | Milestone | Task implementasi | DONE | Gate |
