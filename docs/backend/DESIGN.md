@@ -6,7 +6,7 @@ Status per 2026-10-05: seluruh 30 operationId API memiliki handler; migrations d
 
 - composer.json meminta PHP ^8.3 dan Laravel ^13.17; itu constraint proyek, bukan bukti runtime terpasang.
 - Schema `users` memakai `nama`, `username`, `email` nullable unik, `warung_id`, `role`, dan `aktif`; model memiliki relasi ke `Warung`. Migration delapan tabel bisnis berhasil diterapkan pada clean install MySQL 8.0.40. Target produksi dikonfirmasi kosong; migration cache/jobs dan `personal_access_tokens` adalah infrastruktur.
-- `bootstrap/app.php` mendaftarkan seluruh 30 operationId untuk login, admin warung, profil/user, katalog, penjualan, pembelian, dan laporan. Semua operasi masih DRAFT sampai runtime conformance dan gate handoff lengkap.
+- `bootstrap/app.php` mendaftarkan operationId untuk login, admin warung, profil/user, katalog, penjualan, pembelian, dan laporan. D06 menambah koreksi, pembatalan, dan retur penjualan; jumlah operationId dan implementasinya diperbarui bersama slice tersebut. Semua operasi masih DRAFT sampai runtime conformance dan gate handoff lengkap.
 - Feature suite mencakup alur auth/admin/katalog/transaksi/laporan, tenant dan role pada skenario terpilih, serta request/response contract pada status terpilih. Batas cakupan yang tersisa dicatat pada [tracker](../../IMPLEMENTATION_PROGRESS.md) dan artefak test.
 - Verifikasi dilakukan melalui Docker Compose terisolasi dengan PHP 8.3 dan MySQL 8.0.40. Upgrade data non-kosong di luar target produksi fresh install belum didukung tanpa pemetaan dan akan dihentikan oleh guard migration.
 
@@ -17,9 +17,9 @@ Status per 2026-10-05: seluruh 30 operationId API memiliki handler; migrations d
 | Akses | warungs, users | Login, profil, logout, pembatasan user/warung aktif, izin role. |
 | Administrasi | warungs, users | Superadmin mengelola warung platform; provisioning membuat warung dan owner awal secara atomik. Owner mengelola seluruh akses tenant sendiri, termasuk delegasi role user. |
 | Katalog | kategori_menus, menus | Daftar, detail, tambah, ubah kategori/menu dan status aktif. |
-| Penjualan | penjualans, penjualan_rincis | Catat menu terdaftar, baca riwayat/detail, pertahankan snapshot nama/harga jual. |
+| Penjualan | penjualans, penjualan_rincis, penjualan_koreksis, penjualan_returs | Catat menu terdaftar, simpan snapshot, koreksi/pembatalan beralasan dalam 72 jam, serta retur nominal penuh/sebagian append-only. |
 | Pembelian | pembelians, pembelian_rincis | Catat pembelian bahan rinci atau ringkas, baca riwayat/detail. |
-| Laporan | query header transaksi | Pendapatan penjualan dan total pembelian dalam periode terpilih, terpisah per warung. |
+| Laporan | query header transaksi dan event retur | Pendapatan bersih penjualan mengurangi retur yang terjadi pada periode; total pembelian tetap terpisah per warung. |
 
 Tidak ada workflow dapur atau pengaitan pembelian dengan stok/resep. Field legacy `harga_modal` tidak dipakai oleh API penjualan/pembelian. Perhitungan HPP atau laba bukan keluaran yang disepakati.
 
@@ -80,7 +80,7 @@ Matriks ini diputuskan user pada 2026-10-05. Owner berarti pemilik warung dan se
 4. Pertahankan unique global warungs.kode/users.username serta unique `(warung_id, kode)` menu dan `(warung_id, no_transaksi)` masing-masing header; parent tenant-owned menyediakan unique `(warung_id, id)`.
 5. Gunakan FK/index relasi dan index laporan `(warung_id, tanggal, id)`; validasi pilihan index serta filter status lewat query plan saat integrasi MySQL 8.0.40.
 6. D16 menetapkan FK tenant gabungan. Backend tetap membatasi query/action ke warung terautentikasi dan database menolak relasi silang tenant.
-7. Rincian tidak memiliki endpoint CRUD bebas. Tindakan bisnis mengelola header dan rincian dalam satu transaksi. D06/D11 menentukan koreksi dan penghapusan.
+7. Rincian tidak memiliki endpoint CRUD bebas. Tindakan bisnis mengelola header dan rincian dalam satu transaksi. D06/D11 mengatur koreksi, retur, dan pembatalan dengan alasan serta audit; hard-delete transaksi dilarang.
 
 ## Invariant dan rancangan tindakan
 
@@ -102,7 +102,7 @@ Matriks ini diputuskan user pada 2026-10-05. Owner berarti pemilik warung dan se
 
 Action membaca dan mengunci setiap menu serta kategori dalam scope warung, memastikan keduanya aktif, mengambil harga/nama jual yang sah saat pencatatan, menghitung setiap subtotal, lalu menyimpan header dan semua snapshot detail. Setiap rincian harus mempunyai `menu_id`; transaksi dengan item bebas atau katalog nonaktif tidak diterima. Harga kiriman client tidak menjadi otoritas. D05 menentukan respons terhadap perubahan harga bersamaan; snapshot harus konsisten dengan pembacaan dalam transaksi.
 
-Baseline nominal D05 sudah disetujui: wire/penyimpanan decimal string dengan dua angka pecahan dan pembulatan half-up per rincian. Rumus diskon, validasi pembayaran cash/QRIS/transfer, harga nol, batas angka, dan qty pecahan tetap perlu dicatat sebelum aksi penjualan final. `bayar` bukan pendapatan; pendapatan memakai `total` sesuai D08. Kebijakan cancel penjualan masih D06.
+Baseline nominal D05 sudah disetujui: wire/penyimpanan decimal string dengan dua angka pecahan dan pembulatan half-up per rincian. Diskon, pembayaran cash/QRIS/transfer, harga positif, kapasitas nominal, dan qty pecahan tercatat pada D05. `bayar` bukan pendapatan. Koreksi penjualan beralasan hanya dalam 72 jam sejak dibuat; retur nominal append-only dapat masuk laporan pada periodenya sendiri tanpa mengubah sale snapshot atau stok (D06).
 
 Action menyimpan kunci idempotensi, hash payload kanonis, header, dan detail dalam transaksi database yang sama. Retry dengan key dan payload sama membaca ulang transaksi pertama; payload berbeda mendapat 409. Kegagalan di detail terakhir tidak meninggalkan header/rincian atau klaim key awal.
 
@@ -116,7 +116,7 @@ Action menetapkan warung/user dari identitas terautentikasi, menghitung total se
 
 Timestamp disimpan UTC. Setiap warung memakai identifier IANA pada `warungs.timezone`; zona kosong atau invalid menolak akses tenant sampai diperbaiki. Periksa masa aktif dengan mengubah waktu saat ini dari UTC ke timezone warung, lalu bandingkan tanggal lokal inklusif terhadap `tanggal_mulai`/`tanggal_berakhir`. Untuk laporan, ubah awal `date_from` dan awal hari setelah `date_to` dari timezone warung ke UTC, lalu query rentang `[awal, awal_hari_berikutnya)`; jangan memakai `23:59:59` yang bisa melewatkan pecahan detik.
 
-- Pendapatan: jumlah `penjualans.total` dengan status selesai pada periode. Tidak mengambil bayar/kembalian, nama/harga menu terbaru, atau total pembelian.
+- Pendapatan: penjualan valid (selesai atau pernah dikoreksi) menurut `tanggal`, dikurangi retur menurut waktu pencatatan retur, pada periode waktu lokal warung. Pembatalan mengeluarkan penjualan dari agregat; laporan memisahkan total penjualan, total retur, dan pendapatan bersih. Tidak mengambil bayar/kembalian, nama/harga menu terbaru, atau total pembelian.
 - Pembelian: jumlah `pembelians.total` berstatus `tercatat` pada periode; header `dibatalkan` tidak dihitung.
 - Count adalah jumlah header; detail tidak menggandakan count maupun total. Summary mencakup semua hasil filter, tidak hanya halaman list.
 - Periode kosong menghasilkan count 0 dan total `"0.00"` setelah query berhasil. Error jaringan/izin tidak boleh dikonversi ke nol oleh frontend.

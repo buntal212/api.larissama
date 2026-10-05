@@ -1,6 +1,6 @@
 # Rencana Pelaksanaan Backend LarisSama
 
-Status: rencana pelaksanaan yang diperbarui 2026-10-05. Handler tersedia untuk 30/30 operationId; tracker mencatat 11/29 task selesai (38%) karena gate integrasi, conformance, dan handoff masih berjalan. Saat ini 0/30 operasi siap integrasi live karena seluruh kontrak masih DRAFT. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
+Status: rencana pelaksanaan yang diperbarui 2026-10-06. D06 kini menambah tiga operationId penjualan (koreksi, pembatalan, retur); target menjadi 33 handler. Implementasi D06 dan gate integrasi/conformance/handoff berjalan. Seluruh operasi tetap DRAFT sampai bukti dan handoff per operationId terpenuhi. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
 
 ## Dokumen yang dipakai
 
@@ -35,7 +35,7 @@ Aplikasi tidak memerlukan workflow dapur, resep, stok, item penjualan bebas, ata
 | M0 — Kesiapan dan kontrak | BE-001–004 | Runtime dan DB test; inventaris migration; keputusan awal; konvensi/API draft ditinjau; validator dan harness tersedia. | G0: runtime/harness aman, keputusan prasyarat tersedia, lint kontrak lulus. |
 | M1 — Akses dan administrasi | BE-101–105 | Warung/users, login/me/logout, tenant/policy/status aktif, admin warung+owner, pengelolaan user tenant. 12 operasi akses/admin. | G1: auth, role, tenant, provisioning, dan kontrak lulus; operasi terkait siap frontend. |
 | M2 — Kategori dan menu | BE-201–204 | Migration/model/API katalog, filter/pagination, harga decimal, kategori satu warung. 8 operasi katalog. | G2: katalog dan arsip sesuai aturan; data tenant lain tidak terbaca/terubah; strategi D16 dipilih; kontrak lulus. |
-| M3 — Penjualan dan pendapatan | BE-301–306 | Action atomic, snapshot, validasi uang, nomor/retry, riwayat/detail, laporan pendapatan. 3 operasi transaksi dan 1 laporan; cancel hanya setelah D06. | G3: nominal/snapshot/rollback/retry/concurrency dan laporan lulus pada engine target; kontrak siap. |
+| M3 — Penjualan dan pendapatan | BE-301–306 | Create/list/detail, koreksi/pembatalan beralasan dalam 72 jam, retur penuh/sebagian append-only setelahnya, pembayaran, retry, audit, dan laporan bersih. | G3: nominal/snapshot/rollback/retry/concurrency/window edit/retur/laporan lulus pada engine target; kontrak siap. |
 | M4 — Pembelian dan total periode | BE-401–406 | Action atomic ringkas/rinci, nomor/retry, riwayat/detail, koreksi dengan alasan dan snapshot, serta laporan pembelian. 5 operasi transaksi dan 1 laporan. | G4: “Belanja di pasar + nominal” diterima, total detail benar, koreksi/pembatalan menjaga audit, tenant/rollback/retry/laporan lulus. |
 | M5 — Integrasi dan rilis | BE-501–504 | Regression, runbook deploy/recovery, environment integrasi, handoff frontend dan bukti penerimaan. | G5: seluruh test wajib lulus, tidak ada endpoint diserahkan tanpa kontrak, runbook dan handoff terbukti. |
 
@@ -56,8 +56,8 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 ## Keputusan yang ditutup sebelum coding terkait
 
 1. M0/M1: D01 engine/transisi data, D02 auth, D03 tanggal nullable, D04 role/superadmin, D12 identitas/email, D13 HTTP; bagian D08 yang diperlukan untuk tanggal masa aktif.
-2. M2: baseline decimal D05 sudah dipilih; finalisasi aturan arsip D06. FK gabungan tenant D16 telah dipilih dan diterapkan. D14 hanya bila media gambar menu masuk scope.
-3. M3: tetapkan sisa rumus/pembayaran D05 dan cancellation/history D06; gunakan timezone periode D08 serta replay durable D09 yang sudah disetujui. Setiap item wajib dari menu sesuai D07.
+2. M2: baseline decimal D05 sudah dipilih; arsip active-only D06 diterapkan. FK gabungan tenant D16 telah dipilih dan diterapkan. D14 hanya bila media gambar menu masuk scope.
+3. M3: D05/D06 sekarang diputuskan; implementasikan koreksi/cancel maksimal 72 jam dari `created_at` UTC, retur nominal penuh/sebagian dengan alasan, ledger audit append-only, dan pengurangan retur pada periode retur. Gunakan timezone periode D08 serta replay durable D09. Setiap item wajib dari menu sesuai D07.
 4. M4: terapkan baseline decimal D05, timezone D08, replay D09, dan finalisasi input sebagian D10 serta koreksi pembelian D11.
 
 Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Pilihan MySQL 8.0.40, auth, baseline nominal, Idempotency-Key, dan FK tenant gabungan sudah dicatat; rincian tersisa tetap menjadi gate sebelum kontrak siap frontend. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.
@@ -77,7 +77,7 @@ Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang be
 
 Task DONE membutuhkan deliverable dan acceptance pada tracker, keputusan yang diperlukan, invariant teruji, dokumentasi sesuai perilaku, dan bukti commit/test. Milestone hanya lulus jika seluruh skenario wajib pada TEST_PLAN lulus dan gap/defer dicatat dengan sumber persetujuan. Tidak menggunakan persentase kode coverage sebagai satu-satunya syarat.
 
-Contoh hasil yang akan dibuktikan: pendapatan `33000.00` dari sale fixture; pembelian ringkas `150000.00` ditambah pembelian rinci `95000.00` menjadi `245000.00`. Laporan tidak menggandakan header akibat join rincian dan tidak memasukkan warung lain. Expected ini masih mengikuti kandidat aturan nominal/periode D05/D08/D10.
+Contoh hasil yang akan dibuktikan: pendapatan `33000.00` dari sale fixture sebelum retur; transaksi retur mengurangi pendapatan pada periode ketika retur dicatat. Pembelian ringkas `150000.00` ditambah pembelian rinci `95000.00` menjadi `245000.00`. Laporan tidak menggandakan header akibat join rincian dan tidak memasukkan warung lain.
 
 ## Serah-terima kepada AI frontend
 
@@ -90,4 +90,4 @@ AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lal
 - perilaku retry/correction jika fitur itu diserahkan;
 - run test yang mendukung dan keterbatasan yang masih berlaku.
 
-Semua 30 operasi masih DRAFT untuk integrasi live. Sepuluh operationId penjualan, pembelian, dan laporan berstatus implementasi DONE; frontend dapat membangun UI/model/adapter menggunakan schema OpenAPI dan mock untuk slice tersebut. Belum ada endpoint yang diserahkan untuk integrasi live. BE-001 dan T-ENV-01 sudah selesai diverifikasi. Lanjutkan dependency yang masih terbuka pada tracker dan tutup gate per modul; status READY hanya diberikan setelah keputusan, implementasi, verifikasi yang diwajibkan, dan handoff slice terpenuhi.
+Semua operasi tetap DRAFT untuk integrasi live sampai slice masing-masing lulus. Frontend dapat membangun UI/model/adapter menggunakan schema OpenAPI dan mock untuk operasi yang implementasinya sudah DONE; endpoint koreksi/retur menunggu D06 implementation/conformance. Belum ada endpoint baru yang diserahkan untuk integrasi live. Lanjutkan dependency yang masih terbuka pada tracker; status READY hanya diberikan setelah implementasi, verifikasi yang diwajibkan, dan handoff slice terpenuhi.
