@@ -10,6 +10,8 @@ Slice terakhir selesai: `OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001`, T-API-01/D
 
 Slice terakhir selesai: `TRANSACTION-500-ERROR-CONFORMANCE-001`, T-API-02/04. Commit test `b63ac3c`; HTTP 500 sale/purchase cocok dengan Error500 OpenAPI, envelope D13, pesan generik, dan tidak membocorkan exception; rollback header/detail tetap PASS. Focused 2/220, Pint 144 file, suite penuh 329/52058; Compose dibersihkan. Bukti: [hasil run](docs/backend/test-runs/TRANSACTION-500-ERROR-CONFORMANCE-001.md). Runtime tidak berubah; semua operasi tetap DRAFT.
 
+Slice aktif: `IDEMPOTENCY-KEY-WHITESPACE-CONFORMANCE-001`, T-API-01/02. Runtime menolak whitespace di tepi header, namun parameter OpenAPI belum menyatakan batas itu. Rencana menyelaraskan schema pattern dan test disimpan di [TEST_PLAN](docs/backend/TEST_PLAN.md); belum ada perubahan.
+
 ## Ringkasan pelaksanaan
 
 | Milestone | Task implementasi | DONE | Gate |
