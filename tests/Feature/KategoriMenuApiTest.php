@@ -249,6 +249,54 @@ class KategoriMenuApiTest extends TestCase
         $this->assertDatabaseMissing('kategori_menus', ['nama' => 'Tidak Diizinkan']);
     }
 
+    public function test_superadmin_cannot_read_tenant_category_or_menu_catalog(): void
+    {
+        $warung = Warung::factory()->create();
+        $category = KategoriMenu::factory()->create([
+            'warung_id' => $warung->id,
+            'nama' => 'Katalog Privat',
+        ]);
+        $menu = Menu::factory()->create([
+            'warung_id' => $warung->id,
+            'kategori_menu_id' => $category->id,
+            'nama' => 'Menu Privat',
+        ]);
+        $superadmin = User::factory()->superadmin()->create();
+        $token = $superadmin->createToken('superadmin-catalog-read-test')->plainTextToken;
+        $catalogs = [
+            [
+                'path' => '/kategori-menus',
+                'detail_path' => '/kategori-menus/'.$category->id,
+                'sort' => 'urutan',
+            ],
+            [
+                'path' => '/menus',
+                'detail_path' => '/menus/'.$menu->id,
+                'sort' => 'nama',
+            ],
+        ];
+
+        foreach ($catalogs as $catalog) {
+            $query = ['page' => '1', 'per_page' => '20', 'sort' => $catalog['sort']];
+            $this->assertOperationQueryMatchesOpenApi($query, $catalog['path'], 'get');
+            $list = $this->withToken($token)
+                ->getJson('/api/v1'.$catalog['path'].'?'.http_build_query($query))
+                ->assertForbidden();
+            $this->assertOperationResponseMatchesOpenApi($list, $catalog['path'], 'get');
+            $this->assertD13ErrorEnvelope($list, 'FORBIDDEN');
+
+            $detailPath = $catalog['path'].'/{id}';
+            $detail = $this->withToken($token)
+                ->getJson('/api/v1'.$catalog['detail_path'])
+                ->assertForbidden();
+            $this->assertOperationResponseMatchesOpenApi($detail, $detailPath, 'get');
+            $this->assertD13ErrorEnvelope($detail, 'FORBIDDEN');
+        }
+
+        $this->assertDatabaseHas('kategori_menus', ['id' => $category->id, 'nama' => 'Katalog Privat']);
+        $this->assertDatabaseHas('menus', ['id' => $menu->id, 'nama' => 'Menu Privat']);
+    }
+
     public function test_database_restricts_hard_delete_of_category_that_has_menu(): void
     {
         $warung = Warung::factory()->create();
