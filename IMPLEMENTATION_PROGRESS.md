@@ -1,6 +1,6 @@
 # Tracker Implementasi Backend LarisSama
 
-Status per 2026-10-05. Migration `warungs`, tenant `users`, timezone, kategori/menu, FK tenant gabungan, dan tabel header/detail transaksi telah diperiksa pada MySQL 8.0.40 lokal. Test runner terisolasi sudah diverifikasi; suite Laravel penuh terakhir lulus 329 test / 51846 assertions pada MySQL 8.0.40; tes akses owner terarah lulus. Audit fresh schema T-DB-01 lulus pada lingkup yang ditetapkan (4 test / 210 assertions). Tujuh puluh delapan artefak run mencatat subset dan batas bukti, termasuk auth, admin/user tenant, katalog, transaksi/laporan, serta conformance response/request body/header/query, periode lokal, dan concurrency. Keputusan bisnis rinci, tes lintas modul, dan conformance OpenAPI menyeluruh masih terbuka. OpenAPI tetap DRAFT dan backend belum siap frontend. Source roadmap: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Detail gate/test: [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
+Status per 2026-10-05. Migration `warungs`, tenant `users`, timezone, kategori/menu, FK tenant gabungan, dan tabel header/detail transaksi telah diperiksa pada MySQL 8.0.40 lokal. Test runner terisolasi sudah diverifikasi; suite Laravel penuh terakhir lulus 329 test / 52058 assertions pada MySQL 8.0.40; tes akses owner terarah lulus. Audit fresh schema T-DB-01 lulus pada lingkup yang ditetapkan (4 test / 210 assertions). Tujuh puluh sembilan artefak run mencatat subset dan batas bukti, termasuk auth, admin/user tenant, katalog, transaksi/laporan, serta conformance response/request body/header/query, periode lokal, dan concurrency. Keputusan bisnis rinci, tes lintas modul, dan conformance OpenAPI menyeluruh masih terbuka. OpenAPI tetap DRAFT dan backend belum siap frontend. Source roadmap: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Detail gate/test: [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
 
 Slice terakhir selesai: `MALFORMED-JSON-400-CONFORMANCE-001`, T-API-02/04. Commit kode/test `dd9e0c6`; 11 operasi request-body kini mengembalikan 400 schema-conformant untuk JSON rusak, termasuk error envelope D13 dan no-write. Focused 1/306, Pint 143 file, suite penuh 327/51176; Docker test dibersihkan. Artefak dan batas cakupan ada di [hasil run](docs/backend/test-runs/MALFORMED-JSON-400-CONFORMANCE-001.md). Operasi masih DRAFT.
 
@@ -8,7 +8,7 @@ Slice terakhir selesai: `IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001`, T-API-02/04. C
 
 Slice terakhir selesai: `OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001`, T-API-01/D13. Commit test `c4cbcf9`; contoh parameter `DateFrom`/`DateTo` cocok dengan schema `Date`. Focused 2/12542, Pint 144 file, suite penuh 329/51846; Compose dibersihkan. Bukti: [hasil run](docs/backend/test-runs/OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001.md). Semua operasi masih DRAFT.
 
-Slice aktif: `TRANSACTION-500-ERROR-CONFORMANCE-001`, T-API-02/04. Perluas test atomisitas existing agar HTTP 500 sale/purchase juga cocok dengan Error500 OpenAPI/D13 dan tetap menyembunyikan detail exception. Belum ada perubahan kode.
+Slice terakhir selesai: `TRANSACTION-500-ERROR-CONFORMANCE-001`, T-API-02/04. Commit test `b63ac3c`; HTTP 500 sale/purchase cocok dengan Error500 OpenAPI, envelope D13, pesan generik, dan tidak membocorkan exception; rollback header/detail tetap PASS. Focused 2/220, Pint 144 file, suite penuh 329/52058; Compose dibersihkan. Bukti: [hasil run](docs/backend/test-runs/TRANSACTION-500-ERROR-CONFORMANCE-001.md). Runtime tidak berubah; semua operasi tetap DRAFT.
 
 ## Ringkasan pelaksanaan
 
@@ -418,3 +418,8 @@ Hasil ini hanya menutup kombinasi tiga role dan empat operasi user; matriks D04 
 ## Contoh parameter OpenAPI T-API-01 — 2026-10-05
 
 `OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001` lulus pada commit test `c4cbcf923568e12d887334f61fc7f667f0be9e07`. Pemeriksaan contoh OpenAPI kini mencakup requestBody, responses, reusable/path/operation parameters; `DateFrom` dan `DateTo` cocok dengan schema Date. Focused 2/12542, Pint 144 file, suite penuh 329/51846 dalam 36.79 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40. Compose disposable dibersihkan dan `ps -a` kosong. Tidak ada perubahan runtime/spec/dependency; seluruh operasi tetap DRAFT. Rincian: [OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001](docs/backend/test-runs/OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001.md).
+
+
+## Error 500 transaksi T-API-02 — 2026-10-05
+
+`TRANSACTION-500-ERROR-CONFORMANCE-001` lulus pada commit test `b63ac3cf82239e4f940a2d411b693a4f50dc1c8a`. Trigger MySQL menguji kegagalan insert detail kedua pada sale/purchase; request body/header cocok OpenAPI, response 500 cocok Error500 dengan `INTERNAL_ERROR`, pesan generik, errors kosong, UUID request ID, tanpa teks SQL. Rollback header/detail tetap terbukti. Focused 2/220, Pint 144 file, suite penuh 329/52058 dalam 34.88 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40. Compose disposable dibersihkan dan `ps -a` kosong. Tidak ada perubahan runtime/schema/dependency; semua operasi tetap DRAFT. Rincian: [TRANSACTION-500-ERROR-CONFORMANCE-001](docs/backend/test-runs/TRANSACTION-500-ERROR-CONFORMANCE-001.md).
