@@ -9,7 +9,7 @@
 - Pint: PASS
 - Focused: 1 test / 116 assertions — PASS
 - Suite penuh: 321 test / 36836 assertions, 35.59 detik — PASS
-- Cleanup: service, network, dan volume pada project Compose test dibersihkan
+- Cleanup: container MySQL test dan network Compose test dibersihkan
 
 ## Cakupan
 
@@ -17,7 +17,7 @@ Test membaca `docs/api/openapi.yaml` dan memverifikasi 28 operasi, `operationId`
 
 ## Batas bukti
 
-Pemeriksaan ini khusus untuk invariant struktur yang disebut di atas. Ia bukan validator umum OpenAPI 3.1, tidak memeriksa semantic schema, contoh request/response, external reference, atau kesesuaian runtime endpoint. Karena itu T-API-01 masih parsial, conformance keseluruhan belum lulus, dan semua operasi tetap `DRAFT`. Hash commit kode test dicatat di `IMPLEMENTATION_PROGRESS.md`.
+Pemeriksaan ini khusus untuk invariant struktur yang disebut di atas. Ia bukan validator umum OpenAPI 3.1, tidak memeriksa semantic schema, contoh request/response, external reference, atau kesesuaian runtime endpoint. Karena itu T-API-01 masih parsial, conformance keseluruhan belum lulus, dan semua operasi tetap `DRAFT`. Commit test: `85ae00fc5a2b53295688d4285c2fe0c4ce0c1969`.
 
 ## Command
 
