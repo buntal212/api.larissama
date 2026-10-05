@@ -4,6 +4,7 @@
 
 - Tanggal: 2026-10-05 (Asia/Jakarta)
 - Status: PASS
+- Commit: `d7f73b1`
 - Baseline sebelum test: `55f584a`
 - Test: `tests/Feature/KategoriMenuApiTest.php`
 - SHA-256 test: `9c40bc9702c2bf06401045d0a5c13556c5dee4c9cc721c8086cfdc24467891c0`
