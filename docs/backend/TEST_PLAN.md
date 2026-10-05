@@ -828,7 +828,7 @@ Hasil `WARUNG-TIMEZONE-INPUT-VALIDATION-CONFORMANCE-001`: PASS pada test commit 
 
 ## Hasil keputusan transaksi atas katalog nonaktif (D06)
 
-User memutuskan 2026-10-05 bahwa penjualan baru ditolak jika menu atau kategorinya nonaktif. `TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001` menguji menu nonaktif dan menu aktif dalam kategori nonaktif sebagai HTTP 422 schema-conformant pada `rincian.0.menu_id`, tanpa header/rincian parsial; menu dan kategori aktif tetap menghasilkan 201. Action mengunci row menu/kategori saat validasi agar perubahan status tidak berlomba dengan pencatatan. Test khusus 1/422; gabungan dengan empat area transaksi 51/9.759; suite penuh 419/64.739; Pint 150 file dan validator OpenAPI lulus. Pembatalan/koreksi penjualan dan dampaknya terhadap laporan tetap belum diputuskan; semua operasi masih DRAFT. Detail: [TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001](test-runs/TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001.md).
+User memutuskan 2026-10-05 bahwa penjualan baru ditolak jika menu atau kategorinya nonaktif. `TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001` menguji menu nonaktif dan menu aktif dalam kategori nonaktif sebagai HTTP 422 schema-conformant pada `rincian.0.menu_id`, tanpa header/rincian parsial; menu dan kategori aktif tetap menghasilkan 201. Action mengunci row menu/kategori saat validasi agar perubahan status tidak berlomba dengan pencatatan. Hasil run itu mencatat koreksi/retur belum diputuskan pada saatnya; keputusan terbaru 72 jam dan retur dicatat serta diuji pada bagian D06 di bawah.
 
 
 ## Hasil request login dengan field tak dikenal
@@ -895,3 +895,11 @@ User menetapkan masa berlaku `Idempotency-Key` tujuh hari. `IDEMPOTENCY-7-DAY-EX
 ## Jalur sukses role owner/manager untuk koreksi dan pembatalan D11
 
 `D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001` melengkapi positive role matrix: manager dapat mengoreksi dan owner dapat membatalkan pembelian tenant sendiri. Body request dan response 201 cocok schema OpenAPI; event audit mencatat aktor/alasan/snapshot yang benar. Bersama owner-koreksi/manager-pembatalan yang telah ada, ini menguji kedua role pada kedua operasi. `PembelianApiTest` 30/6.455 PASS; Pint dan validator OAS PASS; Compose dibersihkan. Ditambah [uji role deny pembatalan](test-runs/D11-CANCEL-RBAC-CONFORMANCE-001.md), owner/manager diizinkan dan kasir/superadmin/tenant lain ditolak pada scope yang diuji; operationId tetap DRAFT.
+
+## Koreksi, pembatalan, dan retur penjualan D06
+
+User menetapkan koreksi/pembatalan beralasan sampai **3×24 jam (72 jam)** sejak `created_at` UTC; setelah window, retur sebagian/penuh beralasan tetap dapat dicatat tanpa mengubah stok. Jumlah retur dibatasi total transaksi tersisa dan mengurangi pendapatan pada periode lokal saat retur dicatat.
+
+`SALE-CORRECTION-RETURN-CONFORMANCE-001` PASS: lima acceptance test penjualan / 2.102 assertions mencakup koreksi dan pembatalan beralasan dengan snapshot append-only, retry key sama, batas tepat 72 jam dan lewat 1 detik, harga menu aktif dihitung server saat penggantian rincian, role owner/manager dan tenant 403/404, retur setelah 72 jam, batas saldo retur, dan laporan periode retur. Metadata MySQL untuk sebelas tabel bisnis/117 kolom, seluruh FK/index dan FK audit lintas-tenant juga lulus. Suite penuh 519/77.587 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40; Pint serta validator OpenAPI 3.1 PASS. Bukti: [SALE-CORRECTION-RETURN-CONFORMANCE-001](test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md).
+
+Batas tersisa: expiry dan race idempotency event koreksi/retur penjualan, matriks penuh status/request/response tiga operasi, dan kesiapan base URL/environment live. Ketiga operationId tetap DRAFT; acceptance ini belum menjadi handoff frontend.

@@ -2,7 +2,7 @@
 
 ## Status dokumen
 
-Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Migration delapan tabel bisnis, termasuk adaptasi `users`, timezone, katalog, FK tenant gabungan, dan empat tabel transaksi, telah diterapkan serta diperiksa pada database development lokal MySQL 8.0.40. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
+Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder Downloads. Delapan tabel bisnis inti, termasuk adaptasi `users`, timezone, katalog, FK tenant gabungan, dan empat tabel transaksi, telah diterapkan serta diperiksa pada database development lokal MySQL 8.0.40. Tiga tabel audit tambahan mencatat koreksi pembelian, koreksi penjualan, dan retur penjualan. Migration `users` menolak database lama yang sudah berisi user sampai pemetaan identitas dan tenant ditetapkan; data produksi tidak disentuh. Setelah migration diterapkan, migration Laravel menjadi sumber kebenaran untuk struktur fisik database; perbarui dokumen ini bila keputusan skema berubah.
 
 ## Batas otoritas
 
@@ -13,6 +13,8 @@ Dokumen ini adalah rancangan logis yang dipindahkan dari `database.md` di folder
 - Jika sumber-sumber itu berbeda, telusuri keputusan yang mendasarinya dan perbarui artefak yang terkait. Jangan menyelesaikan konflik dengan menebak atau hanya mengubah dokumen turunan.
 
 Rancangan ini mencakup delapan tabel bisnis: `warungs`, `users`, `kategori_menus`, `menus`, `penjualans`, `penjualan_rincis`, `pembelians`, dan `pembelian_rincis`. Tabel infrastruktur framework, termasuk `sessions`, `cache`, `jobs`, `password_reset_tokens`, dan Sanctum `personal_access_tokens`, berada di luar hitungan tersebut. Aplikasi tidak memakai tabel `mejas` atau `menu_varians`.
+
+Skema audit memperluasnya menjadi sebelas tabel bisnis fisik: `pembelian_koreksis`, `penjualan_koreksis`, dan `penjualan_returs` menyimpan perubahan/pengembalian transaksi sebagai riwayat terpisah.
 
 ## Aturan inti
 
@@ -157,6 +159,39 @@ Relasi: satu warung dan satu user tenant dapat terkait dengan banyak penjualan. 
 | `created_at`, `updated_at` | timestamp |
 
 Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu` dan harga jual saat transaksi. Tidak ada rincian item bebas. Perubahan master menu tidak boleh menulis ulang snapshot transaksi yang sudah terjadi.
+
+### `penjualan_koreksis` dan `penjualan_returs`
+
+`penjualan_koreksis` menyimpan setiap koreksi atau pembatalan dalam jendela **3×24 jam (72 jam)** sejak `penjualans.created_at` UTC. Owner dan manager dalam warung yang sama wajib memberi alasan. Snapshot JSON sebelum/sesudah mencatat header dan rincian, sementara `user_id` mengidentifikasi pelaku. Pembatalan mengubah status menjadi `batal`; baris audit tetap append-only.
+
+Setelah 72 jam, penjualan tidak dapat dikoreksi atau dibatalkan, tetapi retur nominal sebagian maupun penuh tetap dapat dibuat kapan saja selama transaksi belum dibatalkan atau diretur penuh. Alasan wajib dan total retur tidak boleh melebihi nilai penjualan. Retur tidak mengubah stok. Laporan mengurangi retur pada periode lokal warung ketika retur dicatat, sehingga periode yang hanya berisi retur dapat memiliki pendapatan bersih negatif.
+
+Kedua tabel audit memakai FK tenant gabungan ke penjualan dan user pencatat. Event correction/return menyimpan key idempotensi selama tujuh hari untuk retry. Setelah masa retry, metadata key/hash/expiry dapat dilepas pada event berikutnya tanpa menghapus audit. Skema fisik dan index tersedia pada migration `2026_10_06_100000_create_penjualan_corrections_and_returns_tables`.
+
+#### `penjualan_koreksis`
+
+| Kolom | Tipe/rule |
+| --- | --- |
+| `id` | BIGINT primary key |
+| `warung_id`, `penjualan_id` | BIGINT; FK gabungan ke header penjualan |
+| `user_id` | BIGINT; FK gabungan ke user tenant yang melakukan koreksi |
+| `jenis` | VARCHAR(20), `ubah` atau `batalkan` |
+| `alasan` | VARCHAR(1000), wajib |
+| `sebelum`, `sesudah` | JSON snapshot penjualan termasuk detail |
+| `idempotency_key`, `payload_hash`, `idempotency_expires_at` | metadata retry 7 hari; nullable untuk melepas key expired |
+| `created_at`, `updated_at` | timestamp; waktu event audit |
+
+#### `penjualan_returs`
+
+| Kolom | Tipe/rule |
+| --- | --- |
+| `id` | BIGINT primary key |
+| `warung_id`, `penjualan_id` | BIGINT; FK gabungan ke header penjualan |
+| `user_id` | BIGINT; FK gabungan ke user tenant yang mencatat retur |
+| `nominal` | DECIMAL(15,2), lebih dari nol dan dibatasi sisa nilai yang belum diretur |
+| `alasan` | VARCHAR(1000), wajib |
+| `idempotency_key`, `payload_hash`, `idempotency_expires_at` | metadata retry 7 hari; nullable untuk melepas key expired |
+| `created_at`, `updated_at` | timestamp; `created_at` menentukan periode retur |
 
 ### `pembelians`
 
