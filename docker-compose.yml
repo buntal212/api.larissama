@@ -1,4 +1,4 @@
-name: larissama-backend-dev
+name: larissama-backend-dev-local
 
 services:
   app:
@@ -14,6 +14,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
+      APP_KEY: ${LARISSAMA_APP_KEY:-}
       APP_URL: "http://localhost:${LARISSAMA_API_PORT:-8010}"
       DB_CONNECTION: mysql
       DB_HOST: db
@@ -21,11 +22,12 @@ services:
       DB_DATABASE: ${LARISSAMA_DB_DATABASE:-larissama_dev}
       DB_USERNAME: ${LARISSAMA_DB_USERNAME:-larissama_local}
       DB_PASSWORD: ${LARISSAMA_DB_PASSWORD:-larissama-local-only}
+      DB_URL: ""
       COMPOSER_HOME: /tmp/composer
     command:
       - sh
       - -lc
-      - composer install --no-interaction && php artisan serve --host=0.0.0.0 --port=8000
+      - composer install --no-interaction && if [ -z "$$APP_KEY" ]; then export APP_KEY="$$(php artisan key:generate --show)"; fi && php artisan serve --host=0.0.0.0 --port=8000
     depends_on:
       db:
         condition: service_healthy
@@ -38,7 +40,7 @@ services:
       MYSQL_PASSWORD: ${LARISSAMA_DB_PASSWORD:-larissama-local-only}
       MYSQL_ROOT_PASSWORD: ${LARISSAMA_DB_ROOT_PASSWORD:-larissama-root-local-only}
     ports:
-      - "127.0.0.1:${LARISSAMA_DB_PORT:-3309}:3306"
+      - "127.0.0.1:${LARISSAMA_DB_PORT:-33309}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:

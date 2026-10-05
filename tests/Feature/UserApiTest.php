@@ -100,6 +100,37 @@ class UserApiTest extends TestCase
         ]);
     }
 
+    public function test_owner_can_delegate_owner_role_within_their_warung(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $ownerA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'owner']);
+        $ownerB = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'owner']);
+        $token = $ownerA->createToken('user-feature-test')->plainTextToken;
+        $payload = [
+            'nama' => 'Owner Kedua',
+            'username' => 'owner-kedua-warung-a',
+            'password' => 'owner-delegation-password',
+            'role' => 'owner',
+        ];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, [], '/users', 'post');
+        $created = $this->withToken($token)->postJson('/api/v1/users', $payload)->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($created, '/users', 'post');
+        $delegatedOwnerId = $created->json('data.id');
+        $this->assertSame('owner', $created->json('data.role'));
+        $this->assertSame((string) $warungA->id, $created->json('data.warung_id'));
+
+        $delegatedOwner = User::query()->findOrFail((int) $delegatedOwnerId);
+        $delegatedToken = $delegatedOwner->createToken('delegated-owner-test')->plainTextToken;
+        $list = $this->withToken($delegatedToken)->getJson('/api/v1/users')->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($list, '/users', 'get');
+        $listedIds = array_column($list->json('data'), 'id');
+        $this->assertContains((string) $ownerA->id, $listedIds);
+        $this->assertContains((string) $delegatedOwnerId, $listedIds);
+        $this->assertNotContains((string) $ownerB->id, $listedIds);
+    }
+
     public function test_owner_gets_404_for_another_warungs_user_and_leaves_it_unchanged(): void
     {
         $warungA = Warung::factory()->create();

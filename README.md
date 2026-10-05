@@ -12,13 +12,20 @@
 Docker adalah pilihan untuk development, bukan syarat semua anggota tim. Untuk menggunakan Docker Desktop yang terpasang di Windows, aktifkan integrasi WSL 2 lalu jalankan perintah dari terminal WSL di direktori repo ini. Compose menyediakan PHP 8.3 dan MySQL 8.0.40 untuk development lokal; versi MySQL ini bukan keputusan versi database produksi.
 
 ```bash
-cp -n .env.example .env
 docker compose up --build -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --force
 ```
 
-API server lokal tersedia di `http://localhost:8010`; MySQL dapat diakses dari host pada port `3309`. Compose memasang dependency Composer saat container app mulai. Untuk menghentikan layanan tanpa menghapus data database, jalankan `docker compose down` (hindari opsi `-v` jika volume database ingin dipertahankan). Kredensial default Compose hanya untuk database development lokal. Port dan kredensial dapat diubah lewat variabel `LARISSAMA_API_PORT`, `LARISSAMA_DB_PORT`, `LARISSAMA_DB_DATABASE`, `LARISSAMA_DB_USERNAME`, `LARISSAMA_DB_PASSWORD`, dan `LARISSAMA_DB_ROOT_PASSWORD`; ID user/group container default `1000` dan dapat diubah dengan `LARISSAMA_UID` serta `LARISSAMA_GID`.
+API server lokal tersedia di `http://localhost:8010`; health endpoint-nya `http://localhost:8010/up`. MySQL dapat diakses dari host pada port `33309`. Compose memasang dependency Composer dan membuat APP_KEY development sementara saat container app mulai jika `LARISSAMA_APP_KEY` tidak diisi. Untuk menghentikan layanan tanpa menghapus data database, jalankan `docker compose down` (hindari opsi `-v` jika volume database ingin dipertahankan). Kredensial default Compose hanya untuk database development lokal. Port dan kredensial dapat diubah lewat variabel `LARISSAMA_API_PORT`, `LARISSAMA_DB_PORT`, `LARISSAMA_DB_DATABASE`, `LARISSAMA_DB_USERNAME`, `LARISSAMA_DB_PASSWORD`, dan `LARISSAMA_DB_ROOT_PASSWORD`; ID user/group container default `1000` dan dapat diubah dengan `LARISSAMA_UID` serta `LARISSAMA_GID`.
+
+Test Laravel berjalan pada project dan database MySQL 8.0.40 yang terpisah dari development:
+
+```bash
+docker compose -f compose.test.yaml --project-name larissama-backend-test run --rm test-runner sh -lc 'composer install --no-interaction && php artisan test'
+docker compose -f compose.test.yaml --project-name larissama-backend-test run --rm test-runner vendor/bin/pint --test
+```
+
+Container database test dapat dihentikan setelahnya dengan `docker compose -f compose.test.yaml --project-name larissama-backend-test down`. Detail cara kerja dan hasil verifikasi ada di [tracker implementasi](IMPLEMENTATION_PROGRESS.md).
 
 Tanpa Docker, gunakan PHP 8.3+ dan Composer yang sesuai dengan `composer.json`, jalankan `composer install`, siapkan `.env` dari `.env.example`, isi koneksi ke MySQL/MariaDB lokal, lalu jalankan `php artisan key:generate`, `php artisan migrate`, dan `php artisan serve`. Rincian operasi kontrak dan status handoff frontend ada di [panduan API](docs/api/README.md) dan [OpenAPI](docs/api/openapi.yaml); keduanya tetap draft sampai status tracker menyatakan siap.
 
