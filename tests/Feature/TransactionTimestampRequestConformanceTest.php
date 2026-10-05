@@ -308,6 +308,108 @@ class TransactionTimestampRequestConformanceTest extends TestCase
         $this->assertSame($utcValue, DB::table('pembelians')->where('id', $response->json('data.id'))->value('tanggal'));
     }
 
+    #[DataProvider('timestampsOutsideMysqlUtcRange')]
+    public function test_sale_rejects_timestamp_outside_mysql_utc_range_without_writing(
+        string $timestamp,
+        bool $matchesOpenApi,
+    ): void {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $owner->createToken('sale-out-of-range-timestamp-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'bayar' => '1000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+
+        if ($matchesOpenApi) {
+            $this->assertOperationRequestMatchesOpenApi($payload, ['Idempotency-Key' => 'sale-out-of-range'], '/penjualans', 'post');
+        } else {
+            $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/penjualans', 'post');
+        }
+
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $payload, ['Idempotency-Key' => 'sale-out-of-range'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('tanggal');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+        $this->assertTransactionTablesAreEmpty();
+    }
+
+    #[DataProvider('timestampsOutsideMysqlUtcRange')]
+    public function test_purchase_rejects_timestamp_outside_mysql_utc_range_without_writing(
+        string $timestamp,
+        bool $matchesOpenApi,
+    ): void {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('purchase-out-of-range-timestamp-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'rincian' => [['nama_item' => 'Belanja harian', 'subtotal' => '1000.00']],
+        ];
+
+        if ($matchesOpenApi) {
+            $this->assertOperationRequestMatchesOpenApi($payload, ['Idempotency-Key' => 'purchase-out-of-range'], '/pembelians', 'post');
+        } else {
+            $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/pembelians', 'post');
+        }
+
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $payload, ['Idempotency-Key' => 'purchase-out-of-range'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('tanggal');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+        $this->assertTransactionTablesAreEmpty();
+    }
+
+    #[DataProvider('validMysqlUtcTimestampBoundaries')]
+    public function test_sale_accepts_mysql_utc_timestamp_boundaries(string $timestamp, string $utcValue): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $owner->createToken('sale-mysql-timestamp-boundary-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'bayar' => '1000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, ['Idempotency-Key' => 'sale-mysql-boundary'], '/penjualans', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $payload, ['Idempotency-Key' => 'sale-mysql-boundary'])
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', str_replace(' ', 'T', $utcValue).'.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+        $this->assertSame($utcValue, DB::table('penjualans')->where('id', $response->json('data.id'))->value('tanggal'));
+    }
+
+    #[DataProvider('validMysqlUtcTimestampBoundaries')]
+    public function test_purchase_accepts_mysql_utc_timestamp_boundaries(string $timestamp, string $utcValue): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('purchase-mysql-timestamp-boundary-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'rincian' => [['nama_item' => 'Belanja harian', 'subtotal' => '1000.00']],
+        ];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, ['Idempotency-Key' => 'purchase-mysql-boundary'], '/pembelians', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $payload, ['Idempotency-Key' => 'purchase-mysql-boundary'])
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', str_replace(' ', 'T', $utcValue).'.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+        $this->assertSame($utcValue, DB::table('pembelians')->where('id', $response->json('data.id'))->value('tanggal'));
+    }
+
     /** @return array<string, array{string}> */
     public static function timestampsWithoutRfc3339Offset(): array
     {
@@ -363,6 +465,25 @@ class TransactionTimestampRequestConformanceTest extends TestCase
         return [
             'millisecond fraction' => ['2026-10-04T23:30:00.123Z', '2026-10-04 23:30:00'],
             'nanosecond fraction with offset' => ['2026-10-04T23:30:00.999999999-04:00', '2026-10-05 03:30:00'],
+        ];
+    }
+
+    /** @return array<string, array{string, bool}> */
+    public static function timestampsOutsideMysqlUtcRange(): array
+    {
+        return [
+            'local year below minimum' => ['0001-01-01T00:00:00Z', false],
+            'offset crosses utc lower bound' => ['1000-01-01T00:00:00+00:01', true],
+            'offset crosses utc upper bound' => ['9999-12-31T23:59:59-00:01', true],
+        ];
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function validMysqlUtcTimestampBoundaries(): array
+    {
+        return [
+            'minimum datetime' => ['1000-01-01T00:00:00Z', '1000-01-01 00:00:00'],
+            'maximum datetime' => ['9999-12-31T23:59:59Z', '9999-12-31 23:59:59'],
         ];
     }
 

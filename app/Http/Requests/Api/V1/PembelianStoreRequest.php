@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Models\Pembelian;
+use App\Rules\UtcMysqlDateTimeRange;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -24,7 +25,8 @@ class PembelianStoreRequest extends FormRequest
             'tanggal' => [
                 'required',
                 'date',
-                'regex:/\\A\\d{4}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)\\z/',
+                'regex:/\\A[1-9]\\d{3}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)\\z/',
+                new UtcMysqlDateTimeRange,
             ],
             'catatan' => ['sometimes', 'nullable', 'string'],
             'rincian' => ['required', 'array', 'min:1'],

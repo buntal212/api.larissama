@@ -2216,8 +2216,8 @@ components:
     Timestamp:
       type: string
       format: date-time
-      pattern: '^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$'
-      description: 'Profil RFC3339: jam 00–23, menit/detik 00–59, zona Z atau offset ±HH:MM. Leap second tidak didukung oleh penyimpanan transaksi. Pecahan detik pada request create transaksi diterima tetapi dipotong ke presisi detik DATETIME, tanpa pembulatan. Timestamp disimpan/dikirim UTC; tampilan/periode memakai zona IANA warung. Zona kosong/invalid menolak akses dan backdate menunggu D08.'
+      pattern: '^[1-9]\d{3}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$'
+      description: 'Profil RFC3339: tahun 1000–9999, jam 00–23, menit/detik 00–59, zona Z atau offset ±HH:MM. Pada create transaksi, offset diubah ke UTC dan instant harus berada dalam rentang MySQL DATETIME (1000-01-01T00:00:00Z sampai 9999-12-31T23:59:59Z); instant di luar rentang ditolak. Pecahan detik pada request create transaksi diterima tetapi dipotong ke presisi detik DATETIME, tanpa pembulatan. Leap second tidak didukung. Timestamp disimpan/dikirim UTC; tampilan/periode memakai zona IANA warung. Zona kosong/invalid menolak akses dan backdate menunggu D08.'
     Timezone:
       type: string
       minLength: 1
