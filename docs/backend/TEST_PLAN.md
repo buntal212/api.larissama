@@ -1,6 +1,6 @@
 # Rancangan Test dan Kriteria Lulus
 
-Status awal dokumen ini adalah seluruh test aplikasi **NOT_RUN**. Sejak itu, subset feature/conformance dijalankan pada MySQL 8.0.40; catatan rinci, commit, hasil, dan batas tiap run ada di [tracker](../../IMPLEMENTATION_PROGRESS.md) serta artefak run terkait. User mengonfirmasi database produksi kosong/fresh install, sehingga backfill T-DB-02 tidak diperlukan untuk rilis awal; migration tetap menolak data user lama bila ditemukan. D08 dan aturan identitas D12 telah diputuskan, sedangkan conformance OpenAPI penuh, milestone, environment integrasi, dan handoff API masih terbuka. Jangan memperlakukan ringkasan ini sebagai klaim semua skenario lulus; gunakan tracker dan artefak run untuk cakupan aktual.
+Status saat ini: full suite PASS 501 test / 73.750 assertions dan OpenAPI 3.1 validator PASS pada commit `5747f38` ([run](test-runs/BACKEND-FULL-SUITE-001.md)). Database produksi dikonfirmasi kosong/fresh install; backfill T-DB-02 tidak diperlukan untuk rilis awal dan migration tetap menolak data user lama bila ditemukan. D08, D12, dan konvensi wire D13 sudah diputuskan. Conformance runtime lengkap, milestone, environment integrasi, dan handoff API masih terbuka. Gunakan tracker dan artefak run untuk batas tiap cakupan.
 
 Kebutuhan berasal dari K01–K09 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung keputusan terbuka tetap kandidat; perbarui hanya skenario yang terdampak sebelum dijadikan gate.
 
@@ -655,7 +655,7 @@ Acceptance: empat pasangan terlarang kasir/superadmin × report menghasilkan 403
 
 User memilih page positif tanpa batas numerik; `per_page` tetap dibatasi 1–100. `UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001` menguji `page=9223372036854775808` pada keenam GET list, dengan satu row yang cocok dan role sah. Semua merespons HTTP 200/schema-conformant, `data=[]`, `total=1`, `last_page=1`; `meta.page` memuat integer JSON eksak yang sama dan query tidak membuat SQL offset. Focused test lulus 12/728 (mencakup maksimum signed 64-bit dan satu di atas `PHP_INT_MAX`); suite penuh 316/33969 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable; Pint lulus untuk 138 file dan Compose dibersihkan.
 
-Batas bukti: diuji satu nilai di atas `PHP_INT_MAX`, bukan ukuran query string/proxy maksimum. JSON client JavaScript dapat membulatkan nilai di atas `Number.MAX_SAFE_INTEGER`; frontend perlu mempertahankan query page sebagai string untuk nilai ekstrem. D13 tetap PARTIAL, T-API-03/T-API-05 bukan gate penuh, dan seluruh operasi tetap DRAFT. Rincian ada pada [artefak run](test-runs/UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001.md).
+Batas bukti: diuji satu nilai di atas `PHP_INT_MAX`, bukan ukuran query string/proxy maksimum. JSON client JavaScript dapat membulatkan nilai di atas `Number.MAX_SAFE_INTEGER`; frontend perlu mempertahankan query page sebagai string untuk nilai ekstrem. Pilihan D13 sudah DECIDED; T-API-03/T-API-05 dan contract conformance seluruh operasi tetap terbuka, sehingga semua operasi tetap DRAFT. Rincian ada pada [artefak run](test-runs/UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001.md).
 
 ## Rencana conformance matriks role owner D04
 
