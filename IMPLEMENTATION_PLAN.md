@@ -1,6 +1,6 @@
 # Rencana Pelaksanaan Backend LarisSama
 
-Status: rancangan pelaksanaan, 2026-10-04. Tugas saat ini menghasilkan desain, kontrak, test plan, dan tracker. Implementasi aplikasi belum dimulai. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
+Status: rencana pelaksanaan yang diperbarui 2026-10-05. Implementasi backend Laravel sedang berjalan. Tracker saat ini mencatat 8/29 task selesai (28%), 10/30 operationId dengan implementasi fitur DONE, dan 0/30 operasi siap integrasi live karena seluruh kontrak masih DRAFT. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
 
 ## Dokumen yang dipakai
 
@@ -9,10 +9,10 @@ Status: rancangan pelaksanaan, 2026-10-04. Tugas saat ini menghasilkan desain, k
 | [AGENTS.md](AGENTS.md), [aturan database](database/AGENTS.md) | Instruksi kerja backend dan migration. |
 | [database/README.md](database/README.md) | Rancangan logis delapan tabel; migration kelak menunjukkan schema yang benar-benar diterapkan. |
 | [DESIGN.md](docs/backend/DESIGN.md) | Modul, struktur Laravel, batas transaksi, tenant, perhitungan, dan invariant. |
-| [DECISIONS.md](docs/backend/DECISIONS.md) | Kebutuhan K01–K08 serta keputusan D01–D13 yang belum ditetapkan. |
+| [DECISIONS.md](docs/backend/DECISIONS.md) | Kebutuhan K01–K09 serta keputusan D01–D16, termasuk pilihan yang masih terbuka. |
 | [openapi.yaml](docs/api/openapi.yaml) | Bentuk wire API kandidat, parameter, schema, contoh, status, dan keputusan pemblokir per operasi. |
 | [panduan API](docs/api/README.md) | Petunjuk AI frontend, alur integrasi, null/decimal/errors, dan changelog kontrak. |
-| [TEST_PLAN.md](docs/backend/TEST_PLAN.md) | 45 skenario, fixture sintetis, expected result, gate, dan format bukti test. |
+| [TEST_PLAN.md](docs/backend/TEST_PLAN.md) | Skenario, fixture sintetis, expected result, gate, dan format pencatatan test. |
 | [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 29 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
 | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Proses kerja per slice dan aturan commit berdasarkan kelompok perubahan terkait. |
 
@@ -36,7 +36,7 @@ Aplikasi tidak memerlukan workflow dapur, resep, stok, item penjualan bebas, ata
 | M1 — Akses dan administrasi | BE-101–105 | Warung/users, login/me/logout, tenant/policy/status aktif, admin warung+owner, pengelolaan user tenant. 12 operasi akses/admin. | G1: auth, role, tenant, provisioning, dan kontrak lulus; operasi terkait siap frontend. |
 | M2 — Kategori dan menu | BE-201–204 | Migration/model/API katalog, filter/pagination, harga decimal, kategori satu warung. 8 operasi katalog. | G2: katalog dan arsip sesuai aturan; data tenant lain tidak terbaca/terubah; strategi D16 dipilih; kontrak lulus. |
 | M3 — Penjualan dan pendapatan | BE-301–306 | Action atomic, snapshot, validasi uang, nomor/retry, riwayat/detail, laporan pendapatan. 3 operasi transaksi dan 1 laporan; cancel hanya setelah D06. | G3: nominal/snapshot/rollback/retry/concurrency dan laporan lulus pada engine target; kontrak siap. |
-| M4 — Pembelian dan total periode | BE-401–406 | Action atomic ringkas/rinci, nomor/retry, riwayat/detail, laporan pembelian. 3 operasi transaksi dan 1 laporan; koreksi hanya setelah D11. | G4: “Belanja di pasar + nominal” diterima, total detail benar, tenant/rollback/retry/laporan lulus. |
+| M4 — Pembelian dan total periode | BE-401–406 | Action atomic ringkas/rinci, nomor/retry, riwayat/detail, koreksi dengan alasan dan snapshot, serta laporan pembelian. 5 operasi transaksi dan 1 laporan. | G4: “Belanja di pasar + nominal” diterima, total detail benar, koreksi/pembatalan menjaga audit, tenant/rollback/retry/laporan lulus. |
 | M5 — Integrasi dan rilis | BE-501–504 | Regression, runbook deploy/recovery, environment integrasi, handoff frontend dan bukti penerimaan. | G5: seluruh test wajib lulus, tidak ada endpoint diserahkan tanpa kontrak, runbook dan handoff terbukti. |
 
 Dependency teknis:
@@ -90,4 +90,4 @@ AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lal
 - perilaku retry/correction jika fitur itu diserahkan;
 - run test yang mendukung dan keterbatasan yang masih berlaku.
 
-Semua operasi masih DRAFT/NOT_STARTED untuk handoff; belum ada endpoint bisnis siap integrasi live. BE-001 dan T-ENV-01 sudah selesai diverifikasi. Lanjutkan dependency yang masih terbuka mulai BE-002/BE-003/BE-004, lalu ikuti urutan task pada tracker sebelum gate modul. Status DRAFT tetap berlaku sampai keputusan, test, dan contract conformance slice terpenuhi.
+Semua 30 operasi masih DRAFT untuk integrasi live. Sepuluh operationId penjualan, pembelian, dan laporan berstatus implementasi DONE; frontend dapat membangun UI/model/adapter menggunakan schema OpenAPI dan mock untuk slice tersebut. Belum ada endpoint yang diserahkan untuk integrasi live. BE-001 dan T-ENV-01 sudah selesai diverifikasi. Lanjutkan dependency yang masih terbuka pada tracker dan tutup gate per modul; status READY hanya diberikan setelah keputusan, implementasi, verifikasi yang diwajibkan, dan handoff slice terpenuhi.

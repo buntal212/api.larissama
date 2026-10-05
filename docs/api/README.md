@@ -13,7 +13,7 @@ Slice fitur backend yang selesai mencakup operationId berikut:
 - Penjualan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `getLaporanPenjualan`.
 - Pembelian: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
 
-Semua 30 `x-contract-status` masih DRAFT. Operasi di atas tidak memerlukan implementasi ulang dari frontend; kontraknya tetap mengikuti OpenAPI dan mock sampai gate handoff tercatat di tracker.
+Semua 30 `x-contract-status` masih DRAFT. Operasi di atas tidak memerlukan implementasi ulang dari frontend; kontraknya tetap mengikuti OpenAPI dan mock sampai gate handoff tercatat di [tracker progres](../../IMPLEMENTATION_PROGRESS.md). Rencana urutan milestone dan dependency backend ada di [IMPLEMENTATION_PLAN.md](../../IMPLEMENTATION_PLAN.md).
 
 ## Validasi spesifikasi
 
