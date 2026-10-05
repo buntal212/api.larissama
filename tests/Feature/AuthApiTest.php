@@ -209,6 +209,51 @@ class AuthApiTest extends TestCase
     }
 
     /**
+     * @return array<string, array{string, string|null}>
+     */
+    public static function unavailableTenantTimezoneCases(): array
+    {
+        $cases = [];
+
+        foreach (['owner', 'manager', 'kasir'] as $role) {
+            $cases["{$role} with NULL timezone"] = [$role, null];
+            $cases["{$role} with invalid timezone"] = [$role, 'Invalid/Timezone'];
+        }
+
+        return $cases;
+    }
+
+    #[DataProvider('unavailableTenantTimezoneCases')]
+    public function test_missing_or_invalid_warung_timezone_blocks_login_and_existing_tokens(string $role, ?string $timezone): void
+    {
+        $warung = Warung::factory()->create(['timezone' => $timezone]);
+        $user = User::factory()->create(['warung_id' => $warung->id, 'role' => $role]);
+        $token = $user->createToken('timezone-unavailable')->plainTextToken;
+
+        $loginRequest = [
+            'username' => $user->username,
+            'password' => 'password',
+        ];
+        $this->assertOperationRequestMatchesOpenApi($loginRequest, [], '/auth/login', 'post');
+
+        $login = $this->postJson('/api/v1/auth/login', $loginRequest)->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
+        $this->assertD13ErrorEnvelope($login, 'FORBIDDEN');
+        $this->assertSame(1, $user->tokens()->count(), 'A denied login must not issue another token.');
+
+        Auth::forgetGuards();
+        $me = $this->withToken($token)->getJson('/api/v1/auth/me')->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($me, '/auth/me', 'get');
+        $this->assertD13ErrorEnvelope($me, 'FORBIDDEN');
+
+        Auth::forgetGuards();
+        $protectedResource = $this->withToken($token)->getJson('/api/v1/warung')->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($protectedResource, '/warung', 'get');
+        $this->assertD13ErrorEnvelope($protectedResource, 'FORBIDDEN');
+        $this->assertSame(1, $user->tokens()->count(), 'The existing token remains stored but cannot access tenant routes.');
+    }
+
+    /**
      * @return array<string, array{string, string|null, string|null, bool}>
      */
     public static function activeDateCases(): array
