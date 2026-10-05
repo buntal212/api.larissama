@@ -237,6 +237,35 @@ class PenjualanCorrectionApiTest extends TestCase
         $this->assertSame(0, DB::table('penjualan_koreksis')->where('penjualan_id', $sale->id)->count());
     }
 
+    public function test_sale_detail_reads_back_correction_and_return_history(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-08T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id]);
+        $sale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
+        $token = $manager->createToken('sale-history-readback-test')->plainTextToken;
+
+        $correction = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$sale->id, [
+            'alasan' => 'Catatan dilengkapi.', 'catatan' => 'Tanpa sambal.',
+        ], ['Idempotency-Key' => 'sale-history-correction-001'])->assertCreated();
+        $return = $this->withToken($token)->postJson('/api/v1/penjualans/'.$sale->id.'/retur', [
+            'nominal' => '10.00', 'alasan' => 'Sebagian nilai diretur.',
+        ], ['Idempotency-Key' => 'sale-history-return-001'])->assertCreated();
+
+        $detail = $this->withToken($token)->getJson('/api/v1/penjualans/'.$sale->id)->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/penjualans/{id}', 'get');
+        $this->assertSame($correction->json('data.id'), $detail->json('data.riwayat_koreksi.0.id'));
+        $this->assertSame('ubah', $detail->json('data.riwayat_koreksi.0.jenis'));
+        $this->assertSame('Catatan dilengkapi.', $detail->json('data.riwayat_koreksi.0.alasan'));
+        $this->assertSame('Tanpa sambal.', $detail->json('data.riwayat_koreksi.0.sesudah.catatan'));
+        $this->assertSame($return->json('data.id'), $detail->json('data.riwayat_retur.0.id'));
+        $this->assertSame('10.00', $detail->json('data.riwayat_retur.0.nominal'));
+        $this->assertSame('Sebagian nilai diretur.', $detail->json('data.riwayat_retur.0.alasan'));
+        $this->assertSame('diretur_sebagian', $detail->json('data.status'));
+    }
+
     public function test_only_owner_and_manager_can_mutate_sales_inside_their_warung(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-08T12:00:00Z'));
