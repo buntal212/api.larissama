@@ -11,6 +11,7 @@ use App\Models\PenjualanRinci;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class IdempotencyKeyHeaderConformanceTest extends TestCase
@@ -115,10 +116,94 @@ class IdempotencyKeyHeaderConformanceTest extends TestCase
         }
     }
 
-    /** @return array{required: bool, schema: array<string, mixed>} */
-    private function requiredIdempotencyHeaderSchema(string $path): array
+    public function test_purchase_correction_operations_enforce_the_openapi_idempotency_key_bounds(): void
     {
-        $operation = $this->openApiDocument()['paths'][$path]['post'] ?? null;
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('idempotency-key-purchase-correction')->plainTextToken;
+        $operations = [
+            [
+                'path' => '/pembelians/{id}',
+                'method' => 'PATCH',
+                'action' => 'update',
+                'payload' => ['alasan' => 'Koreksi catatan.', 'catatan' => 'Catatan diperbaiki.'],
+            ],
+            [
+                'path' => '/pembelians/{id}/pembatalan',
+                'method' => 'POST',
+                'action' => 'cancel',
+                'payload' => ['alasan' => 'Transaksi duplikat.'],
+            ],
+        ];
+
+        foreach ($operations as $index => $operation) {
+            $purchase = Pembelian::factory()->create([
+                'warung_id' => $warung->id,
+                'user_id' => $owner->id,
+            ]);
+            $url = '/api/v1/pembelians/'.$purchase->id.($operation['action'] === 'cancel' ? '/pembatalan' : '');
+            $headerSchema = $this->requiredIdempotencyHeaderSchema($operation['path'], strtolower($operation['method']));
+
+            $invalidHeaders = [
+                'missing' => [],
+                'empty' => ['Idempotency-Key' => ''],
+                'too long' => ['Idempotency-Key' => str_repeat('k', 256)],
+                'leading whitespace' => ['Idempotency-Key' => ' key'],
+                'trailing whitespace' => ['Idempotency-Key' => 'key '],
+            ];
+
+            foreach ($invalidHeaders as $case => $headers) {
+                if ($case === 'missing') {
+                    $this->assertTrue($headerSchema['required']);
+                } else {
+                    $schemaErrors = $this->collectOpenApiSchemaErrors(
+                        $headers['Idempotency-Key'],
+                        $headerSchema['schema'],
+                        $this->openApiDocument(),
+                        'header.Idempotency-Key',
+                    );
+                    $this->assertNotEmpty($schemaErrors, "OpenAPI should reject the {$case} correction key.");
+                }
+
+                $response = $this->withToken($token)->json($operation['method'], $url, $operation['payload'], $headers)
+                    ->assertUnprocessable()
+                    ->assertJsonPath('code', 'VALIDATION_ERROR')
+                    ->assertJsonValidationErrors('Idempotency-Key');
+
+                $this->assertOperationResponseMatchesOpenApi($response, $operation['path'], strtolower($operation['method']));
+                $this->assertSame('tercatat', $purchase->fresh()->status);
+                $this->assertSame(0, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase->id)->count());
+            }
+
+            $boundaryKey = str_repeat(chr(97 + $index), 255);
+            $this->assertOperationRequestMatchesOpenApi(
+                $operation['payload'],
+                ['Idempotency-Key' => $boundaryKey],
+                $operation['path'],
+                strtolower($operation['method']),
+            );
+
+            $created = $this->withToken($token)->json(
+                $operation['method'],
+                $url,
+                $operation['payload'],
+                ['Idempotency-Key' => $boundaryKey],
+            )->assertCreated();
+
+            $this->assertOperationResponseMatchesOpenApi($created, $operation['path'], strtolower($operation['method']));
+            $this->assertDatabaseHas('pembelian_koreksis', [
+                'pembelian_id' => $purchase->id,
+                'user_id' => $owner->id,
+                'idempotency_key' => $boundaryKey,
+            ]);
+            $this->assertSame($operation['action'] === 'cancel' ? 'dibatalkan' : 'tercatat', $purchase->fresh()->status);
+        }
+    }
+
+    /** @return array{required: bool, schema: array<string, mixed>} */
+    private function requiredIdempotencyHeaderSchema(string $path, string $method = 'post'): array
+    {
+        $operation = $this->openApiDocument()['paths'][$path][$method] ?? null;
         $this->assertIsArray($operation);
 
         foreach ($operation['parameters'] ?? [] as $parameter) {

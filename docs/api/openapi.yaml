@@ -1910,7 +1910,10 @@ paths:
         `alasan` wajib; sertakan sedikitnya satu field yang diubah. Jika `rincian` dikirim, nilainya mengganti seluruh rincian;
         backend menghitung subtotal dan total. Snapshot sebelum/sesudah, aktor, alasan, dan waktu disimpan sebagai audit append-only.
         Pembelian yang sudah dibatalkan tidak dapat diedit. Idempotency-Key wajib; retry identik me-replay peristiwa audit 201,
-        key sama dengan payload berbeda menghasilkan 409. Operasi tambahan D11 di luar 28 operasi awal; masih DRAFT.
+        key sama dengan payload berbeda menghasilkan 409. PURCHASE-CORRECTION-REQUEST-CONFORMANCE-001 menguji body sah dan
+        penolakan field warung_id asing tanpa write; IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001 menguji header wajib, batas 1–255,
+        whitespace di tepi, dan response 201/422 menurut schema. Response 401/403/404/409 serta replay juga diuji pada subset.
+        Masih DRAFT karena kombinasi status/request belum lengkap dan kebijakan retensi D09 belum diputuskan.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles: [owner, manager]
@@ -1973,7 +1976,10 @@ paths:
         Owner dan manager dapat membatalkan pembelian tercatat di warung sendiri. `alasan` wajib; status berubah menjadi
         `dibatalkan`, detail dan fakta header tidak dihapus. Snapshot, aktor, alasan, dan waktu tercatat sebagai audit append-only.
         Pembatalan ulang dengan key baru menghasilkan 409; retry dengan key/payload sama me-replay peristiwa audit 201.
-        Laporan pembelian tidak menghitung transaksi dibatalkan. Operasi tambahan D11 di luar 28 operasi awal; masih DRAFT.
+        Laporan pembelian tidak menghitung transaksi dibatalkan. PURCHASE-CORRECTION-REQUEST-CONFORMANCE-001 menguji body sah dan
+        penolakan field warung_id asing tanpa write; IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001 menguji header wajib, batas 1–255,
+        whitespace di tepi, dan response 201/422 menurut schema. Response 401/403/409 serta replay juga diuji pada subset.
+        Masih DRAFT karena kombinasi status/request belum lengkap dan kebijakan retensi D09 belum diputuskan.
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles: [owner, manager]

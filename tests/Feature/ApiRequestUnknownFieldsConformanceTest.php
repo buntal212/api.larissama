@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\KategoriMenu;
 use App\Models\Menu;
+use App\Models\Pembelian;
+use App\Models\PembelianRinci;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ApiRequestUnknownFieldsConformanceTest extends TestCase
@@ -171,6 +174,67 @@ class ApiRequestUnknownFieldsConformanceTest extends TestCase
         $this->assertDatabaseCount('penjualan_rincis', 0);
         $this->assertDatabaseCount('pembelians', 0);
         $this->assertDatabaseCount('pembelian_rincis', 0);
+    }
+
+    public function test_purchase_correction_operations_reject_unknown_fields_without_mutating_history(): void
+    {
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $purchase = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $owner->id,
+            'total' => '125.00',
+            'catatan' => 'Catatan awal',
+        ]);
+        PembelianRinci::factory()->create([
+            'warung_id' => $warung->id,
+            'pembelian_id' => $purchase->id,
+            'nama_item' => 'Beras',
+            'subtotal' => '125.00',
+        ]);
+        $ownerToken = $owner->createToken('unknown-field-purchase-correction')->plainTextToken;
+
+        $cases = [
+            [
+                'method' => 'PATCH',
+                'uri' => '/api/v1/pembelians/'.$purchase->id,
+                'openapi_path' => '/pembelians/{id}',
+                'headers' => ['Idempotency-Key' => 'unknown-field-purchase-update'],
+                'body' => ['alasan' => 'Perbarui catatan.', 'catatan' => 'Nilai tetap'],
+            ],
+            [
+                'method' => 'POST',
+                'uri' => '/api/v1/pembelians/'.$purchase->id.'/pembatalan',
+                'openapi_path' => '/pembelians/{id}/pembatalan',
+                'headers' => ['Idempotency-Key' => 'unknown-field-purchase-cancel'],
+                'body' => ['alasan' => 'Batalkan duplikat.'],
+            ],
+        ];
+
+        foreach ($cases as $case) {
+            $body = [...$case['body'], 'warung_id' => (string) $warung->id];
+            $method = strtolower($case['method']);
+            $this->assertOperationRequestDoesNotMatchOpenApi($body, $case['openapi_path'], $method);
+
+            $response = $this->withToken($ownerToken)->json(
+                $case['method'],
+                $case['uri'],
+                $body,
+                $case['headers'],
+            )->assertUnprocessable();
+
+            $this->assertOperationResponseMatchesOpenApi($response, $case['openapi_path'], $method);
+            $response->assertJsonPath('code', 'VALIDATION_ERROR')->assertJsonValidationErrors('warung_id');
+        }
+
+        $this->assertDatabaseHas('pembelians', [
+            'id' => $purchase->id,
+            'total' => '125.00',
+            'catatan' => 'Catatan awal',
+            'status' => 'tercatat',
+        ]);
+        $this->assertSame(1, PembelianRinci::query()->where('pembelian_id', $purchase->id)->count());
+        $this->assertSame(0, DB::table('pembelian_koreksis')->count());
     }
 
     /**
