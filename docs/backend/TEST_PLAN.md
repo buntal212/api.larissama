@@ -868,7 +868,7 @@ Pada saat catatan keputusan transaksi ini dibuat, suite penuh berjumlah 482 test
 
 ## Verifikasi fitur role dan tenant katalog
 
-`CATALOG-ROLE-ACCEPTANCE-002` menjalankan test kategori/menu bersama test owner tenant dan transaksi yang menolak katalog nonaktif: PASS 20 test / 4.954 assertions pada MySQL 8.0.40. Cakupan gabungan membuktikan akses owner/manager, batas tulis kasir/superadmin, tenant isolation, active-only, dan D06 untuk penjualan. Pint 172 file serta validator OpenAPI 3.1 lulus; Compose dibersihkan. Ini menutup implementasi fitur BE-202/203. BE-204/G2 tetap terbuka untuk conformance semua kombinasi status/request/response dan handoff katalog; semua operasi katalog tetap DRAFT. [Artefak run](test-runs/CATALOG-ROLE-ACCEPTANCE-002.md).
+`CATALOG-ROLE-ACCEPTANCE-002` menjalankan test kategori/menu bersama test owner tenant, penjualan atas katalog nonaktif, dan kegagalan DB untuk keempat operasi tulis: PASS 21 test / 5.135 assertions pada MySQL 8.0.40. Cakupan gabungan membuktikan akses owner/manager, batas tulis kasir/superadmin, tenant isolation, active-only, D06 untuk penjualan, Error500 schema, pesan internal tidak bocor, dan row tidak berubah saat write gagal. Pint 173 file serta validator OpenAPI 3.1 lulus; Compose dibersihkan. Ini menutup implementasi fitur BE-202/203. BE-204/G2 tetap terbuka untuk conformance semua kombinasi status/request/response dan handoff katalog; semua operasi katalog tetap DRAFT. [Artefak run](test-runs/CATALOG-ROLE-ACCEPTANCE-002.md).
 
 ## Window expiry idempotency D09
 

@@ -3,17 +3,17 @@
 ## Hasil
 
 - Tanggal: 2026-10-05 (Asia/Jakarta)
-- Commit source: `0a68517` (tidak ada perubahan runtime sejak full suite `BACKEND-FULL-SUITE-001`)
+- Commit source: `4951bb9` (tidak ada perubahan runtime sejak full suite `BACKEND-FULL-SUITE-001`)
 - Runtime: Docker Compose disposable, PHP 8.3, Laravel 13, MySQL 8.0.40
-- Feature tests: PASS, 20 test / 4.954 assertions
-- Pint: PASS, 172 file
+- Feature tests: PASS, 21 test / 5.135 assertions
+- Pint: PASS, 173 file
 - OpenAPI validator: PASS, `docs/api/openapi.yaml: OK`
 - Cleanup: service database dan network test dihapus
 
 Command feature:
 
 ```sh
-docker compose -f compose.test.yaml run --build --rm test-runner php artisan test --display-warnings tests/Feature/KategoriMenuApiTest.php tests/Feature/MenuApiTest.php tests/Feature/SaleInactiveCatalogConformanceTest.php tests/Feature/OwnerTenantAccessConformanceTest.php
+docker compose -f compose.test.yaml run --build --rm test-runner php artisan test --display-warnings tests/Feature/KategoriMenuApiTest.php tests/Feature/MenuApiTest.php tests/Feature/SaleInactiveCatalogConformanceTest.php tests/Feature/OwnerTenantAccessConformanceTest.php tests/Feature/CatalogServerErrorConformanceTest.php
 ```
 
 ## Cakupan yang lulus
@@ -24,6 +24,7 @@ docker compose -f compose.test.yaml run --build --rm test-runner php artisan tes
 - Superadmin ditolak pada pembacaan dan penulisan katalog tenant dengan 403 tanpa perubahan data.
 - Kategori/menu lintas tenant, injeksi `warung_id`, field yang tidak didukung, kode duplikat dalam tenant, dan harga tidak valid ditangani sesuai test.
 - Penjualan baru atas menu atau kategori nonaktif ditolak tanpa write; katalog aktif tetap dapat dijual.
+- Kegagalan database yang dipicu pada INSERT/UPDATE kategori/menu menghasilkan 500 sesuai OpenAPI, tidak membocorkan pesan SQL, dan tidak membuat atau mengubah row.
 - Request, query, dan response terpilih dicocokkan dengan OpenAPI melalui assertion pada test fitur.
 
 ## Batas hasil

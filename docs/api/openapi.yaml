@@ -850,7 +850,7 @@ paths:
       tags:
       - Katalog
       summary: Tambah KategoriMenu
-      description: 'DRAFT: owner dan manager dapat membuat kategori hanya dalam warung sendiri. Owner, manager, kasir, dan superadmin diuji pada HTTP feature tests; response 201/403/422 serta body sukses POST terpilih dicocokkan dengan schema OpenAPI. Payload invalid lain, seluruh status, dan conformance penuh masih terbuka.'
+      description: 'DRAFT: owner dan manager dapat membuat kategori hanya dalam warung sendiri. Owner, manager, kasir, dan superadmin diuji pada HTTP feature tests; response 201/403/422/500 serta body sukses POST terpilih dicocokkan dengan schema OpenAPI. Payload invalid lain, seluruh status, dan conformance penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-candidate-roles:
@@ -961,7 +961,7 @@ paths:
       tags:
       - Katalog
       summary: Ubah KategoriMenu
-      description: 'DRAFT: owner dan manager dapat memperbarui kategori tenant sendiri, termasuk status. Role tenant, superadmin, injeksi warung_id, dan isolasi tenant diuji pada HTTP feature tests. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422 dengan schema; body sukses PATCH terpilih juga dicocokkan. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
+      description: 'DRAFT: owner dan manager dapat memperbarui kategori tenant sendiri, termasuk status. Role tenant, superadmin, injeksi warung_id, dan isolasi tenant diuji pada HTTP feature tests. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih juga dicocokkan. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-candidate-roles:
@@ -1098,7 +1098,7 @@ paths:
       tags:
       - Katalog
       summary: Tambah Menu
-      description: 'DRAFT: owner dan manager dapat membuat menu dalam warung sendiri. Harga dikirim sebagai decimal string; kode unik per warung dan kategori satu tenant. Kategori lintas tenant, warung_id, harga_modal, gambar, serta harga invalid ditolak. CATALOG-ROLE-ACCEPTANCE-002 menguji role/tenant; CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dan body sukses POST terpilih. Payload/status lain dan conformance penuh belum diuji.'
+      description: 'DRAFT: owner dan manager dapat membuat menu dalam warung sendiri. Harga dikirim sebagai decimal string; kode unik per warung dan kategori satu tenant. Kategori lintas tenant, warung_id, harga_modal, gambar, serta harga invalid ditolak. CATALOG-ROLE-ACCEPTANCE-002 menguji role/tenant dan Error500; CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dan body sukses POST terpilih. Payload/status lain dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-candidate-roles:
@@ -1217,7 +1217,7 @@ paths:
       tags:
       - Katalog
       summary: Ubah Menu
-      description: 'DRAFT: owner dan manager dapat memperbarui nama, harga, kategori, dan status menu dalam warung sendiri. Kategori lintas tenant, ID tenant lain, dan role tanpa hak tulis ditolak. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; body sukses PATCH terpilih dicocokkan dengan schema OpenAPI. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
+      description: 'DRAFT: owner dan manager dapat memperbarui nama, harga, kategori, dan status menu dalam warung sendiri. Kategori lintas tenant, ID tenant lain, dan role tanpa hak tulis ditolak. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih dicocokkan dengan schema OpenAPI. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-candidate-roles:
