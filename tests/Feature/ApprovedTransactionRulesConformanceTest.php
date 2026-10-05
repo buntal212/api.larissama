@@ -160,6 +160,88 @@ class ApprovedTransactionRulesConformanceTest extends TestCase
         $this->assertSame(1, PembelianRinci::query()->count());
     }
 
+    public function test_sale_and_purchase_accept_the_maximum_decimals_fifteen_two_amount(): void
+    {
+        $maximum = '9999999999999.99';
+        [$token, $menu] = $this->saleFixture($maximum);
+
+        $salePayload = [
+            'tanggal' => '2020-01-01T10:00:00Z',
+            'bayar' => $maximum,
+            'metode_pembayaran' => 'qris',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+        $saleHeaders = ['Idempotency-Key' => 'approved-money-maximum-sale'];
+
+        $this->assertOperationRequestMatchesOpenApi($salePayload, $saleHeaders, '/penjualans', 'post');
+        $sale = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $salePayload, $saleHeaders)
+            ->assertCreated()
+            ->assertJsonPath('data.subtotal', $maximum)
+            ->assertJsonPath('data.total', $maximum);
+        $this->assertOperationResponseMatchesOpenApi($sale, '/penjualans', 'post');
+
+        $purchasePayload = [
+            'tanggal' => '2020-01-01T11:00:00Z',
+            'rincian' => [['nama_item' => 'Nominal maksimum', 'subtotal' => $maximum]],
+        ];
+        $purchaseHeaders = ['Idempotency-Key' => 'approved-money-maximum-purchase'];
+
+        $this->assertOperationRequestMatchesOpenApi($purchasePayload, $purchaseHeaders, '/pembelians', 'post');
+        $purchase = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $purchasePayload, $purchaseHeaders)
+            ->assertCreated()
+            ->assertJsonPath('data.total', $maximum)
+            ->assertJsonPath('data.rincian.0.subtotal', $maximum);
+        $this->assertOperationResponseMatchesOpenApi($purchase, '/pembelians', 'post');
+
+        $this->assertDatabaseHas('penjualans', ['id' => $sale->json('data.id'), 'total' => $maximum]);
+        $this->assertDatabaseHas('pembelians', ['id' => $purchase->json('data.id'), 'total' => $maximum]);
+    }
+
+    public function test_sale_and_purchase_reject_totals_above_decimals_fifteen_two_without_partial_writes(): void
+    {
+        [$token, $menu] = $this->saleFixture('6000000000000.00');
+
+        $salePayload = [
+            'tanggal' => '2020-01-01T10:00:00Z',
+            'bayar' => '9999999999999.99',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [
+                ['menu_id' => (string) $menu->id, 'qty' => '1.00'],
+                ['menu_id' => (string) $menu->id, 'qty' => '1.00'],
+            ],
+        ];
+        $saleHeaders = ['Idempotency-Key' => 'approved-money-overflow-sale'];
+
+        $this->assertOperationRequestMatchesOpenApi($salePayload, $saleHeaders, '/penjualans', 'post');
+        $saleResponse = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $salePayload, $saleHeaders)
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->assertOperationResponseMatchesOpenApi($saleResponse, '/penjualans', 'post');
+        $this->assertSame(0, Penjualan::query()->count());
+        $this->assertSame(0, PenjualanRinci::query()->count());
+
+        $purchasePayload = [
+            'tanggal' => '2020-01-01T11:00:00Z',
+            'rincian' => [
+                ['nama_item' => 'Bahan A', 'subtotal' => '6000000000000.00'],
+                ['nama_item' => 'Bahan B', 'subtotal' => '6000000000000.00'],
+            ],
+        ];
+        $purchaseHeaders = ['Idempotency-Key' => 'approved-money-overflow-purchase'];
+
+        $this->assertOperationRequestMatchesOpenApi($purchasePayload, $purchaseHeaders, '/pembelians', 'post');
+        $purchaseResponse = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $purchasePayload, $purchaseHeaders)
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->assertOperationResponseMatchesOpenApi($purchaseResponse, '/pembelians', 'post');
+        $this->assertSame(0, Pembelian::query()->count());
+        $this->assertSame(0, PembelianRinci::query()->count());
+    }
+
     #[DataProvider('invalidQuantities')]
     public function test_sale_and_purchase_quantities_must_be_positive_with_two_decimals(string $quantity): void
     {
