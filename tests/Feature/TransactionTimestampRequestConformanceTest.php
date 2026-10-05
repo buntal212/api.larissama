@@ -259,6 +259,55 @@ class TransactionTimestampRequestConformanceTest extends TestCase
         $this->assertSame($utcValue, DB::table('pembelians')->where('id', $response->json('data.id'))->value('tanggal'));
     }
 
+    #[DataProvider('validFractionalSecondTimestamps')]
+    public function test_sale_truncates_fractional_timestamp_to_stored_second_without_rounding(
+        string $timestamp,
+        string $utcValue,
+    ): void {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $owner->createToken('sale-fractional-timestamp-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'bayar' => '1000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-fractional-timestamp'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', str_replace(' ', 'T', $utcValue).'.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+        $this->assertSame($utcValue, DB::table('penjualans')->where('id', $response->json('data.id'))->value('tanggal'));
+    }
+
+    #[DataProvider('validFractionalSecondTimestamps')]
+    public function test_purchase_truncates_fractional_timestamp_to_stored_second_without_rounding(
+        string $timestamp,
+        string $utcValue,
+    ): void {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('purchase-fractional-timestamp-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'rincian' => [['nama_item' => 'Belanja harian', 'subtotal' => '1000.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-fractional-timestamp'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', str_replace(' ', 'T', $utcValue).'.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+        $this->assertSame($utcValue, DB::table('pembelians')->where('id', $response->json('data.id'))->value('tanggal'));
+    }
+
     /** @return array<string, array{string}> */
     public static function timestampsWithoutRfc3339Offset(): array
     {
@@ -305,6 +354,15 @@ class TransactionTimestampRequestConformanceTest extends TestCase
             'maximum offset' => ['2026-10-04T23:30:00+23:59', '2026-10-03 23:31:00'],
             'last ordinary second' => ['2026-10-04T23:59:59Z', '2026-10-04 23:59:59'],
             'leap day' => ['2024-02-29T12:00:00Z', '2024-02-29 12:00:00'],
+        ];
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function validFractionalSecondTimestamps(): array
+    {
+        return [
+            'millisecond fraction' => ['2026-10-04T23:30:00.123Z', '2026-10-04 23:30:00'],
+            'nanosecond fraction with offset' => ['2026-10-04T23:30:00.999999999-04:00', '2026-10-05 03:30:00'],
         ];
     }
 
