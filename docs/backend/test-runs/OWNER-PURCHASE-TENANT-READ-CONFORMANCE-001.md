@@ -4,6 +4,7 @@
 
 - Tanggal: 2026-10-05 (Asia/Jakarta)
 - Status akhir: PASS
+- Commit test/docs: `f815bcea70b8305c7b8a071c4662e1f8e0a0c084`
 - Test: `tests/Feature/PembelianApiTest.php`
 - Lingkungan: Docker Compose project `larissama-backend-test`, PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 (`larissama_test` disposable)
 - Pint: PASS
