@@ -191,7 +191,7 @@ class PenjualanApiTest extends TestCase
         $this->assertDatabaseCount('penjualan_rincis', 0);
     }
 
-    public function test_manager_can_only_list_sales_from_their_warung(): void
+    public function test_manager_can_read_all_sales_in_their_warung_but_not_another_warung(): void
     {
         $warungA = Warung::factory()->create();
         $warungB = Warung::factory()->create();
@@ -199,7 +199,9 @@ class PenjualanApiTest extends TestCase
         $cashierA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'kasir']);
         $cashierB = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'kasir']);
         $saleA = Penjualan::factory()->create(['warung_id' => $warungA->id, 'user_id' => $cashierA->id]);
-        Penjualan::factory()->create(['warung_id' => $warungB->id, 'user_id' => $cashierB->id]);
+        $saleB = Penjualan::factory()->create(['warung_id' => $warungB->id, 'user_id' => $cashierB->id]);
+        PenjualanRinci::factory()->create(['warung_id' => $warungA->id, 'penjualan_id' => $saleA->id]);
+        PenjualanRinci::factory()->create(['warung_id' => $warungB->id, 'penjualan_id' => $saleB->id]);
         $token = $managerA->createToken('feature-test')->plainTextToken;
         $query = ['page' => '1', 'per_page' => '1', 'sort' => '-tanggal', 'status' => 'selesai'];
 
@@ -207,8 +209,22 @@ class PenjualanApiTest extends TestCase
         $response = $this->withToken($token)->getJson('/api/v1/penjualans?'.http_build_query($query))
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', (string) $saleA->id);
+            ->assertJsonPath('data.0.id', (string) $saleA->id)
+            ->assertJsonPath('data.0.user_id', (string) $cashierA->id)
+            ->assertJsonPath('meta.total', 1);
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
+
+        $ownDetail = $this->withToken($token)->getJson("/api/v1/penjualans/{$saleA->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', (string) $saleA->id)
+            ->assertJsonPath('data.user_id', (string) $cashierA->id)
+            ->assertJsonPath('data.rincian.0.penjualan_id', (string) $saleA->id);
+        $this->assertOperationResponseMatchesOpenApi($ownDetail, '/penjualans/{id}', 'get');
+
+        $foreignDetail = $this->withToken($token)->getJson("/api/v1/penjualans/{$saleB->id}")
+            ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($foreignDetail, '/penjualans/{id}', 'get');
+        $this->assertDatabaseHas('penjualans', ['id' => $saleB->id, 'user_id' => $cashierB->id]);
     }
 
     public function test_cashier_can_only_read_own_sales_and_gets_404_for_another_cashiers_sale(): void
