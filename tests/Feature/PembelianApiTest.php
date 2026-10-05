@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PembelianApiTest extends TestCase
@@ -249,19 +250,109 @@ class PembelianApiTest extends TestCase
         $this->assertSame('150000.00', Pembelian::query()->whereKey($purchaseId)->value('total'));
     }
 
-    public function test_purchase_rejects_partial_quantity_price_pair_without_writing(): void
+    #[DataProvider('invalidPurchaseLineShapes')]
+    public function test_invalid_purchase_line_shapes_return_422_without_writing(
+        array $line,
+        bool $matchesOpenApi,
+        array $expectedErrors,
+    ): void {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('feature-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'rincian' => [$line],
+        ];
+
+        if ($matchesOpenApi) {
+            $this->assertOperationRequestMatchesOpenApi($payload, ['Idempotency-Key' => 'purchase-invalid-shape'], '/pembelians', 'post');
+        } else {
+            $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/pembelians', 'post');
+        }
+
+        $response = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
+            'Idempotency-Key' => 'purchase-invalid-shape',
+        ])->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+        $response->assertJsonValidationErrors(array_keys($expectedErrors));
+
+        foreach ($expectedErrors as $field => $message) {
+            $this->assertSame([$message], $response->json('errors')[$field] ?? null);
+        }
+
+        $this->assertDatabaseCount('pembelians', 0);
+        $this->assertDatabaseCount('pembelian_rincis', 0);
+    }
+
+    /**
+     * @return array<string, array{array<string, string>, bool, array<string, string>}>
+     */
+    public static function invalidPurchaseLineShapes(): array
+    {
+        return [
+            'quantity without unit price' => [
+                ['nama_item' => 'Gula', 'qty' => '2.00', 'subtotal' => '30000.00'],
+                false,
+                [
+                    'rincian.0.qty' => 'Kuantitas dan harga satuan harus diisi bersama.',
+                    'rincian.0.harga_satuan' => 'Kuantitas dan harga satuan harus diisi bersama.',
+                ],
+            ],
+            'unit price without quantity' => [
+                ['nama_item' => 'Gula', 'harga_satuan' => '15000.00', 'subtotal' => '30000.00'],
+                false,
+                [
+                    'rincian.0.qty' => 'Kuantitas dan harga satuan harus diisi bersama.',
+                    'rincian.0.harga_satuan' => 'Kuantitas dan harga satuan harus diisi bersama.',
+                ],
+            ],
+            'nominal line without subtotal' => [
+                ['nama_item' => 'Gula'],
+                false,
+                ['rincian.0.subtotal' => 'Subtotal wajib untuk rincian nominal.'],
+            ],
+            'calculated subtotal does not match' => [
+                [
+                    'nama_item' => 'Gula',
+                    'qty' => '2.00',
+                    'harga_satuan' => '15000.00',
+                    'subtotal' => '29000.00',
+                ],
+                true,
+                ['rincian.0.subtotal' => 'Subtotal tidak cocok dengan kuantitas dan harga satuan.'],
+            ],
+        ];
+    }
+
+    public function test_manager_can_record_calculated_purchase_without_client_subtotal(): void
     {
         $warung = Warung::factory()->create();
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
         $token = $manager->createToken('feature-test')->plainTextToken;
-
-        $response = $this->withToken($token)->postJson('/api/v1/pembelians', [
+        $payload = [
             'tanggal' => '2026-10-04T10:00:00+07:00',
-            'rincian' => [['nama_item' => 'Gula', 'qty' => '2.00', 'subtotal' => '30000.00']],
-        ], ['Idempotency-Key' => 'purchase-invalid-pair'])->assertUnprocessable();
-        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+            'rincian' => [
+                ['nama_item' => 'Beras', 'qty' => '5.00', 'satuan' => 'kg', 'harga_satuan' => '15000.00'],
+                ['nama_item' => 'Cabai', 'qty' => '0.50', 'satuan' => 'kg', 'harga_satuan' => '40000.00'],
+            ],
+        ];
 
-        $this->assertSame(0, Pembelian::query()->count());
+        $this->assertOperationRequestMatchesOpenApi($payload, ['Idempotency-Key' => 'purchase-no-subtotal'], '/pembelians', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, [
+            'Idempotency-Key' => 'purchase-no-subtotal',
+        ])->assertCreated()
+            ->assertJsonPath('data.total', '95000.00')
+            ->assertJsonPath('data.rincian.0.subtotal', '75000.00')
+            ->assertJsonPath('data.rincian.1.subtotal', '20000.00');
+
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+        $this->assertDatabaseHas('pembelians', [
+            'id' => (int) $response->json('data.id'),
+            'warung_id' => $warung->id,
+            'total' => '95000.00',
+        ]);
+        $this->assertDatabaseCount('pembelian_rincis', 2);
     }
 
     public function test_purchase_rejects_client_warung_id_injection_without_writing(): void

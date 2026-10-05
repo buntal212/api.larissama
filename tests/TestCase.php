@@ -97,6 +97,26 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * @param  array<string, mixed>  $body
+     */
+    protected function assertOperationRequestDoesNotMatchOpenApi(array $body, string $path, string $method): void
+    {
+        $document = $this->openApiDocument();
+        $operation = $document['paths'][$path][strtolower($method)] ?? null;
+        $this->assertIsArray($operation, "OpenAPI operation {$method} {$path} must exist.");
+
+        $requestBody = $operation['requestBody'] ?? null;
+        $this->assertIsArray($requestBody, "OpenAPI must define a requestBody for {$method} {$path}.");
+        $schema = $requestBody['content']['application/json']['schema'] ?? null;
+        $this->assertIsArray($schema, "OpenAPI must define an application/json request schema for {$method} {$path}.");
+
+        $payload = json_decode(json_encode((object) $body, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
+        $errors = $this->collectOpenApiSchemaErrors($payload, $schema, $document, '$');
+
+        $this->assertNotSame([], $errors, "Request body for {$method} {$path} must be rejected by its OpenAPI schema.");
+    }
+
+    /**
      * @param  array<string, string>  $query
      */
     protected function assertOperationQueryMatchesOpenApi(array $query, string $path, string $method): void
