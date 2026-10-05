@@ -4,6 +4,7 @@
 
 - Tanggal: 2026-10-05 (Asia/Jakarta)
 - Status akhir: PASS
+- Commit test/docs: `92de920c528619d238da0d3b8f65dd240cb983f1`
 - Test: `tests/Feature/PenjualanApiTest.php`
 - Lingkungan: Docker Compose project `larissama-backend-test`, PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 (`larissama_test` disposable)
 - Pint: PASS
