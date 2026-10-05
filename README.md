@@ -14,9 +14,10 @@ Docker adalah pilihan untuk development, bukan syarat semua anggota tim. Untuk m
 ```bash
 docker compose up --build -d
 docker compose exec app php artisan migrate --force
+docker compose exec app php artisan app:bootstrap-superadmin
 ```
 
-API server lokal tersedia di `http://localhost:8010`; health endpoint-nya `http://localhost:8010/up`. Status app menjadi `healthy` setelah endpoint tersebut berhasil dijawab; gunakan `docker compose ps` untuk melihat status. MySQL dapat diakses dari host pada port `33309`. Compose memasang dependency Composer dan membuat APP_KEY development sementara saat container app mulai jika `LARISSAMA_APP_KEY` tidak diisi. Untuk menghentikan layanan tanpa menghapus data database, jalankan `docker compose down` (hindari opsi `-v` jika volume database ingin dipertahankan). Kredensial default Compose hanya untuk database development lokal. Port dan kredensial dapat diubah lewat variabel `LARISSAMA_API_PORT`, `LARISSAMA_DB_PORT`, `LARISSAMA_DB_DATABASE`, `LARISSAMA_DB_USERNAME`, `LARISSAMA_DB_PASSWORD`, `LARISSAMA_DB_ROOT_PASSWORD`, dan `LARISSAMA_CORS_ALLOWED_ORIGINS`; ID user/group container default `1000` dan dapat diubah dengan `LARISSAMA_UID` serta `LARISSAMA_GID`.
+Setelah migrasi, buat superadmin pertama lewat prompt interaktif; command hanya menerima tabel `users` kosong dan tidak menampilkan password. API server lokal tersedia di `http://localhost:8010`; health endpoint-nya `http://localhost:8010/up`. Status app menjadi `healthy` setelah endpoint tersebut berhasil dijawab; gunakan `docker compose ps` untuk melihat status. MySQL dapat diakses dari host pada port `33309`. Compose memasang dependency Composer dan membuat APP_KEY development sementara saat container app mulai jika `LARISSAMA_APP_KEY` tidak diisi. Untuk menghentikan layanan tanpa menghapus data database, jalankan `docker compose down` (hindari opsi `-v` jika volume database ingin dipertahankan). Kredensial default Compose hanya untuk database development lokal. Port dan kredensial dapat diubah lewat variabel `LARISSAMA_API_PORT`, `LARISSAMA_DB_PORT`, `LARISSAMA_DB_DATABASE`, `LARISSAMA_DB_USERNAME`, `LARISSAMA_DB_PASSWORD`, `LARISSAMA_DB_ROOT_PASSWORD`, dan `LARISSAMA_CORS_ALLOWED_ORIGINS`; ID user/group container default `1000` dan dapat diubah dengan `LARISSAMA_UID` serta `LARISSAMA_GID`.
 
 ## Test dan pemeriksaan kontrak
 

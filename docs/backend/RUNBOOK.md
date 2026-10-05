@@ -43,6 +43,12 @@ Token Sanctum berlaku 30 hari. Pastikan jam host tersinkronisasi UTC; database/r
 
 Laravel `/up` hanya membuktikan aplikasi berhasil boot secara normal. Tambahkan pemeriksaan DB pada platform monitoring bila readiness DB diperlukan; jangan menganggap HTTP 200 `/up` sebagai bukti backup, koneksi DB, atau seluruh dependency sehat.
 
+## Bootstrap superadmin pertama
+
+Pada instalasi fresh, jalankan `php artisan app:bootstrap-superadmin` sesudah migration berhasil. Command meminta nama, username, email opsional, dan password melalui prompt interaktif; password tidak diberikan sebagai argumen atau dicatat pada output. Username/email harus lowercase, password minimal 8 karakter dan dikonfirmasi.
+
+Command hanya berjalan jika tabel `users` kosong, membuat akun aktif `superadmin` dengan `warung_id = NULL`, dan memakai MySQL advisory lock agar dua proses bootstrap tidak membuat akun bersamaan. Jika database sudah berisi user apa pun, command berhenti tanpa perubahan. Jangan pakai `db:seed` untuk membuat akun akses; DatabaseSeeder tidak membuat user default. Simpan credential melalui prosedur secret organisasi setelah akun dibuat.
+
 ## Backup MySQL
 
 Backup memuat data pribadi, hash password, personal access token, dan transaksi. Simpan terenkripsi dengan akses terbatas, retensi yang ditetapkan organisasi, dan salinan terpisah dari host database.
