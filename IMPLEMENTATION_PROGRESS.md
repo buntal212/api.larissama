@@ -454,3 +454,7 @@ Gap: OpenAPI menyatakan body wajib pada 11 operasi, tetapi test sebelumnya hanya
 ## Pra-implementasi root JSON non-object T-API-02
 
 Gap lanjutan: `EnsureValidJsonApiBody` memvalidasi sintaks, sedangkan 11 request schema OpenAPI mensyaratkan root object. Probe enam nilai JSON valid tetapi bukan object (`null`, array kosong, array berisi nilai, string, angka, boolean) pada seluruh 11 operasi. Gunakan auth dan resource sah serta key idempotency valid; pastikan schema menolak payload, runtime merespons 422 Error422 dengan UUID, dan tidak ada write/perubahan target. Jika ada mismatch, baru lakukan perbaikan terkecil; semua endpoint tetap DRAFT.
+
+## Conformance root JSON non-object — 2026-10-05
+
+`JSON-NONOBJECT-ROOT-CONFORMANCE-001` lulus pada test commit `a56c9dc8b112454b3a39684182d9110db48d4478`. Enam bentuk root non-object pada 11 operasi (66 request) ditolak schema OpenAPI serta menghasilkan 422 `VALIDATION_ERROR` schema-conformant dengan errors non-empty dan UUID. Count/snapshot domain tidak berubah. Run fokus pertama terkena limiter login karena IP sama; test kemudian mengisolasi setiap variasi IP dan lulus. Pint lulus; focused `ApiMalformedJsonConformanceTest` 3/2386; suite penuh 363/55858 dalam 36.17 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40. Compose `larissama-json-root-test` dibersihkan dan `ps -a` kosong. Tidak ada perubahan runtime/OpenAPI/schema DB/dependency; semua operasi tetap DRAFT. Bukti: [JSON-NONOBJECT-ROOT-CONFORMANCE-001](docs/backend/test-runs/JSON-NONOBJECT-ROOT-CONFORMANCE-001.md).
