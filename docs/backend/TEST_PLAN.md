@@ -873,3 +873,7 @@ User menetapkan masa berlaku `Idempotency-Key` tujuh hari. `T-RET-05` memverifik
 ## Inventaris route dan path ID sesudah penambahan D11
 
 `D11-ROUTE-AND-ID-CONFORMANCE-001` mengulang `ApiRouteOpenApiConformanceTest` sesudah PATCH koreksi dan POST pembatalan ditambahkan. Cakupan sekarang 30 method/path pada 19 path, cocok dua arah dengan route Laravel. Dua operasi D11 juga termasuk dalam 12 route berparameter ID: nilai `0`, angka berawalan nol, dan teks mendapat 404 schema-conformant; ID positif mencapai middleware autentikasi. Focused 13/881 PASS tanpa MySQL; Compose runner/network dibersihkan. Lihat [artefak run](test-runs/D11-ROUTE-AND-ID-CONFORMANCE-001.md).
+
+## Role dan tenant boundary pembatalan pembelian D11
+
+`D11-CANCEL-RBAC-CONFORMANCE-001` mengirim body serta `Idempotency-Key` yang schema-valid ke `POST /api/v1/pembelians/{id}/pembatalan`. Kasir dan superadmin mendapat 403; manager tenant lain mendapat 404. Semua response cocok schema OpenAPI dan header/status/detail/audit tetap tanpa perubahan. Focused `PembelianApiTest` 28/6.157 PASS; Pint PASS; Compose MySQL 8.0.40 dibersihkan. Bukti ini menambah role/tenant deny cases, bukan kesiapan penuh operationId. [Artefak](test-runs/D11-CANCEL-RBAC-CONFORMANCE-001.md).

@@ -185,6 +185,54 @@ class PembelianApiTest extends TestCase
         $this->assertSame(0, DB::table('pembelian_koreksis')->count());
     }
 
+    public function test_unprivileged_and_cross_tenant_users_cannot_cancel_purchase(): void
+    {
+        $warung = Warung::factory()->create();
+        $otherWarung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $purchase = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'status' => 'tercatat',
+        ]);
+        PembelianRinci::factory()->create([
+            'warung_id' => $warung->id,
+            'pembelian_id' => $purchase->id,
+            'nama_item' => 'Belanja pasar',
+            'subtotal' => '150000.00',
+        ]);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $otherManager = User::factory()->create(['warung_id' => $otherWarung->id, 'role' => 'manager']);
+        $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
+        $payload = ['alasan' => 'Transaksi tidak seharusnya dibatalkan oleh role ini.'];
+
+        foreach ([
+            ['actor' => $cashier, 'status' => 403, 'role' => 'kasir'],
+            ['actor' => $superadmin, 'status' => 403, 'role' => 'superadmin'],
+            ['actor' => $otherManager, 'status' => 404, 'role' => 'manager'],
+        ] as $case) {
+            Sanctum::actingAs($case['actor']);
+            $headers = ['Idempotency-Key' => 'purchase-cancel-denied-'.$case['role']];
+            $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians/{id}/pembatalan', 'post');
+            $response = $this->postJson('/api/v1/pembelians/'.$purchase->id.'/pembatalan', $payload, $headers)
+                ->assertStatus($case['status']);
+
+            $this->assertOperationResponseMatchesOpenApi($response, '/pembelians/{id}/pembatalan', 'post');
+        }
+
+        $this->assertDatabaseHas('pembelians', [
+            'id' => $purchase->id,
+            'status' => 'tercatat',
+            'total' => '150000.00',
+        ]);
+        $this->assertDatabaseHas('pembelian_rincis', [
+            'pembelian_id' => $purchase->id,
+            'nama_item' => 'Belanja pasar',
+            'subtotal' => '150000.00',
+        ]);
+        $this->assertSame(0, DB::table('pembelian_koreksis')->count());
+    }
+
     public function test_invalid_and_noop_purchase_corrections_do_not_write_audit_rows(): void
     {
         $warung = Warung::factory()->create();

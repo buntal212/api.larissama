@@ -1980,7 +1980,7 @@ paths:
         Pembatalan ulang dengan key baru menghasilkan 409; retry dengan key/payload sama me-replay peristiwa audit 201.
         Laporan pembelian tidak menghitung transaksi dibatalkan. PURCHASE-CORRECTION-REQUEST-CONFORMANCE-001 menguji body sah dan
         penolakan field warung_id asing tanpa write; IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001 menguji header wajib, batas 1–255,
-        whitespace di tepi, dan response 201/422 menurut schema. Response 401/403/409 serta replay juga diuji pada subset.
+        whitespace di tepi, dan response 201/422 menurut schema. D11-CANCEL-RBAC-CONFORMANCE-001 menguji 403 kasir/superadmin dan 404 lintas tenant tanpa write; response 401 dan replay diuji pada subset.
         MALFORMED-JSON-400-CONFORMANCE-001, EMPTY-BODY-REQUIRED-CONFORMANCE-001, dan JSON-NONOBJECT-ROOT-CONFORMANCE-001
         kini memeriksa bentuk body buruk pada seluruh 13 operasi ber-body, termasuk kedua operasi D11, dengan error schema-conformant
         dan no-write. Masih DRAFT karena kombinasi status/request belum lengkap dan window expiry D09 tujuh hari telah dipilih; boundary test runtime masih menjadi gate.
