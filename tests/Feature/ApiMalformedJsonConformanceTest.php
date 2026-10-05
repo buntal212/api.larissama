@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\KategoriMenu;
 use App\Models\Menu;
+use App\Models\Pembelian;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,6 +27,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'warung_id' => $warung->id,
             'kategori_menu_id' => $category->id,
         ]);
+        $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
         $ownerToken = $owner->createToken('malformed-json-owner')->plainTextToken;
         $superadminToken = $superadmin->createToken('malformed-json-superadmin')->plainTextToken;
 
@@ -42,6 +44,8 @@ class ApiMalformedJsonConformanceTest extends TestCase
             ['path' => "/api/v1/menus/{$menu->id}", 'contract_path' => '/menus/{id}', 'method' => 'PATCH', 'token' => $ownerToken],
             ['path' => '/api/v1/penjualans', 'contract_path' => '/penjualans', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'malformed-sale-001'],
             ['path' => '/api/v1/pembelians', 'contract_path' => '/pembelians', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'malformed-purchase-001'],
+            ['path' => "/api/v1/pembelians/{$purchase->id}", 'contract_path' => '/pembelians/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'malformed-purchase-update-001'],
+            ['path' => "/api/v1/pembelians/{$purchase->id}/pembatalan", 'contract_path' => '/pembelians/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'malformed-purchase-cancel-001'],
         ];
 
         $tableCounts = $this->trackedTableCounts();
@@ -50,6 +54,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'manager' => $manager->fresh()->getRawOriginal(),
             'category' => $category->fresh()->getRawOriginal(),
             'menu' => $menu->fresh()->getRawOriginal(),
+            'purchase' => $purchase->fresh()->getRawOriginal(),
         ];
 
         foreach ($operations as $operation) {
@@ -92,6 +97,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
         $this->assertSame($targetRows['manager'], $manager->fresh()->getRawOriginal());
         $this->assertSame($targetRows['category'], $category->fresh()->getRawOriginal());
         $this->assertSame($targetRows['menu'], $menu->fresh()->getRawOriginal());
+        $this->assertSame($targetRows['purchase'], $purchase->fresh()->getRawOriginal());
     }
 
     public function test_required_json_body_operations_reject_a_missing_body_without_writes(): void
@@ -105,6 +111,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'warung_id' => $warung->id,
             'kategori_menu_id' => $category->id,
         ]);
+        $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
         $ownerToken = $owner->createToken('empty-body-owner')->plainTextToken;
         $superadminToken = $superadmin->createToken('empty-body-superadmin')->plainTextToken;
 
@@ -120,6 +127,8 @@ class ApiMalformedJsonConformanceTest extends TestCase
             ['path' => "/api/v1/menus/{$menu->id}", 'contract_path' => '/menus/{id}', 'method' => 'PATCH', 'token' => $ownerToken],
             ['path' => '/api/v1/penjualans', 'contract_path' => '/penjualans', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-sale-001'],
             ['path' => '/api/v1/pembelians', 'contract_path' => '/pembelians', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-purchase-001'],
+            ['path' => "/api/v1/pembelians/{$purchase->id}", 'contract_path' => '/pembelians/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-purchase-update-001'],
+            ['path' => "/api/v1/pembelians/{$purchase->id}/pembatalan", 'contract_path' => '/pembelians/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'empty-body-purchase-cancel-001'],
         ];
 
         $tableCounts = $this->trackedTableCounts();
@@ -128,6 +137,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'manager' => $manager->fresh()->getRawOriginal(),
             'category' => $category->fresh()->getRawOriginal(),
             'menu' => $menu->fresh()->getRawOriginal(),
+            'purchase' => $purchase->fresh()->getRawOriginal(),
         ];
 
         foreach ($operations as $operation) {
@@ -176,6 +186,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
         $this->assertSame($targetRows['manager'], $manager->fresh()->getRawOriginal());
         $this->assertSame($targetRows['category'], $category->fresh()->getRawOriginal());
         $this->assertSame($targetRows['menu'], $menu->fresh()->getRawOriginal());
+        $this->assertSame($targetRows['purchase'], $purchase->fresh()->getRawOriginal());
     }
 
     public function test_json_roots_that_are_not_objects_are_rejected_without_writes(): void
@@ -189,6 +200,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'warung_id' => $warung->id,
             'kategori_menu_id' => $category->id,
         ]);
+        $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $owner->id]);
         $ownerToken = $owner->createToken('json-root-owner')->plainTextToken;
         $superadminToken = $superadmin->createToken('json-root-superadmin')->plainTextToken;
 
@@ -204,6 +216,8 @@ class ApiMalformedJsonConformanceTest extends TestCase
             ['path' => "/api/v1/menus/{$menu->id}", 'contract_path' => '/menus/{id}', 'method' => 'PATCH', 'token' => $ownerToken],
             ['path' => '/api/v1/penjualans', 'contract_path' => '/penjualans', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'json-root-sale-001'],
             ['path' => '/api/v1/pembelians', 'contract_path' => '/pembelians', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'json-root-purchase-001'],
+            ['path' => "/api/v1/pembelians/{$purchase->id}", 'contract_path' => '/pembelians/{id}', 'method' => 'PATCH', 'token' => $ownerToken, 'idempotency_key' => 'json-root-purchase-update-001'],
+            ['path' => "/api/v1/pembelians/{$purchase->id}/pembatalan", 'contract_path' => '/pembelians/{id}/pembatalan', 'method' => 'POST', 'token' => $ownerToken, 'idempotency_key' => 'json-root-purchase-cancel-001'],
         ];
         $bodyVariants = [
             'null' => 'null',
@@ -220,6 +234,7 @@ class ApiMalformedJsonConformanceTest extends TestCase
             'manager' => $manager->fresh()->getRawOriginal(),
             'category' => $category->fresh()->getRawOriginal(),
             'menu' => $menu->fresh()->getRawOriginal(),
+            'purchase' => $purchase->fresh()->getRawOriginal(),
         ];
 
         foreach ($operations as $operation) {
@@ -289,12 +304,13 @@ class ApiMalformedJsonConformanceTest extends TestCase
         $this->assertSame($targetRows['manager'], $manager->fresh()->getRawOriginal());
         $this->assertSame($targetRows['category'], $category->fresh()->getRawOriginal());
         $this->assertSame($targetRows['menu'], $menu->fresh()->getRawOriginal());
+        $this->assertSame($targetRows['purchase'], $purchase->fresh()->getRawOriginal());
     }
 
     /** @return array<string, int> */
     private function trackedTableCounts(): array
     {
-        return collect(['warungs', 'users', 'kategori_menus', 'menus', 'penjualans', 'penjualan_rincis', 'pembelians', 'pembelian_rincis'])
+        return collect(['warungs', 'users', 'kategori_menus', 'menus', 'penjualans', 'penjualan_rincis', 'pembelians', 'pembelian_rincis', 'pembelian_koreksis'])
             ->mapWithKeys(fn (string $table): array => [$table => DB::table($table)->count()])
             ->all();
     }
