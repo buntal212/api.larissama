@@ -685,3 +685,7 @@ Keputusan user 2026-10-05: owner adalah pemilik warung, berhak atas semua operas
 ### Hasil contoh parameter OpenAPI
 
 `OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001` lulus: contoh `DateFrom` dan `DateTo` pada komponen parameter cocok dengan schema `Date`; test juga akan memeriksa contoh parameter reusable dan inline yang ditambahkan kemudian. Focused `ApiOpenApiExamplesConformanceTest` 2/12542; Pint 144 file; suite penuh 329/51846 dalam 36.79 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Compose disposable. Tidak ada perubahan OpenAPI/runtime/schema/dependency; semua operasi tetap DRAFT. Bukti: [artefak run](test-runs/OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001.md).
+
+## Rencana response 500 transaksi T-API-02
+
+`TRANSACTION-500-ERROR-CONFORMANCE-001`, T-API-02/04 dan T-SAL-06/T-BUY-06. `TransactionAtomicityTest` sudah memicu kegagalan insert rincian lewat trigger MySQL dan membuktikan rollback serta tidak membocorkan teks SQL, tetapi belum mencocokkan response HTTP 500 dengan Error500 OpenAPI. Pada kasus sale dan purchase yang sudah ada, assert status 500, `code=INTERNAL_ERROR`, body response schema-conformant, envelope D13 (request_id UUID dan errors kosong), serta tidak ada teks exception/SQL. Pertahankan verifikasi tidak ada header/detail setelah rollback dan trigger dibersihkan. Ubah hanya test existing; jangan mengubah transaksi atau handler jika hasil sudah cocok. Acceptance: `TransactionAtomicityTest`, Pint, suite penuh di MySQL 8.0.40 Compose disposable; cleanup. Semua operasi tetap DRAFT.

@@ -8,6 +8,8 @@ Slice terakhir selesai: `IDEMPOTENCY-KEY-HEADER-CONFORMANCE-001`, T-API-02/04. C
 
 Slice terakhir selesai: `OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001`, T-API-01/D13. Commit test `c4cbcf9`; contoh parameter `DateFrom`/`DateTo` cocok dengan schema `Date`. Focused 2/12542, Pint 144 file, suite penuh 329/51846; Compose dibersihkan. Bukti: [hasil run](docs/backend/test-runs/OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001.md). Semua operasi masih DRAFT.
 
+Slice aktif: `TRANSACTION-500-ERROR-CONFORMANCE-001`, T-API-02/04. Perluas test atomisitas existing agar HTTP 500 sale/purchase juga cocok dengan Error500 OpenAPI/D13 dan tetap menyembunyikan detail exception. Belum ada perubahan kode.
+
 ## Ringkasan pelaksanaan
 
 | Milestone | Task implementasi | DONE | Gate |
