@@ -14,7 +14,7 @@ class ApiEndToEndWorkflowTest extends TestCase
 
     public function test_shop_can_be_provisioned_used_for_sales_purchases_and_reports_then_logout(): void
     {
-        $this->travelTo(CarbonImmutable::parse('2026-10-04T03:00:00Z'));
+        $this->travelTo(CarbonImmutable::parse('2026-10-04T13:00:00Z'));
         $superadminPassword = 'Superadmin-e2e-secret';
         $superadmin = User::factory()->superadmin()->create([
             'username' => 'superadmin-e2e',

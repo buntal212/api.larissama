@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\Models\Penjualan;
 use App\Models\User;
+use App\Rules\NotFutureTransactionTimestamp;
 use App\Rules\UtcMysqlDateTimeRange;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,6 +30,7 @@ class PenjualanStoreRequest extends FormRequest
                 'date',
                 'regex:/\\A[1-9]\\d{3}-\\d{2}-\\d{2}T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)\\z/',
                 new UtcMysqlDateTimeRange,
+                new NotFutureTransactionTimestamp,
             ],
             'diskon' => ['sometimes', 'string', $money],
             'bayar' => ['required', 'string', $money],

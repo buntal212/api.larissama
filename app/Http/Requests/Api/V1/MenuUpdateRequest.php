@@ -46,7 +46,7 @@ class MenuUpdateRequest extends FormRequest
                 Rule::unique('menus', 'kode')->where('warung_id', $tenantId)->ignore($this->targetMenu),
             ],
             'nama' => ['sometimes', 'required', 'string', 'min:1', 'max:150'],
-            'harga' => ['sometimes', 'required', 'string', 'regex:/^(0|[1-9][0-9]{0,12})\.[0-9]{2}$/'],
+            'harga' => ['sometimes', 'required', 'string', 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,12}\.[0-9]{2})$/'],
             'deskripsi' => ['sometimes', 'nullable', 'string'],
             'aktif' => ['sometimes', 'boolean'],
         ];

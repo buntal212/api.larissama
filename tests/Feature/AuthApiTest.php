@@ -378,7 +378,7 @@ class AuthApiTest extends TestCase
 
     public function test_login_allows_five_attempts_then_returns_a_d13_rate_limit_error(): void
     {
-        $username = 'RateLimit-'.fake()->uuid();
+        $username = strtolower('RateLimit-'.fake()->uuid());
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $response = $this->postJson('/api/v1/auth/login', [
@@ -391,7 +391,7 @@ class AuthApiTest extends TestCase
         }
 
         $limited = $this->postJson('/api/v1/auth/login', [
-            'username' => strtolower($username),
+            'username' => $username,
             'password' => 'invalid-rate-limit-secret',
         ])->assertTooManyRequests();
 
@@ -401,7 +401,7 @@ class AuthApiTest extends TestCase
 
         $otherIp = $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.25'])
             ->postJson('/api/v1/auth/login', [
-                'username' => strtolower($username),
+                'username' => $username,
                 'password' => 'invalid-rate-limit-secret',
             ])
             ->assertUnauthorized();

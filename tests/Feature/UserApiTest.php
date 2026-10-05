@@ -100,6 +100,72 @@ class UserApiTest extends TestCase
         ]);
     }
 
+    public function test_account_identifiers_require_lowercase_and_allow_digits(): void
+    {
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('lowercase-account-test')->plainTextToken;
+        $basePayload = [
+            'nama' => 'Kasir Baru',
+            'password' => 'lowercase-test-password',
+            'role' => 'kasir',
+        ];
+
+        $uppercaseUsernamePayload = [...$basePayload, 'username' => 'Kasir123'];
+        $this->assertOperationRequestDoesNotMatchOpenApi($uppercaseUsernamePayload, '/users', 'post');
+        $uppercaseUsername = $this->withToken($token)
+            ->postJson('/api/v1/users', $uppercaseUsernamePayload)
+            ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($uppercaseUsername, '/users', 'post');
+        $this->assertArrayHasKey('username', $uppercaseUsername->json('errors'));
+
+        $uppercaseEmailPayload = [...$basePayload, 'username' => 'kasir123', 'email' => 'Kasir123@example.com'];
+        $this->assertOperationRequestDoesNotMatchOpenApi($uppercaseEmailPayload, '/users', 'post');
+        $uppercaseEmail = $this->withToken($token)
+            ->postJson('/api/v1/users', $uppercaseEmailPayload)
+            ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($uppercaseEmail, '/users', 'post');
+        $this->assertArrayHasKey('email', $uppercaseEmail->json('errors'));
+        $this->assertDatabaseCount('users', 1);
+
+        $payload = [...$basePayload, 'username' => 'kasir123', 'email' => 'kasir123@example.com'];
+        $this->assertOperationRequestMatchesOpenApi($payload, [], '/users', 'post');
+        $created = $this->withToken($token)->postJson('/api/v1/users', $payload)->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($created, '/users', 'post');
+        $createdUser = User::query()->findOrFail((int) $created->json('data.id'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $createdUser->id,
+            'username' => 'kasir123',
+            'email' => 'kasir123@example.com',
+        ]);
+
+        $uppercaseEmailUpdatePayload = ['email' => 'Kasir123@example.com'];
+        $this->assertOperationRequestDoesNotMatchOpenApi($uppercaseEmailUpdatePayload, '/users/{id}', 'patch');
+        $uppercaseEmailUpdate = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$createdUser->id, $uppercaseEmailUpdatePayload)
+            ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($uppercaseEmailUpdate, '/users/{id}', 'patch');
+        $this->assertArrayHasKey('email', $uppercaseEmailUpdate->json('errors'));
+        $this->assertDatabaseHas('users', [
+            'id' => $createdUser->id,
+            'email' => 'kasir123@example.com',
+        ]);
+
+        $uppercaseLoginPayload = ['username' => 'Kasir123', 'password' => 'lowercase-test-password'];
+        $this->assertOperationRequestDoesNotMatchOpenApi($uppercaseLoginPayload, '/auth/login', 'post');
+        $uppercaseLogin = $this->postJson('/api/v1/auth/login', $uppercaseLoginPayload)->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($uppercaseLogin, '/auth/login', 'post');
+        $this->assertArrayHasKey('username', $uppercaseLogin->json('errors'));
+        $this->assertSame(0, $createdUser->tokens()->count());
+
+        $lowercaseLogin = $this->postJson('/api/v1/auth/login', [
+            'username' => 'kasir123',
+            'password' => 'lowercase-test-password',
+        ])->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($lowercaseLogin, '/auth/login', 'post');
+    }
+
     public function test_owner_can_delegate_owner_role_within_their_warung(): void
     {
         $warungA = Warung::factory()->create();

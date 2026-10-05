@@ -19,8 +19,8 @@ class UserStoreRequest extends FormRequest
     {
         return [
             'nama' => ['required', 'string', 'min:1', 'max:150'],
-            'username' => ['required', 'string', 'min:1', 'max:100', Rule::unique('users', 'username')],
-            'email' => ['sometimes', 'nullable', 'email', 'max:150', Rule::unique('users', 'email')],
+            'username' => ['required', 'string', 'min:1', 'max:100', 'lowercase', Rule::unique('users', 'username')],
+            'email' => ['sometimes', 'nullable', 'email', 'max:150', 'lowercase', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', 'string', Rule::in(['owner', 'manager', 'kasir'])],
             'aktif' => ['sometimes', 'boolean'],

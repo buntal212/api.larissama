@@ -38,6 +38,7 @@ class UserUpdateRequest extends FormRequest
                 'string',
                 'min:1',
                 'max:100',
+                'lowercase',
                 Rule::unique('users', 'username')->ignore($this->targetUser),
             ],
             'email' => [
@@ -45,6 +46,7 @@ class UserUpdateRequest extends FormRequest
                 'nullable',
                 'email',
                 'max:150',
+                'lowercase',
                 Rule::unique('users', 'email')->ignore($this->targetUser),
             ],
             'password' => ['sometimes', 'required', 'string', 'min:8'],

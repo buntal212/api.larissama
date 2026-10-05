@@ -29,8 +29,8 @@ class WarungStoreRequest extends FormRequest
             'aktif' => ['sometimes', 'boolean'],
             'owner' => ['required', 'array:nama,username,email,password'],
             'owner.nama' => ['required', 'string', 'min:1', 'max:150'],
-            'owner.username' => ['required', 'string', 'min:1', 'max:100', Rule::unique('users', 'username')],
-            'owner.email' => ['sometimes', 'nullable', 'email', 'max:150', Rule::unique('users', 'email')],
+            'owner.username' => ['required', 'string', 'min:1', 'max:100', 'lowercase', Rule::unique('users', 'username')],
+            'owner.email' => ['sometimes', 'nullable', 'email', 'max:150', 'lowercase', Rule::unique('users', 'email')],
             'owner.password' => ['required', 'string', 'min:8'],
         ];
     }

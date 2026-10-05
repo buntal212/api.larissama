@@ -9,6 +9,7 @@ use App\Models\Penjualan;
 use App\Models\PenjualanRinci;
 use App\Models\User;
 use App\Models\Warung;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,6 +18,13 @@ use Tests\TestCase;
 class TransactionTimestampRequestConformanceTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        $this->travelBack();
+
+        parent::tearDown();
+    }
 
     #[DataProvider('timestampsWithoutRfc3339Offset')]
     public function test_sale_rejects_timestamp_outside_rfc3339_contract_without_writing(string $timestamp): void
@@ -71,6 +79,49 @@ class TransactionTimestampRequestConformanceTest extends TestCase
         );
 
         $this->assertTransactionTablesAreEmpty();
+    }
+
+    #[DataProvider('futureTransactionRoutes')]
+    public function test_transaction_create_rejects_future_instants_without_writing(string $kind, string $path): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-05T12:00:00Z'));
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $owner->createToken($kind.'-future-timestamp-test')->plainTextToken;
+        $payload = $kind === 'sale'
+            ? [
+                'tanggal' => '2026-10-05T12:00:01Z',
+                'bayar' => '1000.00',
+                'metode_pembayaran' => 'cash',
+                'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+            ]
+            : [
+                'tanggal' => '2026-10-05T12:00:01Z',
+                'rincian' => [['nama_item' => 'Belanja harian', 'subtotal' => '1000.00']],
+            ];
+        $openApiPath = $kind === 'sale' ? '/penjualans' : '/pembelians';
+        $headers = ['Idempotency-Key' => $kind.'-future-timestamp'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, $openApiPath, 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1'.$path, $payload, $headers)
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('tanggal');
+
+        $this->assertOperationResponseMatchesOpenApi($response, $openApiPath, 'post');
+        $this->assertSame(['Tanggal transaksi tidak boleh di masa depan.'], $response->json('errors.tanggal'));
+        $this->assertTransactionTablesAreEmpty();
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function futureTransactionRoutes(): array
+    {
+        return [
+            'sale' => ['sale', '/penjualans'],
+            'purchase' => ['purchase', '/pembelians'],
+        ];
     }
 
     #[DataProvider('calendarInvalidTimestamps')]
@@ -368,7 +419,7 @@ class TransactionTimestampRequestConformanceTest extends TestCase
     }
 
     #[DataProvider('validMysqlUtcTimestampBoundaries')]
-    public function test_sale_accepts_mysql_utc_timestamp_boundaries(string $timestamp, string $utcValue): void
+    public function test_sale_accepts_mysql_utc_minimum_boundary(string $timestamp, string $utcValue): void
     {
         $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
         $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
@@ -391,7 +442,7 @@ class TransactionTimestampRequestConformanceTest extends TestCase
     }
 
     #[DataProvider('validMysqlUtcTimestampBoundaries')]
-    public function test_purchase_accepts_mysql_utc_timestamp_boundaries(string $timestamp, string $utcValue): void
+    public function test_purchase_accepts_mysql_utc_minimum_boundary(string $timestamp, string $utcValue): void
     {
         $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
         $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
@@ -483,7 +534,6 @@ class TransactionTimestampRequestConformanceTest extends TestCase
     {
         return [
             'minimum datetime' => ['1000-01-01T00:00:00Z', '1000-01-01 00:00:00'],
-            'maximum datetime' => ['9999-12-31T23:59:59Z', '9999-12-31 23:59:59'],
         ];
     }
 

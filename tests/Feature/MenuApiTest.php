@@ -378,6 +378,40 @@ class MenuApiTest extends TestCase
         $this->assertDatabaseMissing('menus', ['kode' => 'M-DENIED-'.$role]);
     }
 
+    public function test_menu_price_must_be_positive_on_create_and_update(): void
+    {
+        $warung = Warung::factory()->create();
+        $category = KategoriMenu::factory()->create(['warung_id' => $warung->id]);
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $menu = Menu::factory()->create([
+            'warung_id' => $warung->id,
+            'kategori_menu_id' => $category->id,
+            'harga' => '5000.00',
+        ]);
+        $token = $manager->createToken('menu-price-positive-test')->plainTextToken;
+        $createPayload = [
+            'kategori_menu_id' => (string) $category->id,
+            'kode' => 'M-ZERO-PRICE',
+            'nama' => 'Menu Gratis',
+            'harga' => '0.00',
+        ];
+
+        $this->assertOperationRequestDoesNotMatchOpenApi($createPayload, '/menus', 'post');
+        $create = $this->withToken($token)->postJson('/api/v1/menus', $createPayload)->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($create, '/menus', 'post');
+        $this->assertD13ErrorEnvelope($create, 'VALIDATION_ERROR', 'harga');
+        $this->assertDatabaseMissing('menus', ['kode' => 'M-ZERO-PRICE']);
+
+        $updatePayload = ['harga' => '0.00'];
+        $this->assertOperationRequestDoesNotMatchOpenApi($updatePayload, '/menus/{id}', 'patch');
+        $update = $this->withToken($token)
+            ->patchJson('/api/v1/menus/'.$menu->id, $updatePayload)
+            ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($update, '/menus/{id}', 'patch');
+        $this->assertD13ErrorEnvelope($update, 'VALIDATION_ERROR', 'harga');
+        $this->assertDatabaseHas('menus', ['id' => $menu->id, 'harga' => '5000.00']);
+    }
+
     private function assertD13ErrorEnvelope(TestResponse $response, string $expectedCode, ?string $field = null): void
     {
         $body = $response->json();

@@ -101,6 +101,27 @@ class AdminWarungApiTest extends TestCase
         $this->assertDatabaseMissing('users', ['username' => $payload['owner']['username']]);
     }
 
+    public function test_superadmin_rejects_uppercase_owner_identifier_without_partial_provisioning(): void
+    {
+        $superadmin = User::factory()->superadmin()->create();
+        $token = $superadmin->createToken('admin-feature-test')->plainTextToken;
+        $payload = $this->warungPayload('WRG-UPPERCASE-OWNER', 'Owner123');
+        $payload['owner']['email'] = 'Owner123@example.com';
+
+        $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/admin/warungs', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/admin/warungs', $payload)
+            ->assertUnprocessable();
+
+        $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'post');
+        $this->assertD13ErrorEnvelope($response, 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('owner.username', $response->json('errors'));
+        $this->assertArrayHasKey('owner.email', $response->json('errors'));
+        $this->assertSame(0, Warung::query()->count());
+        $this->assertSame(1, User::query()->count());
+        $this->assertDatabaseMissing('users', ['username' => 'Owner123']);
+    }
+
     /**
      * @return array<string, array{string}>
      */

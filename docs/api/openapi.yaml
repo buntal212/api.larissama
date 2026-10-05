@@ -37,7 +37,8 @@ info:
     ditolak saat create purchase, tanpa write header/rincian. Owner diizinkan membuat keduanya; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji create sale/purchase dan response terhadap schema.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
-    Conformance role D04, aturan bisnis D05/D08/D10/D11/D12, pembatalan/koreksi pada D06, serta conformance D13 masih menjadi gate.
+    D05 dan D08 telah diputuskan; sisa gate mencakup role/runtime conformance D04/D13, bentuk rincian D10,
+    migrasi identitas lama D12, koreksi penjualan D06, serta rancangan API tambahan untuk koreksi pembelian D11.
     Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh
     sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan
     kontrak live.
@@ -61,12 +62,11 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Request/status lain, conformance lengkap, dan keputusan D08/D12 masih terbuka. Maksimum 5 percobaan login per menit untuk username lowercase-normalized dan IP.'
+      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Request/status lain dan conformance lengkap belum diverifikasi. Maksimum 5 percobaan login per menit untuk username lowercase dan IP; uppercase ditolak dan tidak dinormalisasi.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles: []
       x-blocked-by:
-      - D08
       - D12
       - D13
       responses:
@@ -134,7 +134,7 @@ paths:
       tags:
       - Auth
       summary: Identitas dan konteks akses aktif
-      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Status 400/500 dan conformance lainnya belum diverifikasi; keputusan D08 tetap terbuka.'
+      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Status 400/500 dan conformance lainnya belum diverifikasi; waktu transaksi tetap disimpan UTC dan ditampilkan menurut timezone warung.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -143,7 +143,6 @@ paths:
       - manager
       - kasir
       x-blocked-by:
-      - D08
       - D13
       responses:
         '200':
@@ -204,7 +203,6 @@ paths:
       - manager
       - kasir
       x-blocked-by:
-      - D08
       - D13
       responses:
         '204':
@@ -302,7 +300,6 @@ paths:
       - D13
       - D01
       - D12
-      - D08
       responses:
         '201':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -610,7 +607,7 @@ paths:
       tags:
       - Akses
       summary: Tambah User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan membuat superadmin; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan keputusan D12 masih terbuka.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan membuat superadmin; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid dan status lain belum diverifikasi. Username/email hanya menerima huruf kecil; angka pada username diperbolehkan.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -672,7 +669,7 @@ paths:
       tags:
       - Akses
       summary: Detail User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji detail user sendiri dan 404 untuk tenant lain; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404. Status lain, role boundary detail, dan keputusan D12 belum ditutup.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji detail user sendiri dan 404 untuk tenant lain; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404. Status lain dan role boundary detail belum diverifikasi; user baru wajib memakai username/email lowercase, sedangkan pemetaan data lama masih D12.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -722,7 +719,7 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji update tenant sendiri, 404 tenant lain, dan penolakan injeksi; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI. Payload invalid, status lain, role boundary detail, dan keputusan D12 belum ditutup.'
+      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji update tenant sendiri, 404 tenant lain, dan penolakan injeksi; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan role boundary detail belum diverifikasi; username/email lowercase mengikuti D12, sementara migrasi identitas lama belum ditetapkan.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1035,7 +1032,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
       - D06
       - D16
       responses:
@@ -1111,7 +1107,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
       - D06
       - D16
       responses:
@@ -1178,7 +1173,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
       - D06
       - D16
       responses:
@@ -1232,7 +1226,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
       - D06
       - D16
       responses:
@@ -1315,8 +1308,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
-      - D08
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1403,7 +1394,9 @@ paths:
       description: >-
         Implementasi awal menyimpan header dan rincian atomik; warung/user/nomor/total dari backend.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
-        memakai key sama menghasilkan 409. Aturan nominal lain masih D05 dan operasi tetap DRAFT, belum dapat dipakai live.
+        memakai key sama menghasilkan 409. D05 diputuskan: harga menu > 0, qty > 0 hingga dua desimal, diskon
+        rincian/header tidak lebih besar dari subtotal, cash boleh lebih dari total, QRIS/transfer harus tepat, dan
+        pembulatan half-up per rincian. Operasi tetap DRAFT sampai seluruh conformance selesai.
         Setiap item wajib berasal dari menu aktif dalam kategori aktif. `TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`
         membuktikan menu nonaktif atau kategori nonaktif ditolak 422 pada rincian tanpa write, sedangkan katalog aktif menerima sale.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422;
@@ -1423,8 +1416,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
-      - D08
       - D09
       responses:
         '201':
@@ -1536,8 +1527,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
-      - D08
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1633,8 +1622,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
-      - D08
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1706,7 +1693,8 @@ paths:
       description: >-
         Implementasi awal menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
-        memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; operasi tetap DRAFT.
+        memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; D11 memerlukan operasi tambahan
+        edit/pembatalan dengan alasan audit, di luar 28 operasi awal. Operasi tetap DRAFT.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; TRANSACTION-REQUEST-CONFORMANCE-001
         mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. PURCHASE-REQUEST-SHAPE-CONFORMANCE-001
         membuktikan oneOf menolak qty/harga satuan parsial dan rincian nominal tanpa subtotal; body berbentuk benar dengan
@@ -1724,8 +1712,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
-      - D08
       - D09
       - D10
       - D11
@@ -1857,8 +1843,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
-      - D08
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1926,9 +1910,7 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
       - D06
-      - D08
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1994,8 +1976,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D05
-      - D08
       - D11
       responses:
         '200':
@@ -2211,15 +2191,19 @@ components:
       type: string
       pattern: ^(0|[1-9][0-9]{0,12})\.[0-9]{2}$
       description: Decimal string eksak nonnegatif dengan dua angka pecahan sesuai baseline D05; jangan memakai float. Batas saat ini mengikuti DECIMAL(15,2).
+    MenuPrice:
+      type: string
+      pattern: ^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,12}\.[0-9]{2})$
+      description: Harga jual menu harus positif, dikirim sebagai decimal string dengan dua angka pecahan sesuai D05; batas mengikuti DECIMAL(15,2).
     Quantity:
       type: string
       pattern: ^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$
-      description: 'Kandidat D05: > 0 sampai 99999999.99; string dua angka pecahan.'
+      description: Nilai > 0 sampai 99999999.99; string dua angka pecahan sesuai keputusan D05.
     Timestamp:
       type: string
       format: date-time
       pattern: '^[1-9]\d{3}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$'
-      description: 'Profil RFC3339: tahun 1000–9999, jam 00–23, menit/detik 00–59, zona Z atau offset ±HH:MM. Pada create transaksi, offset diubah ke UTC dan instant harus berada dalam rentang MySQL DATETIME (1000-01-01T00:00:00Z sampai 9999-12-31T23:59:59Z); instant di luar rentang ditolak. Pecahan detik pada request create transaksi diterima tetapi dipotong ke presisi detik DATETIME, tanpa pembulatan. Leap second tidak didukung. Timestamp disimpan/dikirim UTC; tampilan/periode memakai zona IANA warung. Zona kosong/invalid menolak akses dan backdate menunggu D08.'
+      description: 'Profil RFC3339: tahun 1000–9999, jam 00–23, menit/detik 00–59, zona Z atau offset ±HH:MM. Pada create transaksi, offset diubah ke UTC dan instant harus berada dalam rentang MySQL DATETIME (1000-01-01T00:00:00Z sampai 9999-12-31T23:59:59Z); instant di luar rentang ditolak. Future transaction instant ditolak; backdate diterima. Pecahan detik pada request create transaksi diterima tetapi dipotong ke presisi detik DATETIME, tanpa pembulatan. Leap second tidak didukung. Timestamp disimpan/dikirim UTC; tampilan/periode memakai zona IANA warung. Zona kosong/invalid menolak akses.'
     Timezone:
       type: string
       minLength: 1
@@ -2319,11 +2303,15 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: '^[^A-Z]+$'
+          description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
         email:
           type:
           - string
           - 'null'
           format: email
+          pattern: '^[^A-Z]+$'
+          description: Jika diisi, email wajib huruf kecil; input huruf besar ditolak.
         role:
           $ref: '#/components/schemas/Role'
         aktif:
@@ -2363,6 +2351,8 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: '^[^A-Z]+$'
+          description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
         password:
           type: string
           writeOnly: true
@@ -2407,12 +2397,16 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: '^[^A-Z]+$'
+          description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
         email:
           type:
           - string
           - 'null'
           format: email
           maxLength: 150
+          pattern: '^[^A-Z]+$'
+          description: Jika diisi, email wajib huruf kecil; input huruf besar ditolak.
         password:
           type: string
           minLength: 8
@@ -2523,12 +2517,16 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: '^[^A-Z]+$'
+          description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
         email:
           type:
           - string
           - 'null'
           format: email
           maxLength: 150
+          pattern: '^[^A-Z]+$'
+          description: Jika diisi, email wajib huruf kecil; input huruf besar ditolak.
         password:
           type: string
           minLength: 8
@@ -2561,12 +2559,16 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+          pattern: '^[^A-Z]+$'
+          description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
         email:
           type:
           - string
           - 'null'
           format: email
           maxLength: 150
+          pattern: '^[^A-Z]+$'
+          description: Jika diisi, email wajib huruf kecil; input huruf besar ditolak.
         password:
           type: string
           minLength: 8
@@ -2665,7 +2667,7 @@ components:
           minLength: 1
           maxLength: 150
         harga:
-          $ref: '#/components/schemas/Money'
+          $ref: '#/components/schemas/MenuPrice'
         deskripsi:
           $ref: '#/components/schemas/Note'
         aktif:
@@ -2691,7 +2693,7 @@ components:
           minLength: 1
           maxLength: 150
         harga:
-          $ref: '#/components/schemas/Money'
+          $ref: '#/components/schemas/MenuPrice'
         deskripsi:
           $ref: '#/components/schemas/Note'
         aktif:
@@ -2717,7 +2719,7 @@ components:
           minLength: 1
           maxLength: 150
         harga:
-          $ref: '#/components/schemas/Money'
+          $ref: '#/components/schemas/MenuPrice'
         deskripsi:
           $ref: '#/components/schemas/Note'
         aktif:
@@ -2773,7 +2775,7 @@ components:
           - cash
           - qris
           - transfer
-          description: Metode kandidat D05; noncash saat ini mensyaratkan bayar sama dengan total, tetapi aturan ini belum final.
+          description: 'D05 diputuskan: cash boleh melebihi total; QRIS dan transfer harus sama persis dengan total.'
         catatan:
           $ref: '#/components/schemas/Note'
         rincian:
@@ -2786,7 +2788,7 @@ components:
       - bayar
       - metode_pembayaran
       - rincian
-      description: Diskon yang tidak dikirim dianggap 0.00 dalam implementasi awal; aturan ini tetap DRAFT karena D05 belum lengkap. Setiap rincian harus memilih menu terdaftar.
+      description: Diskon yang tidak dikirim dianggap 0.00. Diskon nominal tidak boleh melebihi subtotal, termasuk diskon tiap rincian. Setiap rincian penjualan wajib memilih menu terdaftar.
         total/subtotal/kembalian/user_id/warung_id/no_transaksi/status ditetapkan backend.
     PenjualanSummary:
       type: object
@@ -2820,7 +2822,7 @@ components:
           - cash
           - qris
           - transfer
-          description: Metode kandidat D05; noncash saat ini mensyaratkan bayar sama dengan total, tetapi aturan ini belum final.
+          description: 'D05 diputuskan: cash boleh melebihi total; QRIS dan transfer harus sama persis dengan total.'
         status:
           type: string
           enum:
@@ -2921,7 +2923,7 @@ components:
           - cash
           - qris
           - transfer
-          description: Metode kandidat D05; noncash saat ini mensyaratkan bayar sama dengan total, tetapi aturan ini belum final.
+          description: 'D05 diputuskan: cash boleh melebihi total; QRIS dan transfer harus sama persis dengan total.'
         status:
           type: string
           enum:
