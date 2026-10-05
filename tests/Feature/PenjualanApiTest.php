@@ -259,7 +259,7 @@ class PenjualanApiTest extends TestCase
         $this->assertDatabaseHas('penjualans', ['id' => $otherSale->id, 'user_id' => $otherCashier->id]);
     }
 
-    public function test_superadmin_cannot_list_sales_for_a_tenant(): void
+    public function test_superadmin_cannot_read_tenant_sales(): void
     {
         $warung = Warung::factory()->create();
         $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
@@ -274,6 +274,12 @@ class PenjualanApiTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
+
+        $detail = $this->withToken($token)
+            ->getJson('/api/v1/penjualans/'.$sale->id)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+        $this->assertOperationResponseMatchesOpenApi($detail, '/penjualans/{id}', 'get');
         $this->assertDatabaseHas('penjualans', ['id' => $sale->id, 'warung_id' => $warung->id]);
     }
 

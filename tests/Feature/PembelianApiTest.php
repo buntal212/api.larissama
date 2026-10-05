@@ -492,7 +492,7 @@ class PembelianApiTest extends TestCase
         $this->assertDatabaseCount('pembelian_rincis', 0);
     }
 
-    public function test_superadmin_cannot_list_purchases_for_a_tenant(): void
+    public function test_superadmin_cannot_read_tenant_purchases(): void
     {
         $warung = Warung::factory()->create();
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
@@ -507,6 +507,12 @@ class PembelianApiTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('code', 'FORBIDDEN');
         $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'get');
+
+        $detail = $this->withToken($token)
+            ->getJson('/api/v1/pembelians/'.$purchase->id)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+        $this->assertOperationResponseMatchesOpenApi($detail, '/pembelians/{id}', 'get');
         $this->assertDatabaseHas('pembelians', ['id' => $purchase->id, 'warung_id' => $warung->id]);
     }
 
