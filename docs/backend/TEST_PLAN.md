@@ -850,6 +850,12 @@ D08 mengizinkan backdate dan menolak instant transaksi future. `TransactionTimes
 
 D12 menetapkan username/email lowercase-only, angka tetap sah pada username, dan uppercase ditolak (tidak dinormalisasi). Auth, user create/update/login, serta provision owner mengikuti aturan itu dan OpenAPI mendokumentasikannya. User email tetap nullable/unik global saat terisi. Pembaruan keputusan 2026-10-05: user mengonfirmasi database target produksi kosong/fresh install, sehingga pemetaan `users` lama tidak diperlukan untuk rilis awal dan D12 berstatus DECIDED. Migration guard tetap menolak database non-kosong tanpa pemetaan; migrasi data lama di luar target awal belum didukung.
 
+### Minimum password D12 — 2026-10-05
+
+User menyetujui minimum 8 karakter untuk pembuatan owner saat provisioning, pembuatan user tenant, dan penggantian password user. Backend harus memberi HTTP 422 dengan error field password dan tanpa write untuk tujuh karakter; OpenAPI menggambarkan `minLength: 8`. Login tidak menerapkan minimum panjang sebagai aturan input terpisah, agar password salah tetap ditangani sebagai kegagalan autentikasi.
+
+`PasswordMinimumConformanceTest` memeriksa ketiga jalur, response 422 terhadap schema, tidak adanya provisioning/user baru, serta bahwa password tersimpan tidak berubah saat penggantian ditolak. Hasil dan command ada di [PASSWORD-MINIMUM-CONFORMANCE-001](test-runs/PASSWORD-MINIMUM-CONFORMANCE-001.md).
+
 Pada saat catatan keputusan transaksi ini dibuat, suite penuh berjumlah 482 test / 68.401 assertions; D11 baru diputuskan dan operasi koreksi/pembatalan belum masuk run tersebut. Sesudah implementasi D11, inventory menjadi 30 operasi. Full suite terbaru yang tercatat adalah 501 test / 73.750 assertions pada MySQL 8.0.40 dengan validator OpenAPI 3.1 PASS ([run](test-runs/BACKEND-FULL-SUITE-001.md)). Seluruh 30 operasi masih DRAFT karena conformance runtime penuh dan handoff belum selesai.
 
 

@@ -37,8 +37,10 @@ info:
     ditolak saat create purchase, tanpa write header/rincian. Owner diizinkan membuat keduanya; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji create sale/purchase dan response terhadap schema.
     Sanctum bearer 30 hari, timezone tenant,
     baseline decimal, Idempotency-Key, dan FK gabungan telah dipilih; rincian
-    D05, D08, dan bentuk subtotal pembelian D10 telah diputuskan; sisa gate mencakup role/runtime conformance D04/D13,
-    migrasi identitas lama D12, koreksi penjualan D06, serta rancangan API tambahan untuk koreksi pembelian D11.
+    D05, D08, D10, dan aturan identitas D12 (termasuk minimum password 8 karakter
+    saat membuat atau mengganti password) telah diputuskan. Database produksi dikonfirmasi kosong; guard
+    tetap menolak database non-kosong tanpa pemetaan. Sisa gate mencakup role/runtime conformance D04/D13,
+    keputusan koreksi penjualan D06, serta deployment dan handoff.
     Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh
     sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan
     kontrak live.
@@ -67,7 +69,6 @@ paths:
       x-implementation-status: DONE
       x-candidate-roles: []
       x-blocked-by:
-      - D12
       - D13
       responses:
         '200':
@@ -298,8 +299,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D01
-      - D12
       responses:
         '201':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -548,7 +547,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D12
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -615,7 +613,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D12
       responses:
         '201':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -669,7 +666,7 @@ paths:
       tags:
       - Akses
       summary: Detail User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji detail user sendiri dan 404 untuk tenant lain; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404. Status lain dan role boundary detail belum diverifikasi; user baru wajib memakai username/email lowercase, sedangkan pemetaan data lama masih D12.'
+      description: 'DRAFT: owner dapat membaca user dalam warung sendiri; user tenant lain mendapat 404 dan manager/kasir/superadmin ditolak 403. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` menguji role boundary HTTP dan `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji isolasi tenant. Username/email wajib lowercase. Database produksi target dikonfirmasi kosong sehingga pemetaan user lama tidak dibutuhkan untuk rilis awal; status lain dan conformance penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-candidate-roles:
@@ -677,7 +674,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D12
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -719,7 +715,7 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji update tenant sendiri, 404 tenant lain, dan penolakan injeksi; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/404/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan role boundary detail belum diverifikasi; username/email lowercase mengikuti D12, sementara migrasi identitas lama belum ditetapkan.'
+      description: 'DRAFT: owner dapat memperbarui user dalam warung sendiri; ID tenant lain memberi 404, role non-owner mendapat 403, dan warung_id/superadmin tidak dapat diinjeksi. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` menguji penolakan role tanpa write. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih; username/email wajib lowercase dan email nullable/unik global. Database produksi target kosong sehingga pemetaan user lama tidak dibutuhkan untuk rilis awal. Payload/status lain dan conformance penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-candidate-roles:
@@ -727,7 +723,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D12
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -2551,7 +2546,7 @@ components:
           type: string
           minLength: 8
           writeOnly: true
-          description: Panjang minimum kandidat D12; kebijakan final harus ditetapkan sebelum READY.
+          description: Minimum 8 karakter sesuai keputusan D12; berlaku saat membuat owner.
       required:
       - nama
       - username
@@ -2671,7 +2666,7 @@ components:
           type: string
           minLength: 8
           writeOnly: true
-          description: Panjang minimum kandidat D12; kebijakan final harus ditetapkan sebelum READY.
+          description: Minimum 8 karakter sesuai keputusan D12.
         role:
           type: string
           enum:
@@ -2713,7 +2708,7 @@ components:
           type: string
           minLength: 8
           writeOnly: true
-          description: Panjang minimum kandidat D12; kebijakan final harus ditetapkan sebelum READY.
+          description: Jika dikirim untuk mengganti password, panjang minimum 8 karakter sesuai keputusan D12.
         role:
           type: string
           enum:
