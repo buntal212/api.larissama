@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Menu;
 use App\Models\Pembelian;
+use App\Models\PembelianRinci;
 use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
@@ -545,6 +546,61 @@ class PembelianApiTest extends TestCase
             'id' => $purchaseB->id,
             'warung_id' => $warungB->id,
             'user_id' => $managerB->id,
+        ]);
+    }
+
+    public function test_manager_can_read_purchases_created_by_another_manager_in_same_warung_only(): void
+    {
+        $warungA = Warung::factory()->create();
+        $warungB = Warung::factory()->create();
+        $managerA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'manager']);
+        $managerB = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'manager']);
+        $managerC = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'manager']);
+        $purchaseByManagerB = Pembelian::factory()->create([
+            'warung_id' => $warungA->id,
+            'user_id' => $managerB->id,
+            'total' => '95000.00',
+        ]);
+        PembelianRinci::factory()->create([
+            'warung_id' => $warungA->id,
+            'pembelian_id' => $purchaseByManagerB->id,
+            'nama_item' => 'Belanja bahan',
+            'subtotal' => '95000.00',
+        ]);
+        $purchaseFromWarungB = Pembelian::factory()->create([
+            'warung_id' => $warungB->id,
+            'user_id' => $managerC->id,
+        ]);
+        PembelianRinci::factory()->create([
+            'warung_id' => $warungB->id,
+            'pembelian_id' => $purchaseFromWarungB->id,
+        ]);
+        $token = $managerA->createToken('feature-test')->plainTextToken;
+        $query = ['page' => '1', 'per_page' => '20', 'sort' => '-tanggal'];
+
+        $this->assertOperationQueryMatchesOpenApi($query, '/pembelians', 'get');
+        $list = $this->withToken($token)
+            ->getJson('/api/v1/pembelians?'.http_build_query($query))
+            ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($list, '/pembelians', 'get');
+        $this->assertSame(1, $list->json('meta.total'));
+        $this->assertSame([(string) $purchaseByManagerB->id], array_column($list->json('data'), 'id'));
+
+        $detail = $this->withToken($token)
+            ->getJson('/api/v1/pembelians/'.$purchaseByManagerB->id)
+            ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/pembelians/{id}', 'get');
+        $this->assertSame((string) $managerB->id, $detail->json('data.user_id'));
+        $this->assertSame('Belanja bahan', $detail->json('data.rincian.0.nama_item'));
+
+        $foreignDetail = $this->withToken($token)
+            ->getJson('/api/v1/pembelians/'.$purchaseFromWarungB->id)
+            ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($foreignDetail, '/pembelians/{id}', 'get');
+        $this->assertDatabaseHas('pembelians', [
+            'id' => $purchaseFromWarungB->id,
+            'warung_id' => $warungB->id,
+            'user_id' => $managerC->id,
         ]);
     }
 
