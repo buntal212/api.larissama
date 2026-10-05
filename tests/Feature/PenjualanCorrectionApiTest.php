@@ -79,6 +79,37 @@ class PenjualanCorrectionApiTest extends TestCase
         $this->assertSame('BATAS_KOREKSI_TERLEWATI', $expired->json('code'));
         $this->assertDatabaseHas('penjualans', ['id' => $expiredSale->id, 'catatan' => null]);
         $this->assertDatabaseMissing('penjualan_koreksis', ['penjualan_id' => $expiredSale->id]);
+
+        $boundaryCancelSale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHours(72));
+        $boundaryCancel = $this->withToken($token)->postJson(
+            '/api/v1/penjualans/'.$boundaryCancelSale->id.'/pembatalan',
+            ['alasan' => 'Dibatalkan tepat pada batas 72 jam.'],
+            ['Idempotency-Key' => 'sale-cancel-boundary-001'],
+        )->assertCreated();
+        $this->assertOperationRequestMatchesOpenApi(
+            ['alasan' => 'Dibatalkan tepat pada batas 72 jam.'],
+            ['Idempotency-Key' => 'sale-cancel-boundary-001'],
+            '/penjualans/{id}/pembatalan',
+            'post',
+        );
+        $this->assertOperationResponseMatchesOpenApi($boundaryCancel, '/penjualans/{id}/pembatalan', 'post');
+        $this->assertSame('batal', $boundaryCancelSale->fresh()->status);
+
+        $expiredCancelSale = $this->sale(
+            $warung,
+            $cashier,
+            $menu,
+            CarbonImmutable::now('UTC')->subHours(72)->subSecond(),
+        );
+        $expiredCancel = $this->withToken($token)->postJson(
+            '/api/v1/penjualans/'.$expiredCancelSale->id.'/pembatalan',
+            ['alasan' => 'Pembatalan terlambat.'],
+            ['Idempotency-Key' => 'sale-cancel-expired-001'],
+        )->assertConflict();
+        $this->assertOperationResponseMatchesOpenApi($expiredCancel, '/penjualans/{id}/pembatalan', 'post');
+        $this->assertSame('BATAS_KOREKSI_TERLEWATI', $expiredCancel->json('code'));
+        $this->assertSame('selesai', $expiredCancelSale->fresh()->status);
+        $this->assertDatabaseMissing('penjualan_koreksis', ['penjualan_id' => $expiredCancelSale->id]);
     }
 
     public function test_correction_reprices_replacement_lines_from_active_menu_and_recomputes_totals(): void
