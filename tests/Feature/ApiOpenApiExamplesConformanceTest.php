@@ -44,6 +44,56 @@ class ApiOpenApiExamplesConformanceTest extends TestCase
         $this->assertGreaterThan(0, $exampleCount, 'OpenAPI operations must provide request or response examples.');
     }
 
+    public function test_parameter_examples_match_their_openapi_schemas(): void
+    {
+        $document = $this->openApiDocument();
+        $exampleCount = 0;
+
+        foreach ($document['components']['parameters'] ?? [] as $name => $parameter) {
+            $this->assertIsArray($parameter);
+            $exampleCount += $this->assertParameterExamplesMatchSchema(
+                $parameter,
+                $document,
+                "components.parameters.{$name}",
+            );
+        }
+
+        foreach ($document['paths'] as $path => $pathItem) {
+            foreach ($pathItem['parameters'] ?? [] as $index => $parameter) {
+                if (isset($parameter['$ref'])) {
+                    continue;
+                }
+
+                $exampleCount += $this->assertParameterExamplesMatchSchema(
+                    $parameter,
+                    $document,
+                    "{$path}.parameters.{$index}",
+                );
+            }
+
+            foreach (self::METHODS as $method) {
+                $operation = $pathItem[$method] ?? null;
+                if (! is_array($operation)) {
+                    continue;
+                }
+
+                foreach ($operation['parameters'] ?? [] as $index => $parameter) {
+                    if (isset($parameter['$ref'])) {
+                        continue;
+                    }
+
+                    $exampleCount += $this->assertParameterExamplesMatchSchema(
+                        $parameter,
+                        $document,
+                        strtoupper($method)." {$path}.parameters.{$index}",
+                    );
+                }
+            }
+        }
+
+        $this->assertGreaterThan(0, $exampleCount, 'OpenAPI parameters must provide schema-conformant examples.');
+    }
+
     /**
      * @param  array<string, mixed>  $content
      * @param  array<string, mixed>  $document
@@ -91,6 +141,47 @@ class ApiOpenApiExamplesConformanceTest extends TestCase
         }
 
         return $checked;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameter
+     * @param  array<string, mixed>  $document
+     */
+    private function assertParameterExamplesMatchSchema(array $parameter, array $document, string $location): int
+    {
+        $examples = [];
+        if (array_key_exists('example', $parameter)) {
+            $examples['example'] = $parameter['example'];
+        }
+
+        foreach ($parameter['examples'] ?? [] as $name => $exampleDefinition) {
+            $example = $this->resolveMaybeOpenApiReference($document, $exampleDefinition);
+            $this->assertArrayHasKey(
+                'value',
+                $example,
+                "OpenAPI parameter example {$location}.{$name} must have an inline value.",
+            );
+            $examples[(string) $name] = $example['value'];
+        }
+
+        if ($examples === []) {
+            return 0;
+        }
+
+        $schema = $parameter['schema'] ?? null;
+        $this->assertIsArray($schema, "OpenAPI parameter examples at {$location} must declare a schema.");
+
+        foreach ($examples as $name => $value) {
+            $normalizedValue = $this->normalizeExampleValue($value, $schema, $document);
+            $errors = $this->collectOpenApiSchemaErrors($normalizedValue, $schema, $document, '$');
+            $this->assertSame(
+                [],
+                $errors,
+                "OpenAPI parameter example {$location}.{$name} does not match its schema: ".implode('; ', $errors),
+            );
+        }
+
+        return count($examples);
     }
 
     /**
