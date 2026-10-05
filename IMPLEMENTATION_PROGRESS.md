@@ -2,6 +2,8 @@
 
 Status per 2026-10-05. Migration `warungs`, tenant `users`, timezone, kategori/menu, FK tenant gabungan, dan tabel header/detail transaksi telah diperiksa pada MySQL 8.0.40 lokal. Test runner terisolasi sudah diverifikasi; suite Laravel penuh terakhir lulus 326 test / 50870 assertions pada MySQL 8.0.40; tes akses owner terarah lulus. Audit fresh schema T-DB-01 lulus pada lingkup yang ditetapkan (4 test / 210 assertions). Tujuh puluh lima artefak run mencatat subset dan batas bukti, termasuk auth, admin/user tenant, katalog, transaksi/laporan, serta conformance response/request body/header/query, periode lokal, dan concurrency. Keputusan bisnis rinci, tes lintas modul, dan conformance OpenAPI menyeluruh masih terbuka. OpenAPI tetap DRAFT dan backend belum siap frontend. Source roadmap: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Detail gate/test: [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
 
+Slice aktif: `MALFORMED-JSON-400-CONFORMANCE-001`, T-API-02/04. Mismatch kandidat: kontrak mendokumentasikan 400 untuk JSON yang tidak dapat dibaca, sementara parser Laravel mengubah sintaks rusak menjadi input kosong. Rencana dan acceptance dicatat di [TEST_PLAN](docs/backend/TEST_PLAN.md); belum ada perubahan runtime.
+
 ## Ringkasan pelaksanaan
 
 | Milestone | Task implementasi | DONE | Gate |
