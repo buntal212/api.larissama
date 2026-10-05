@@ -4,6 +4,7 @@
 
 - Tanggal: 2026-10-05 (Asia/Jakarta)
 - Status: PASS
+- Commit: `cace71f`
 - Dokumen: `docs/api/openapi.yaml`, OpenAPI 3.1.0
 - Validator: `openapi-spec-validator` 0.9.0
 - Runtime tool: Python 3.12.15
