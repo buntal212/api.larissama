@@ -1300,7 +1300,7 @@ paths:
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
         CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan list kasir hanya berisi transaksi miliknya dengan meta.total tepat 1.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1409,7 +1409,7 @@ paths:
         menghasilkan subtotal/total 51.75 dan kembalian 8.25 sebagai decimal eksak di response dan MySQL.
         Query, body/status lain, serta gate penuh masih terbuka.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - kasir
@@ -1519,7 +1519,7 @@ paths:
       description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna dan untuk
         kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji manager membaca detail sale yang dibuat kasir. CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan kasir mendapat 200 untuk detail miliknya dan 404 untuk detail kasir lain pada tenant yang sama. Request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1615,7 +1615,7 @@ paths:
         SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; `OWNER-TENANT-ACCESS-CONFORMANCE-001` juga menguji owner membaca transaksi di tenant sendiri dan menerima 404 untuk transaksi tenant lain.
         API-END-TO-END-READBACK-001 menguji manager membaca list purchase sesudah pembelian ringkas/rinci dibuat lewat API.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1713,7 +1713,7 @@ paths:
         TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
         schema request melarang field tambahan. Query, body/status lain, dan gate penuh masih terbuka.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1845,7 +1845,7 @@ paths:
       summary: Detail Pembelian dan rincian
       description: 'Detail dibatasi ke warung pengguna, menampilkan status saat ini serta riwayat koreksi berisi alasan dan snapshot sebelum/sesudah. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji detail purchase ringkas dan rinci hasil API. Request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -1915,9 +1915,9 @@ paths:
         whitespace di tepi, dan response 201/422 menurut schema. D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001 menguji body/response 201 dan jalur sukses owner serta manager; 401/403/404/409 dan replay tercakup pada subset.
         MALFORMED-JSON-400-CONFORMANCE-001, EMPTY-BODY-REQUIRED-CONFORMANCE-001, dan JSON-NONOBJECT-ROOT-CONFORMANCE-001
         kini memeriksa bentuk body buruk pada seluruh 13 operasi ber-body, termasuk kedua operasi D11, dengan error schema-conformant
-        dan no-write. Masih DRAFT karena kombinasi status/request belum lengkap dan window expiry D09 tujuh hari telah dipilih; boundary test runtime masih menjadi gate.
+        dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state kini tercakup pada run terkait. `x-implementation-status` DONE; kontrak tetap DRAFT sampai conformance seluruh status/request dan handoff modul lulus.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles: [owner, manager]
       x-blocked-by: [D02, D13]
       parameters:
@@ -1983,9 +1983,9 @@ paths:
         whitespace di tepi, dan response 201/422 menurut schema. D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001 menguji body/response 201 owner dan manager; D11-CANCEL-RBAC-CONFORMANCE-001 menguji 403 kasir/superadmin dan 404 lintas tenant tanpa write. Response 401 dan replay diuji pada subset.
         MALFORMED-JSON-400-CONFORMANCE-001, EMPTY-BODY-REQUIRED-CONFORMANCE-001, dan JSON-NONOBJECT-ROOT-CONFORMANCE-001
         kini memeriksa bentuk body buruk pada seluruh 13 operasi ber-body, termasuk kedua operasi D11, dengan error schema-conformant
-        dan no-write. Masih DRAFT karena kombinasi status/request belum lengkap dan window expiry D09 tujuh hari telah dipilih; boundary test runtime masih menjadi gate.
+        dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state kini tercakup pada run terkait. `x-implementation-status` DONE; kontrak tetap DRAFT sampai conformance seluruh status/request dan handoff modul lulus.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles: [owner, manager]
       x-blocked-by: [D02, D13]
       parameters:
@@ -2044,7 +2044,7 @@ paths:
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
         superadmin; D04 kini mengizinkan owner serta manager; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
@@ -2110,7 +2110,7 @@ paths:
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
         superadmin; D04 kini mengizinkan owner serta manager; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
       x-contract-status: DRAFT
-      x-implementation-status: IN_PROGRESS
+      x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
