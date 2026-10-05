@@ -25,9 +25,11 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         'pembelians',
         'pembelian_rincis',
         'pembelian_koreksis',
+        'penjualan_koreksis',
+        'penjualan_returs',
     ];
 
-    public function test_nine_business_tables_have_expected_column_metadata(): void
+    public function test_eleven_business_tables_have_expected_column_metadata(): void
     {
         foreach (self::BUSINESS_TABLES as $table) {
             $this->assertTrue(Schema::hasTable($table), "Expected business table {$table} to exist.");
@@ -57,6 +59,11 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertColumn('pembelian_rincis', 'satuan', 'varchar', 30, null, null, true);
         $this->assertColumn('pembelian_rincis', 'harga_satuan', 'decimal', null, 15, 2, true);
         $this->assertColumn('pembelian_rincis', 'subtotal', 'decimal', null, 15, 2, false);
+        $this->assertColumn('penjualan_koreksis', 'alasan', 'varchar', 1000, null, null, false);
+        $this->assertColumn('penjualan_koreksis', 'sebelum', 'json', null, null, null, false);
+        $this->assertColumn('penjualan_koreksis', 'idempotency_expires_at', 'datetime', null, null, null, true, 6);
+        $this->assertColumn('penjualan_returs', 'nominal', 'decimal', null, 15, 2, false);
+        $this->assertColumn('penjualan_returs', 'idempotency_expires_at', 'datetime', null, null, null, true, 6);
     }
 
     public function test_all_business_columns_match_the_expected_mysql_metadata(): void
@@ -189,6 +196,34 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
                 'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
             ],
+            'penjualan_koreksis' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'penjualan_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'jenis' => 'varchar(20)|NO|<NULL>|<NONE>|<NULL>',
+                'alasan' => 'varchar(1000)|NO|<NULL>|<NONE>|<NULL>',
+                'sebelum' => 'json|NO|<NULL>|<NONE>|<NULL>',
+                'sesudah' => 'json|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
+                'idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+            'penjualan_returs' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'penjualan_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'nominal' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'alasan' => 'varchar(1000)|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
+                'idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
         ];
 
         foreach (self::BUSINESS_TABLES as $table) {
@@ -234,6 +269,11 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['pembelian_rincis', 'pembelian_rincis_warung_header_idx', ['warung_id', 'pembelian_id']],
             ['pembelian_koreksis', 'pembelian_koreksi_idempotency_unique', ['warung_id', 'user_id', 'jenis', 'idempotency_key']],
             ['pembelian_koreksis', 'pembelian_koreksi_riwayat_idx', ['warung_id', 'pembelian_id', 'id']],
+            ['penjualan_koreksis', 'penjualan_koreksi_idempotency_unique', ['warung_id', 'user_id', 'jenis', 'idempotency_key']],
+            ['penjualan_koreksis', 'penjualan_koreksi_riwayat_idx', ['warung_id', 'penjualan_id', 'id']],
+            ['penjualan_returs', 'penjualan_retur_idempotency_unique', ['warung_id', 'user_id', 'idempotency_key']],
+            ['penjualan_returs', 'penjualan_retur_warung_created_idx', ['warung_id', 'created_at', 'id']],
+            ['penjualan_returs', 'penjualan_retur_sale_idx', ['warung_id', 'penjualan_id', 'id']],
         ];
 
         foreach ($indexes as [$table, $name, $columns]) {
@@ -257,6 +297,10 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['pembelian_rincis', 'pembelian_rincis_warung_header_fk', ['warung_id', 'pembelian_id'], 'pembelians', ['warung_id', 'id']],
             ['pembelian_koreksis', 'pembelian_koreksi_header_fk', ['warung_id', 'pembelian_id'], 'pembelians', ['warung_id', 'id']],
             ['pembelian_koreksis', 'pembelian_koreksi_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['penjualan_koreksis', 'penjualan_koreksi_header_fk', ['warung_id', 'penjualan_id'], 'penjualans', ['warung_id', 'id']],
+            ['penjualan_koreksis', 'penjualan_koreksi_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['penjualan_returs', 'penjualan_retur_header_fk', ['warung_id', 'penjualan_id'], 'penjualans', ['warung_id', 'id']],
+            ['penjualan_returs', 'penjualan_retur_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
         ];
         $expectedNames = [];
 

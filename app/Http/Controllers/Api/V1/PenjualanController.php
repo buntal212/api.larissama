@@ -2,12 +2,20 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Penjualan\CorrectPenjualan;
 use App\Actions\Penjualan\CreatePenjualan;
+use App\Actions\Penjualan\RecordPenjualanRetur;
 use App\Exceptions\IdempotencyKeyConflictException;
+use App\Exceptions\PenjualanStateConflictException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\PenjualanCancelRequest;
 use App\Http\Requests\Api\V1\PenjualanIndexRequest;
+use App\Http\Requests\Api\V1\PenjualanKoreksiRequest;
+use App\Http\Requests\Api\V1\PenjualanReturRequest;
 use App\Http\Requests\Api\V1\PenjualanStoreRequest;
+use App\Http\Resources\Api\V1\PenjualanKoreksiResource;
 use App\Http\Resources\Api\V1\PenjualanResource;
+use App\Http\Resources\Api\V1\PenjualanReturResource;
 use App\Http\Resources\Api\V1\PenjualanSummaryResource;
 use App\Http\Responses\ApiErrorResponse;
 use App\Http\Responses\ApiPaginationResponse;
@@ -74,7 +82,75 @@ class PenjualanController extends Controller
             );
         }
 
+        $sale->load('rincian', 'koreksi', 'retur');
+
         return response()->json(['data' => (new PenjualanResource($sale))->resolve($request)], 201);
+    }
+
+    public function update(PenjualanKoreksiRequest $request, string $id, CorrectPenjualan $correctPenjualan): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $sale = Penjualan::query()->where('warung_id', $actor->warung_id)->findOrFail($id);
+        Gate::authorize('manageCorrections', $sale);
+        $key = $this->validatedIdempotencyKey($request);
+        if ($key instanceof JsonResponse) {
+            return $key;
+        }
+
+        try {
+            $event = $correctPenjualan->update($actor, (int) $id, $key, $request->validated());
+        } catch (IdempotencyKeyConflictException) {
+            return $this->idempotencyConflict();
+        } catch (PenjualanStateConflictException $exception) {
+            return ApiErrorResponse::make($exception->errorCode, $exception->getMessage(), 409);
+        }
+
+        return response()->json(['data' => (new PenjualanKoreksiResource($event))->resolve($request)], 201);
+    }
+
+    public function cancel(PenjualanCancelRequest $request, string $id, CorrectPenjualan $correctPenjualan): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $sale = Penjualan::query()->where('warung_id', $actor->warung_id)->findOrFail($id);
+        Gate::authorize('manageCorrections', $sale);
+        $key = $this->validatedIdempotencyKey($request);
+        if ($key instanceof JsonResponse) {
+            return $key;
+        }
+
+        try {
+            $event = $correctPenjualan->cancel($actor, (int) $id, $key, $request->validated());
+        } catch (IdempotencyKeyConflictException) {
+            return $this->idempotencyConflict();
+        } catch (PenjualanStateConflictException $exception) {
+            return ApiErrorResponse::make($exception->errorCode, $exception->getMessage(), 409);
+        }
+
+        return response()->json(['data' => (new PenjualanKoreksiResource($event))->resolve($request)], 201);
+    }
+
+    public function storeReturn(PenjualanReturRequest $request, string $id, RecordPenjualanRetur $recordReturn): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $sale = Penjualan::query()->where('warung_id', $actor->warung_id)->findOrFail($id);
+        Gate::authorize('manageCorrections', $sale);
+        $key = $this->validatedIdempotencyKey($request);
+        if ($key instanceof JsonResponse) {
+            return $key;
+        }
+
+        try {
+            $event = $recordReturn->execute($actor, (int) $id, $key, $request->validated());
+        } catch (IdempotencyKeyConflictException) {
+            return $this->idempotencyConflict();
+        } catch (PenjualanStateConflictException $exception) {
+            return ApiErrorResponse::make($exception->errorCode, $exception->getMessage(), 409);
+        }
+
+        return response()->json(['data' => (new PenjualanReturResource($event))->resolve($request)], 201);
     }
 
     public function show(Request $request, string $id): JsonResponse
@@ -82,7 +158,7 @@ class PenjualanController extends Controller
         Gate::authorize('viewAny', Penjualan::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
-        $query = Penjualan::query()->where('warung_id', $actor->warung_id)->with('rincian');
+        $query = Penjualan::query()->where('warung_id', $actor->warung_id)->with('rincian', 'koreksi', 'retur');
 
         if ($actor->role === 'kasir') {
             $query->where('user_id', $actor->getKey());
@@ -108,5 +184,14 @@ class PenjualanController extends Controller
         }
 
         return $key;
+    }
+
+    private function idempotencyConflict(): JsonResponse
+    {
+        return ApiErrorResponse::make(
+            'IDEMPOTENCY_KEY_REUSED',
+            'Idempotency-Key sudah digunakan untuk payload berbeda.',
+            409,
+        );
     }
 }

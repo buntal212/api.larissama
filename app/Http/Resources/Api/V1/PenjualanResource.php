@@ -17,6 +17,8 @@ class PenjualanResource extends JsonResource
         return [
             ...(new PenjualanSummaryResource($this->resource))->toArray($request),
             'rincian' => PenjualanRinciResource::collection($this->whenLoaded('rincian'))->toArray($request),
+            'riwayat_koreksi' => PenjualanKoreksiResource::collection($this->whenLoaded('koreksi'))->toArray($request),
+            'riwayat_retur' => PenjualanReturResource::collection($this->whenLoaded('retur'))->toArray($request),
         ];
     }
 }

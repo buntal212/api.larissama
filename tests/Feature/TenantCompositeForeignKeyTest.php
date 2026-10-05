@@ -56,6 +56,7 @@ class TenantCompositeForeignKeyTest extends TestCase
             $saleA,
             $saleB,
             $purchaseA,
+            $kasirB,
         ): void {
             match ($relation) {
                 'menu-category' => Menu::factory()->create([
@@ -73,6 +74,10 @@ class TenantCompositeForeignKeyTest extends TestCase
                     'user_id' => $managerA->id,
                 ]),
                 'purchase-detail-header' => $this->insertPurchaseDetail($warungB->id, $purchaseA->id),
+                'sale-correction-header' => $this->insertSaleCorrection($warungB->id, $saleA->id, $kasirB->id),
+                'sale-correction-user' => $this->insertSaleCorrection($warungB->id, $saleB->id, $kasirA->id),
+                'sale-return-header' => $this->insertSaleReturn($warungB->id, $saleA->id, $kasirB->id),
+                'sale-return-user' => $this->insertSaleReturn($warungB->id, $saleB->id, $kasirA->id),
                 default => throw new \InvalidArgumentException("Unsupported relation {$relation}."),
             };
         });
@@ -90,6 +95,10 @@ class TenantCompositeForeignKeyTest extends TestCase
             'sale detail to menu' => ['sale-detail-menu', 'penjualan_rincis_warung_menu_fk'],
             'purchase header to user' => ['purchase-user', 'pembelians_warung_user_fk'],
             'purchase detail to header' => ['purchase-detail-header', 'pembelian_rincis_warung_header_fk'],
+            'sale correction to header' => ['sale-correction-header', 'penjualan_koreksi_header_fk'],
+            'sale correction to user' => ['sale-correction-user', 'penjualan_koreksi_user_fk'],
+            'sale return to header' => ['sale-return-header', 'penjualan_retur_header_fk'],
+            'sale return to user' => ['sale-return-user', 'penjualan_retur_user_fk'],
         ];
     }
 
@@ -222,6 +231,34 @@ class TenantCompositeForeignKeyTest extends TestCase
             'subtotal' => '1000.00',
             'created_at' => $now,
             'updated_at' => $now,
+        ]);
+    }
+
+    private function insertSaleCorrection(int $warungId, int $saleId, int $userId): void
+    {
+        DB::table('penjualan_koreksis')->insert([
+            'warung_id' => $warungId,
+            'penjualan_id' => $saleId,
+            'user_id' => $userId,
+            'jenis' => 'ubah',
+            'alasan' => 'Koreksi test',
+            'sebelum' => json_encode([]),
+            'sesudah' => json_encode([]),
+            'created_at' => now('UTC'),
+            'updated_at' => now('UTC'),
+        ]);
+    }
+
+    private function insertSaleReturn(int $warungId, int $saleId, int $userId): void
+    {
+        DB::table('penjualan_returs')->insert([
+            'warung_id' => $warungId,
+            'penjualan_id' => $saleId,
+            'user_id' => $userId,
+            'nominal' => '10.00',
+            'alasan' => 'Retur test',
+            'created_at' => now('UTC'),
+            'updated_at' => now('UTC'),
         ]);
     }
 }

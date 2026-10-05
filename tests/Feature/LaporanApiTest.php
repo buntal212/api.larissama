@@ -41,6 +41,9 @@ class LaporanApiTest extends TestCase
         $response = $this->withToken($token)->getJson('/api/v1/laporan/penjualan?'.http_build_query($query))
             ->assertOk()
             ->assertJsonPath('data.jumlah_transaksi', 2)
+            ->assertJsonPath('data.total_penjualan', '5000.00')
+            ->assertJsonPath('data.jumlah_retur', 0)
+            ->assertJsonPath('data.total_retur', '0.00')
             ->assertJsonPath('data.total_pendapatan', '5000.00')
             ->assertJsonPath('data.period.timezone', 'America/New_York');
 
@@ -87,8 +90,8 @@ class LaporanApiTest extends TestCase
         $token = $manager->createToken('feature-test')->plainTextToken;
 
         foreach ([
-            ['route' => 'penjualan', 'total_field' => 'total_pendapatan'],
-            ['route' => 'pembelian', 'total_field' => 'total_pembelian'],
+            ['route' => 'penjualan', 'total_field' => 'total_pendapatan', 'sale' => true],
+            ['route' => 'pembelian', 'total_field' => 'total_pembelian', 'sale' => false],
         ] as $report) {
             $response = $this->withToken($token)->getJson(
                 "/api/v1/laporan/{$report['route']}?date_from=2026-10-04&date_to=2026-10-04"
@@ -97,6 +100,12 @@ class LaporanApiTest extends TestCase
                 ->assertJsonPath('data.jumlah_transaksi', 0)
                 ->assertJsonPath("data.{$report['total_field']}", '0.00')
                 ->assertJsonPath('data.period.timezone', 'Asia/Jakarta');
+
+            if ($report['sale']) {
+                $response->assertJsonPath('data.total_penjualan', '0.00')
+                    ->assertJsonPath('data.jumlah_retur', 0)
+                    ->assertJsonPath('data.total_retur', '0.00');
+            }
 
             $this->assertReportSuccessEnvelope($response, $report['total_field']);
             $this->assertOperationResponseMatchesOpenApi($response, "/laporan/{$report['route']}", 'get');
@@ -190,16 +199,21 @@ class LaporanApiTest extends TestCase
         $body = $response->json();
 
         $this->assertEqualsCanonicalizing(['data'], array_keys($body));
-        $this->assertEqualsCanonicalizing(
-            ['period', 'jumlah_transaksi', $totalField],
-            array_keys($body['data']),
-        );
+        $expectedFields = $totalField === 'total_pendapatan'
+            ? ['period', 'jumlah_transaksi', 'total_penjualan', 'jumlah_retur', 'total_retur', 'total_pendapatan']
+            : ['period', 'jumlah_transaksi', 'total_pembelian'];
+        $this->assertEqualsCanonicalizing($expectedFields, array_keys($body['data']));
         $this->assertEqualsCanonicalizing(
             ['date_from', 'date_to', 'timezone'],
             array_keys($body['data']['period']),
         );
         $this->assertIsInt($body['data']['jumlah_transaksi']);
         $this->assertIsString($body['data'][$totalField]);
+        if ($totalField === 'total_pendapatan') {
+            $this->assertIsInt($body['data']['jumlah_retur']);
+            $this->assertIsString($body['data']['total_penjualan']);
+            $this->assertIsString($body['data']['total_retur']);
+        }
     }
 
     private function assertD13ErrorEnvelope(TestResponse $response, string $expectedField): void

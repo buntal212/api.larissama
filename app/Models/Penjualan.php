@@ -33,6 +33,16 @@ class Penjualan extends Model
         return $this->hasMany(PenjualanRinci::class)->orderBy('id');
     }
 
+    public function koreksi(): HasMany
+    {
+        return $this->hasMany(PenjualanKoreksi::class)->orderBy('id');
+    }
+
+    public function retur(): HasMany
+    {
+        return $this->hasMany(PenjualanRetur::class)->orderBy('id');
+    }
+
     protected function casts(): array
     {
         return [

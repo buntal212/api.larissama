@@ -3,7 +3,7 @@ info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
   description: >-
-    Rancangan 2026-10-05; semua operasi tetap DRAFT sampai keputusan dan test
+    Rancangan 2026-10-06; semua operasi tetap DRAFT sampai keputusan dan test
     kontrak/fungsional lulus. User menyetujui baseline wire D13: /api/v1,
     ID/decimal string, envelope data/meta, page integer >= 1 tanpa batas maksimum dan per_page 1–100, sort
     allowlist, dan error code/message/errors/request_id. Slice transaksi dan auth
@@ -17,11 +17,11 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06 untuk sale baru kini menetapkan menu dan kategorinya harus aktif; implementasi dan test subset tercatat, sementara pembatalan/koreksi masih belum diputuskan. OpenAPI runtime conformance menyeluruh belum diverifikasi.
-    PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 27 operasi yang mewajibkan bearer:
+    D06 menetapkan menu/kategori aktif untuk sale baru, koreksi/pembatalan beralasan sampai 72 jam sejak pencatatan, dan retur nominal penuh/sebagian beralasan setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Implementasi 33 operationId telah tersedia; acceptance D06 terarah lulus, sementara seluruh kontrak tetap DRAFT sampai runtime conformance penuh dan handoff per operasi.
+    PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
-    API-ROUTE-INVENTORY-CONFORMANCE-001 mencocokkan dua arah seluruh 28 method/path OpenAPI dengan route Laravel;
-    pemeriksaan ini hanya inventaris, bukan bukti conformance request/response atau kesiapan integrasi.
+    API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory kini 33 operation pada 21 path dan telah dicocokkan oleh test route terkini;
+    pemeriksaan ini adalah inventory terkini; bukti conformance request/response dan kesiapan integrasi tetap per operationId.
     API-PATH-ID-POSITIVE-CONFORMANCE-001 membuktikan seluruh sepuluh operasi ber-parameter {id} memakai
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
     REPORT-RBAC-CONFORMANCE-001 menguji kedua report: manager mendapat akses, kasir dan superadmin mendapat 403.
@@ -40,7 +40,7 @@ info:
     D05, D08, D10, dan aturan identitas D12 (termasuk minimum password 8 karakter
     saat membuat atau mengganti password) telah diputuskan. Database produksi dikonfirmasi kosong; guard
     tetap menolak database non-kosong tanpa pemetaan. Sisa gate mencakup role/runtime conformance D04/D13,
-    keputusan koreksi penjualan D06, serta deployment dan handoff.
+    conformance penuh D04/D13, serta deployment dan handoff.
     Lihat docs/backend/DECISIONS.md dan IMPLEMENTATION_PROGRESS.md. Contoh
     sintetis; nomor contoh memakai format sementara PJ-/PB-ULID dan bukan
     kontrak live.
@@ -1379,8 +1379,9 @@ paths:
           enum:
           - selesai
           - batal
-        description: Filter riwayat; jika kosong semua status yang diizinkan. Endpoint laporan tetap menghitung
-          selesai menurut D08.
+          - diretur_sebagian
+          - diretur_penuh
+        description: Filter status; tanpa filter seluruh status penjualan ditampilkan.
     post:
       operationId: createPenjualan
       tags:
@@ -1461,6 +1462,8 @@ paths:
                         catatan: null
                         created_at: '2026-10-04T03:00:00Z'
                         updated_at: '2026-10-04T03:00:00Z'
+                      riwayat_koreksi: []
+                      riwayat_retur: []
         '400':
           $ref: '#/components/responses/Error400'
         '401':
@@ -1569,6 +1572,8 @@ paths:
                     catatan: null
                     created_at: '2026-10-04T03:00:00Z'
                     updated_at: '2026-10-04T03:00:00Z'
+                  riwayat_koreksi: []
+                  riwayat_retur: []
         '400':
           $ref: '#/components/responses/Error400'
         '401':
@@ -1587,6 +1592,120 @@ paths:
           $ref: '#/components/responses/Error500'
       parameters:
       - $ref: '#/components/parameters/Id'
+    patch:
+      operationId: updatePenjualan
+      tags: [Penjualan]
+      summary: Koreksi penjualan dalam window 72 jam
+      description: >-
+        Owner/manager tenant dapat mengoreksi tanggal, catatan, seluruh rincian, diskon, dan pasangan pembayaran
+        dalam 72 jam sejak `created_at` UTC. Alasan wajib, rincian yang dikirim mengganti semua rincian, harga
+        menu dibaca server dari menu aktif, aturan D05 tetap berlaku, dan event append-only menyimpan snapshot
+        sebelum/sesudah. Setelah window atau setelah retur, koreksi ditolak 409. Idempotency-Key berlaku 7 hari.
+        Operasi masih DRAFT sampai runtime conformance lengkap.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles: [owner, manager]
+      x-blocked-by: [D02, D09, D13]
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenjualanUpdate'
+      responses:
+        '201':
+          description: Koreksi tersimpan dengan snapshot audit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PenjualanKoreksiResponse'
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
+  /penjualans/{id}/pembatalan:
+    post:
+      operationId: cancelPenjualan
+      tags: [Penjualan]
+      summary: Batalkan penjualan dalam window koreksi
+      description: >-
+        Owner/manager tenant dapat membatalkan penjualan tanpa retur dalam 72 jam sejak `created_at` UTC.
+        Alasan wajib; header dan rincian dipertahankan, status menjadi `batal`, dan event append-only menyimpan
+        snapshot sebelum/sesudah. Penjualan batal dikeluarkan dari laporan dan tidak dapat diretur.
+        Idempotency-Key berlaku 7 hari. Operasi masih DRAFT sampai semua status/request/runtime teruji.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles: [owner, manager]
+      x-blocked-by: [D02, D09, D13]
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenjualanCancel'
+      responses:
+        '201':
+          description: Pembatalan tercatat dengan snapshot audit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PenjualanKoreksiResponse'
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
+  /penjualans/{id}/retur:
+    post:
+      operationId: createPenjualanRetur
+      tags: [Penjualan]
+      summary: Catat retur penjualan
+      description: >-
+        Owner/manager tenant dapat mencatat retur nominal penuh atau sebagian kapan saja selama masih ada saldo.
+        Nominal retur tidak boleh melebihi sisa nilai penjualan. Alasan, aktor, dan waktu UTC tercatat append-only;
+        stok/menu tidak berubah. Status menjadi `diretur_sebagian` atau `diretur_penuh`. Laporan mengurangi
+        nominal pada periode retur. Idempotency-Key berlaku 7 hari. Operasi masih DRAFT sampai runtime teruji.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles: [owner, manager]
+      x-blocked-by: [D02, D09, D13]
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenjualanReturCreate'
+      responses:
+        '201':
+          description: Retur tersimpan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PenjualanReturResponse'
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
   /pembelians:
     get:
       operationId: listPembelians
@@ -2032,8 +2151,10 @@ paths:
       - Laporan
       summary: Pendapatan penjualan pada periode
       description: >-
-        Implementasi awal menjumlahkan total penjualan berstatus selesai dan menghitung header di periode
-        timezone warung. Tidak menjumlahkan bayar atau join rincian; masih DRAFT sampai gate lulus.
+        Menjumlahkan penjualan non-batal menurut tanggal transaksi lokal dan mengurangi nominal retur yang dicatat
+        pada periode lokal retur. Respons memisahkan jumlah penjualan kotor, retur, dan pendapatan bersih;
+        retur dapat membuat pendapatan periode negatif. Tidak menjumlahkan bayar atau join rincian.
+        Masih DRAFT sampai gate lulus.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
@@ -2046,7 +2167,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D06
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -2061,6 +2181,9 @@ paths:
                     date_to: '2026-10-31'
                     timezone: Asia/Jakarta
                   jumlah_transaksi: 1
+                  total_penjualan: '33000.00'
+                  jumlah_retur: 0
+                  total_retur: '0.00'
                   total_pendapatan: '33000.00'
         '400':
           $ref: '#/components/responses/Error400'
@@ -2172,6 +2295,16 @@ components:
       schema:
         $ref: '#/components/schemas/Id'
       description: ID resource; lookup selalu mengikuti scope operasi.
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+        pattern: '^\S(?:.*\S)?$'
+      description: Key unik per warung, user, dan jenis operasi selama 7 hari sejak request pertama. Retry identik me-replay respons awal; payload berbeda menghasilkan 409. Setelah expiry key dapat dipakai sebagai request baru.
     Page:
       name: page
       in: query
@@ -2925,6 +3058,151 @@ components:
       - rincian
       description: Diskon yang tidak dikirim dianggap 0.00. Diskon nominal tidak boleh melebihi subtotal, termasuk diskon tiap rincian. Setiap rincian penjualan wajib memilih menu terdaftar.
         total/subtotal/kembalian/user_id/warung_id/no_transaksi/status ditetapkan backend.
+    PenjualanUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 2
+      properties:
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '\S'
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        catatan:
+          $ref: '#/components/schemas/Note'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        bayar:
+          $ref: '#/components/schemas/Money'
+        metode_pembayaran:
+          type: string
+          enum: [cash, qris, transfer]
+        rincian:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaleMenuLineInput'
+          minItems: 1
+      required: [alasan]
+      description: Sertakan alasan dan minimal satu field koreksi. Jika pembayaran diubah, bayar dan metode_pembayaran wajib dikirim bersama. Rincian mengganti seluruh rincian.
+    PenjualanCancel:
+      type: object
+      additionalProperties: false
+      properties:
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '\S'
+      required: [alasan]
+    PenjualanReturCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '\S'
+        nominal:
+          type: string
+          pattern: '^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,12}\.[0-9]{2})$'
+      required: [alasan, nominal]
+      description: Retur boleh parsial atau penuh; nominal wajib positif dan backend menolak jumlah kumulatif di atas saldo penjualan.
+    PenjualanSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [selesai, batal, diretur_sebagian, diretur_penuh]
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        total:
+          $ref: '#/components/schemas/Money'
+        bayar:
+          $ref: '#/components/schemas/Money'
+        kembalian:
+          $ref: '#/components/schemas/Money'
+        metode_pembayaran:
+          type: string
+          enum: [cash, qris, transfer]
+        catatan:
+          $ref: '#/components/schemas/Note'
+        rincian:
+          type: array
+          items:
+            $ref: '#/components/schemas/PenjualanSnapshotLine'
+      required: [status, tanggal, subtotal, diskon, total, bayar, kembalian, metode_pembayaran, catatan, rincian]
+    PenjualanSnapshotLine:
+      type: object
+      additionalProperties: false
+      properties:
+        menu_id:
+          $ref: '#/components/schemas/Id'
+        nama_menu:
+          type: string
+          minLength: 1
+          maxLength: 150
+        harga:
+          $ref: '#/components/schemas/Money'
+        qty:
+          $ref: '#/components/schemas/Quantity'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+      required: [menu_id, nama_menu, harga, qty, diskon, subtotal, catatan]
+    PenjualanKoreksi:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        penjualan_id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        jenis:
+          type: string
+          enum: [ubah, batalkan]
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        sebelum:
+          $ref: '#/components/schemas/PenjualanSnapshot'
+        sesudah:
+          $ref: '#/components/schemas/PenjualanSnapshot'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+      required: [id, penjualan_id, user_id, jenis, alasan, sebelum, sesudah, created_at]
+    PenjualanRetur:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        penjualan_id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        nominal:
+          $ref: '#/components/schemas/Money'
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+      required: [id, penjualan_id, user_id, nominal, alasan, created_at]
     PenjualanSummary:
       type: object
       additionalProperties: false
@@ -2963,6 +3241,8 @@ components:
           enum:
           - selesai
           - batal
+          - diretur_sebagian
+          - diretur_penuh
         catatan:
           $ref: '#/components/schemas/Note'
         created_at:
@@ -3064,6 +3344,8 @@ components:
           enum:
           - selesai
           - batal
+          - diretur_sebagian
+          - diretur_penuh
         catatan:
           $ref: '#/components/schemas/Note'
         created_at:
@@ -3075,6 +3357,14 @@ components:
           items:
             $ref: '#/components/schemas/PenjualanRinci'
           minItems: 1
+        riwayat_koreksi:
+          type: array
+          items:
+            $ref: '#/components/schemas/PenjualanKoreksi'
+        riwayat_retur:
+          type: array
+          items:
+            $ref: '#/components/schemas/PenjualanRetur'
       required:
       - id
       - warung_id
@@ -3092,6 +3382,8 @@ components:
       - created_at
       - updated_at
       - rincian
+      - riwayat_koreksi
+      - riwayat_retur
     PurchaseNominalLineInput:
       type: object
       additionalProperties: false
@@ -3391,6 +3683,20 @@ components:
         created_at:
           $ref: '#/components/schemas/Timestamp'
       required: [id, pembelian_id, user_id, jenis, alasan, sebelum, sesudah, created_at]
+    PenjualanKoreksiResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/PenjualanKoreksi'
+      required: [data]
+    PenjualanReturResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/PenjualanRetur'
+      required: [data]
     PembelianKoreksiResponse:
       type: object
       additionalProperties: false
@@ -3422,11 +3728,21 @@ components:
         jumlah_transaksi:
           type: integer
           minimum: 0
-        total_pendapatan:
+        total_penjualan:
           $ref: '#/components/schemas/AggregateMoney'
+        jumlah_retur:
+          type: integer
+          minimum: 0
+        total_retur:
+          $ref: '#/components/schemas/AggregateMoney'
+        total_pendapatan:
+          $ref: '#/components/schemas/SignedAggregateMoney'
       required:
       - period
       - jumlah_transaksi
+      - total_penjualan
+      - jumlah_retur
+      - total_retur
       - total_pendapatan
     LaporanPembelian:
       type: object
@@ -3658,3 +3974,7 @@ components:
       pattern: ^(0|[1-9][0-9]*)\.[0-9]{2}$
       description: Jumlah nominal lintas transaksi. String decimal eksak; tidak dibatasi kapasitas satu kolom DECIMAL(15,2).
         Backend memakai agregasi dengan presisi yang cukup, tanpa float.
+    SignedAggregateMoney:
+      type: string
+      pattern: ^-?(0|[1-9][0-9]*)\.[0-9]{2}$
+      description: Pendapatan bersih setelah mengurangi retur periode; dapat negatif bila retur periode melebihi penjualan periode. String decimal eksak tanpa float.

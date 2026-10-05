@@ -41,7 +41,7 @@ class PenjualanPolicy
      */
     public function update(User $user, Penjualan $penjualan): bool
     {
-        return false;
+        return $this->manageCorrections($user, $penjualan);
     }
 
     /**
@@ -66,5 +66,12 @@ class PenjualanPolicy
     public function forceDelete(User $user, Penjualan $penjualan): bool
     {
         return false;
+    }
+
+    public function manageCorrections(User $user, Penjualan $penjualan): bool
+    {
+        return in_array($user->role, ['owner', 'manager'], true)
+            && $user->warung_id !== null
+            && (int) $user->warung_id === (int) $penjualan->warung_id;
     }
 }

@@ -17,6 +17,7 @@ class PenjualanPolicyTest extends TestCase
         bool $canReadAny,
         bool $canCreate,
         bool $canReadOtherCashierSale,
+        bool $canManageCorrections,
     ): void {
         $policy = new PenjualanPolicy;
         $actor = $this->user(1, $role, $warungId);
@@ -29,25 +30,26 @@ class PenjualanPolicyTest extends TestCase
         $this->assertSame($canReadAny, $policy->view($actor, $ownSale));
         $this->assertSame($canReadOtherCashierSale, $policy->view($actor, $otherSale));
         $this->assertFalse($policy->view($actor, $foreignSale));
-        $this->assertFalse($policy->update($actor, $ownSale));
+        $this->assertSame($canManageCorrections, $policy->update($actor, $ownSale));
+        $this->assertSame($canManageCorrections, $policy->manageCorrections($actor, $ownSale));
         $this->assertFalse($policy->delete($actor, $ownSale));
         $this->assertFalse($policy->restore($actor, $ownSale));
         $this->assertFalse($policy->forceDelete($actor, $ownSale));
     }
 
     /**
-     * @return array<string, array{string, ?int, bool, bool, bool}>
+     * @return array<string, array{string, ?int, bool, bool, bool, bool}>
      */
     public static function roleMatrix(): array
     {
         return [
-            'owner' => ['owner', 10, true, true, true],
-            'manager' => ['manager', 10, true, false, true],
-            'cashier' => ['kasir', 10, true, true, false],
-            'superadmin' => ['superadmin', null, false, false, false],
-            'owner without tenant' => ['owner', null, false, false, false],
-            'manager without tenant' => ['manager', null, false, false, false],
-            'cashier without tenant' => ['kasir', null, false, false, false],
+            'owner' => ['owner', 10, true, true, true, true],
+            'manager' => ['manager', 10, true, false, true, true],
+            'cashier' => ['kasir', 10, true, true, false, false],
+            'superadmin' => ['superadmin', null, false, false, false, false],
+            'owner without tenant' => ['owner', null, false, false, false, false],
+            'manager without tenant' => ['manager', null, false, false, false, false],
+            'cashier without tenant' => ['kasir', null, false, false, false, false],
         ];
     }
 

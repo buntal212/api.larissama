@@ -4,6 +4,7 @@ namespace App\Actions\Laporan;
 
 use App\Models\Pembelian;
 use App\Models\Penjualan;
+use App\Models\PenjualanRetur;
 use App\Models\User;
 use App\Support\PeriodBounds;
 use Brick\Math\BigDecimal;
@@ -18,18 +19,30 @@ class BuildLaporanPeriode
     {
         $timezone = (string) ($actor->warung?->timezone ?? '');
         [$startUtc, $endExclusiveUtc] = $this->periodBounds->utcBounds($dateFrom, $dateTo, $timezone);
-        $totals = Penjualan::query()
+        $sales = Penjualan::query()
             ->where('warung_id', $actor->warung_id)
-            ->where('status', 'selesai')
+            ->whereIn('status', ['selesai', 'diretur_sebagian', 'diretur_penuh'])
             ->where('tanggal', '>=', $startUtc)
             ->where('tanggal', '<', $endExclusiveUtc)
-            ->selectRaw('COUNT(*) AS jumlah_transaksi, COALESCE(SUM(total), 0) AS total_pendapatan')
+            ->selectRaw('COUNT(*) AS jumlah_transaksi, COALESCE(SUM(total), 0) AS total_penjualan')
             ->firstOrFail();
+        $returns = PenjualanRetur::query()
+            ->where('warung_id', $actor->warung_id)
+            ->where('created_at', '>=', $startUtc)
+            ->where('created_at', '<', $endExclusiveUtc)
+            ->selectRaw('COUNT(*) AS jumlah_retur, COALESCE(SUM(nominal), 0) AS total_retur')
+            ->firstOrFail();
+        $gross = BigDecimal::of((string) $sales->total_penjualan)->toScale(2, RoundingMode::HalfUp);
+        $returned = BigDecimal::of((string) $returns->total_retur)->toScale(2, RoundingMode::HalfUp);
+        $net = $gross->minus($returned)->toScale(2, RoundingMode::HalfUp);
 
         return [
             'period' => ['date_from' => $dateFrom, 'date_to' => $dateTo, 'timezone' => $timezone],
-            'jumlah_transaksi' => (int) $totals->jumlah_transaksi,
-            'total_pendapatan' => (string) BigDecimal::of((string) $totals->total_pendapatan)->toScale(2, RoundingMode::HalfUp),
+            'jumlah_transaksi' => (int) $sales->jumlah_transaksi,
+            'total_penjualan' => (string) $gross,
+            'jumlah_retur' => (int) $returns->jumlah_retur,
+            'total_retur' => (string) $returned,
+            'total_pendapatan' => (string) $net,
         ];
     }
 
