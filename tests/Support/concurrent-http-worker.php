@@ -7,6 +7,7 @@ $barrierId = getenv('LARISSAMA_TEST_BARRIER_ID');
 $idempotencyKey = getenv('LARISSAMA_TEST_IDEMPOTENCY_KEY');
 $token = getenv('LARISSAMA_TEST_TOKEN');
 $transactionType = getenv('LARISSAMA_TEST_TRANSACTION_TYPE');
+$saleId = getenv('LARISSAMA_TEST_SALE_ID');
 $body = getenv('LARISSAMA_TEST_PAYLOAD');
 $dropResponseAfterSuccess = getenv('LARISSAMA_TEST_DROP_RESPONSE_AFTER_SUCCESS') === '1';
 $usesBarrier = is_string($barrierId) && $barrierId !== '';
@@ -15,8 +16,9 @@ if (
     ($usesBarrier && preg_match('/^[a-f0-9-]{36}$/', $barrierId) !== 1)
     || ! is_string($idempotencyKey)
     || ! is_string($token)
-    || ! in_array($transactionType, ['penjualan', 'pembelian'], true)
+    || ! in_array($transactionType, ['penjualan', 'pembelian', 'penjualan_koreksi', 'penjualan_retur'], true)
     || ! is_string($body)
+    || (in_array($transactionType, ['penjualan_koreksi', 'penjualan_retur'], true) && (! is_string($saleId) || preg_match('/^[1-9][0-9]*$/', $saleId) !== 1))
 ) {
     fwrite(STDERR, "Konfigurasi worker test tidak lengkap.\n");
     exit(2);
@@ -28,16 +30,18 @@ $kernel = $app->make(Kernel::class);
 $endpoint = match ($transactionType) {
     'penjualan' => 'penjualans',
     'pembelian' => 'pembelians',
+    'penjualan_koreksi', 'penjualan_retur' => 'penjualans/'.$saleId.($transactionType === 'penjualan_retur' ? '/retur' : ''),
 };
 $uri = '/api/v1/'.$endpoint;
-$request = Request::create($uri, 'POST', [], [], [], [
+$method = $transactionType === 'penjualan_koreksi' ? 'PATCH' : 'POST';
+$request = Request::create($uri, $method, [], [], [], [
     'HTTP_ACCEPT' => 'application/json',
     'HTTP_AUTHORIZATION' => 'Bearer '.$token,
     'HTTP_CONTENT_TYPE' => 'application/json',
     'HTTP_HOST' => 'localhost',
     'HTTP_IDEMPOTENCY_KEY' => $idempotencyKey,
     'REMOTE_ADDR' => '127.0.0.1',
-    'REQUEST_METHOD' => 'POST',
+    'REQUEST_METHOD' => $method,
     'REQUEST_URI' => $uri,
     'SERVER_PROTOCOL' => 'HTTP/1.1',
     'CONTENT_TYPE' => 'application/json',
