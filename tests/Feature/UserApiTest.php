@@ -229,15 +229,21 @@ class UserApiTest extends TestCase
     #[DataProvider('nonOwnerRoles')]
     public function test_non_owner_roles_cannot_use_owner_user_administration(string $role): void
     {
-        $warung = $role === 'superadmin' ? null : Warung::factory()->create();
+        $warung = Warung::factory()->create();
         $actor = User::factory()->create([
-            'warung_id' => $warung?->id,
+            'warung_id' => $role === 'superadmin' ? null : $warung->id,
             'role' => $role,
+        ]);
+        $target = User::factory()->create([
+            'warung_id' => $warung->id,
+            'role' => 'manager',
+            'nama' => 'Manager Tetap',
         ]);
         $token = $actor->createToken('user-feature-test')->plainTextToken;
 
         $list = $this->withToken($token)->getJson('/api/v1/users')->assertForbidden();
         $this->assertOperationResponseMatchesOpenApi($list, '/users', 'get');
+        $this->assertD13ErrorEnvelope($list, 'FORBIDDEN');
 
         $create = $this->withToken($token)->postJson('/api/v1/users', [
             'nama' => 'Tidak Diizinkan',
@@ -246,9 +252,30 @@ class UserApiTest extends TestCase
             'role' => 'manager',
         ])->assertForbidden();
         $this->assertOperationResponseMatchesOpenApi($create, '/users', 'post');
+        $this->assertD13ErrorEnvelope($create, 'FORBIDDEN');
 
-        $this->assertSame(1, User::query()->count());
+        $detail = $this->withToken($token)
+            ->getJson('/api/v1/users/'.$target->id)
+            ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($detail, '/users/{id}', 'get');
+        $this->assertD13ErrorEnvelope($detail, 'FORBIDDEN');
+
+        $updatePayload = ['nama' => 'Nama Tidak Diizinkan'];
+        $this->assertOperationRequestMatchesOpenApi($updatePayload, [], '/users/{id}', 'patch');
+        $update = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$target->id, $updatePayload)
+            ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($update, '/users/{id}', 'patch');
+        $this->assertD13ErrorEnvelope($update, 'FORBIDDEN');
+
+        $this->assertSame(2, User::query()->count());
         $this->assertDatabaseMissing('users', ['username' => 'forbidden-user-'.$role]);
+        $this->assertDatabaseHas('users', [
+            'id' => $target->id,
+            'warung_id' => $warung->id,
+            'nama' => 'Manager Tetap',
+            'role' => 'manager',
+        ]);
     }
 
     private function assertD13ErrorEnvelope(TestResponse $response, string $expectedCode, ?string $field = null): void
