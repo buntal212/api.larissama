@@ -1497,6 +1497,7 @@ paths:
           type: string
           minLength: 1
           maxLength: 255
+          pattern: '^\S(?:.*\S)?$'
         description: Key unik per warung, user, dan endpoint selama transaksi tersimpan.
       requestBody:
         required: true
@@ -1811,6 +1812,7 @@ paths:
           type: string
           minLength: 1
           maxLength: 255
+          pattern: '^\S(?:.*\S)?$'
         description: Key unik per warung, user, dan endpoint selama transaksi tersimpan.
       requestBody:
         required: true

@@ -68,6 +68,8 @@ class IdempotencyKeyHeaderConformanceTest extends TestCase
                 'missing' => [],
                 'empty' => ['Idempotency-Key' => ''],
                 'too long' => ['Idempotency-Key' => str_repeat('k', 256)],
+                'leading whitespace' => ['Idempotency-Key' => ' key'],
+                'trailing whitespace' => ['Idempotency-Key' => 'key '],
             ];
 
             foreach ($invalidHeaders as $case => $headers) {
@@ -92,7 +94,7 @@ class IdempotencyKeyHeaderConformanceTest extends TestCase
                 $this->assertSame($baseline, $this->transactionCounts($operation));
             }
 
-            $validBoundaryKey = str_repeat('k', 255);
+            $validBoundaryKey = str_repeat('k', 127).' '.str_repeat('k', 127);
             $this->assertOperationRequestMatchesOpenApi(
                 $operation['payload'],
                 ['Idempotency-Key' => $validBoundaryKey],
