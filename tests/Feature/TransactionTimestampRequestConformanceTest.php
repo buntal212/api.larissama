@@ -73,6 +73,53 @@ class TransactionTimestampRequestConformanceTest extends TestCase
         $this->assertTransactionTablesAreEmpty();
     }
 
+    #[DataProvider('calendarInvalidTimestamps')]
+    public function test_sale_rejects_invalid_calendar_date_without_writing(string $timestamp): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $owner->createToken('sale-invalid-calendar-date-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'bayar' => '1000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+
+        $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/penjualans', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $payload, ['Idempotency-Key' => 'sale-invalid-calendar-date'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('tanggal');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+
+        $this->assertTransactionTablesAreEmpty();
+    }
+
+    #[DataProvider('calendarInvalidTimestamps')]
+    public function test_purchase_rejects_invalid_calendar_date_without_writing(string $timestamp): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('purchase-invalid-calendar-date-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'rincian' => [['nama_item' => 'Belanja harian', 'subtotal' => '1000.00']],
+        ];
+
+        $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/pembelians', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $payload, ['Idempotency-Key' => 'purchase-invalid-calendar-date'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('tanggal');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+
+        $this->assertTransactionTablesAreEmpty();
+    }
+
     #[DataProvider('offsetsOutsideRfc3339Range')]
     public function test_sale_rejects_offset_outside_rfc3339_range_without_writing(string $timestamp): void
     {
@@ -184,12 +231,22 @@ class TransactionTimestampRequestConformanceTest extends TestCase
         ];
     }
 
+    /** @return array<string, array{string}> */
+    public static function calendarInvalidTimestamps(): array
+    {
+        return [
+            'february thirtieth' => ['2026-02-30T12:00:00Z'],
+            'february thirty first' => ['2026-02-31T12:00:00Z'],
+        ];
+    }
+
     /** @return array<string, array{string, string}> */
     public static function validRfc3339OffsetBoundaries(): array
     {
         return [
             'utc designator' => ['2026-10-04T23:30:00Z', '2026-10-04 23:30:00'],
             'maximum offset' => ['2026-10-04T23:30:00+23:59', '2026-10-03 23:31:00'],
+            'leap day' => ['2024-02-29T12:00:00Z', '2024-02-29 12:00:00'],
         ];
     }
 

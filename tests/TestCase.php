@@ -434,6 +434,16 @@ abstract class TestCase extends BaseTestCase
                 return false;
             }
 
+            $datePart = substr($value, 0, 10);
+            $calendarDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $datePart, new \DateTimeZone('UTC'));
+            $calendarErrors = \DateTimeImmutable::getLastErrors();
+
+            if ($calendarDate === false
+                || ($calendarErrors !== false && ($calendarErrors['warning_count'] > 0 || $calendarErrors['error_count'] > 0))
+                || $calendarDate->format('Y-m-d') !== $datePart) {
+                return false;
+            }
+
             try {
                 new \DateTimeImmutable($value);
 
