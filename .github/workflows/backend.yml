@@ -1,0 +1,37 @@
+name: Backend CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Validate OpenAPI 3.1 contract
+        run: docker compose --project-name larissama-openapi-ci -f compose.openapi.yaml run --build --rm openapi-validator
+
+      - name: Match container user to workspace owner
+        run: |
+          printf 'LARISSAMA_UID=%s\n' "$(id -u)" >> "$GITHUB_ENV"
+          printf 'LARISSAMA_GID=%s\n' "$(id -g)" >> "$GITHUB_ENV"
+
+      - name: Run Pint and full suite on disposable MySQL 8.0.40
+        run: docker compose --project-name larissama-backend-ci -f compose.test.yaml run --build --rm test-runner sh -lc 'composer install --no-interaction --prefer-dist --no-progress && vendor/bin/pint --test && php artisan test --no-progress'
+
+      - name: Clean up disposable Compose projects
+        if: always()
+        run: |
+          docker compose --project-name larissama-backend-ci -f compose.test.yaml down --remove-orphans
+          docker compose --project-name larissama-openapi-ci -f compose.openapi.yaml down --remove-orphans

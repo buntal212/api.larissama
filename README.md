@@ -18,16 +18,40 @@ docker compose exec app php artisan migrate --force
 
 API server lokal tersedia di `http://localhost:8010`; health endpoint-nya `http://localhost:8010/up`. MySQL dapat diakses dari host pada port `33309`. Compose memasang dependency Composer dan membuat APP_KEY development sementara saat container app mulai jika `LARISSAMA_APP_KEY` tidak diisi. Untuk menghentikan layanan tanpa menghapus data database, jalankan `docker compose down` (hindari opsi `-v` jika volume database ingin dipertahankan). Kredensial default Compose hanya untuk database development lokal. Port dan kredensial dapat diubah lewat variabel `LARISSAMA_API_PORT`, `LARISSAMA_DB_PORT`, `LARISSAMA_DB_DATABASE`, `LARISSAMA_DB_USERNAME`, `LARISSAMA_DB_PASSWORD`, dan `LARISSAMA_DB_ROOT_PASSWORD`; ID user/group container default `1000` dan dapat diubah dengan `LARISSAMA_UID` serta `LARISSAMA_GID`.
 
-Test Laravel berjalan pada project dan database MySQL 8.0.40 yang terpisah dari development:
+## Test dan pemeriksaan kontrak
+
+Full suite memakai MySQL 8.0.40 disposable karena beberapa test memeriksa constraint,
+trigger, transaksi, dan perilaku khusus MySQL. Service database test tidak membuka port
+ke host dan tidak memakai volume persisten; project Compose-nya terpisah dari database
+development. Fixture dibuat per test menggunakan factory dan `RefreshDatabase`, termasuk
+fixture dua warung untuk membuktikan batas tenant. Jangan arahkan test ke database
+development atau produksi.
+
+Dengan Docker Desktop Windows dan integrasi WSL 2 aktif, jalankan dari terminal WSL di
+direktori repo:
 
 ```bash
-docker compose -f compose.test.yaml --project-name larissama-backend-test run --rm test-runner sh -lc 'composer install --no-interaction && php artisan test'
-docker compose -f compose.test.yaml --project-name larissama-backend-test run --rm test-runner vendor/bin/pint --test
+docker compose -f compose.test.yaml --project-name larissama-backend-test run --build --rm test-runner sh -lc 'composer install --no-interaction --prefer-dist --no-progress && vendor/bin/pint --test && php artisan test --no-progress'
+docker compose -f compose.openapi.yaml --project-name larissama-openapi-ci run --build --rm openapi-validator
+docker compose -f compose.test.yaml --project-name larissama-backend-test down --remove-orphans
+docker compose -f compose.openapi.yaml --project-name larissama-openapi-ci down --remove-orphans
 ```
 
-Container database test dapat dihentikan setelahnya dengan `docker compose -f compose.test.yaml --project-name larissama-backend-test down`. Detail cara kerja dan hasil verifikasi ada di [tracker implementasi](IMPLEMENTATION_PROGRESS.md).
+Jalankan kedua perintah `down` juga bila validasi/test gagal. Workflow GitHub Actions
+`Backend CI` menjalankan pemeriksaan OpenAPI, Pint, dan suite penuh pada setiap push,
+pull request, atau pemanggilan manual, lalu membersihkan kedua project Compose meski job
+gagal. Ia memakai Compose test yang sama dengan development lokal.
 
-Tanpa Docker, gunakan PHP 8.3+ dan Composer yang sesuai dengan `composer.json`, jalankan `composer install`, siapkan `.env` dari `.env.example`, isi koneksi ke MySQL/MariaDB lokal, lalu jalankan `php artisan key:generate`, `php artisan migrate`, dan `php artisan serve`. Rincian operasi kontrak dan status handoff frontend ada di [panduan API](docs/api/README.md) dan [OpenAPI](docs/api/openapi.yaml); keduanya tetap draft sampai status tracker menyatakan siap.
+Tanpa Docker, test tetap dapat dijalankan memakai PHP 8.3+, Composer, dan database MySQL
+8.0.40 disposable tersendiri. Pasang dependency dengan `composer install`, lalu berikan
+`DB_CONNECTION=mysql`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`,
+dan `DB_URL=` pada proses `php artisan test`; jangan gunakan koneksi development/produksi.
+`phpunit.xml` memakai SQLite secara default untuk test lokal yang tidak membutuhkan
+perilaku khusus MySQL, sehingga konfigurasi eksplisit diperlukan untuk full suite.
+
+Rincian hasil test dan status tiap task ada di [tracker implementasi](IMPLEMENTATION_PROGRESS.md).
+Rincian operasi kontrak dan status handoff frontend ada di [panduan API](docs/api/README.md)
+dan [OpenAPI](docs/api/openapi.yaml); semuanya tetap DRAFT sampai tracker menyatakan siap.
 
 ## About Laravel
 
