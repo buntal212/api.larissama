@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Menu;
+use App\Models\Penjualan;
 use App\Models\User;
 use App\Models\Warung;
 use Carbon\Carbon;
@@ -198,5 +199,107 @@ class IdempotencyExpiryTest extends TestCase
         ]);
         $this->assertSame(1, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase['id'])->count());
         $this->assertSame(1, DB::table('pembelian_koreksis')->where('pembelian_id', $otherPurchase['id'])->count());
+    }
+
+    public function test_sale_correction_key_expires_without_deleting_append_only_audit_event(): void
+    {
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-05T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $token = $owner->createToken('idempotency-correction-sale')->plainTextToken;
+        $sale = Penjualan::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $cashier->id,
+            'total' => '100.00',
+        ]);
+        $headers = ['Idempotency-Key' => 'expiry-sale-correction-001'];
+        $firstPayload = ['alasan' => 'Koreksi pertama.', 'catatan' => 'Catatan pertama'];
+
+        $first = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$sale->id, $firstPayload, $headers)->assertCreated();
+        $firstEventId = (int) $first->json('data.id');
+        $this->assertSame('2026-10-12 12:00:00.000000', DB::table('penjualan_koreksis')->where('id', $firstEventId)->value('idempotency_expires_at'));
+
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-12T11:59:59.999999Z'));
+        $this->withToken($token)->patchJson('/api/v1/penjualans/'.$sale->id, $firstPayload, $headers)
+            ->assertCreated()->assertJsonPath('data.id', (string) $firstEventId);
+        $this->assertSame(1, DB::table('penjualan_koreksis')->where('penjualan_id', $sale->id)->count());
+
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-12T12:00:00Z'));
+        $otherSale = Penjualan::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $cashier->id,
+            'total' => '100.00',
+        ]);
+        $secondPayload = ['alasan' => 'Koreksi transaksi lain.', 'catatan' => 'Catatan baru'];
+        $second = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$otherSale->id, $secondPayload, $headers)->assertCreated();
+        $secondEventId = (int) $second->json('data.id');
+
+        $this->assertNotSame($firstEventId, $secondEventId);
+        $this->assertDatabaseHas('penjualan_koreksis', [
+            'id' => $firstEventId,
+            'idempotency_key' => null,
+            'payload_hash' => null,
+            'idempotency_expires_at' => null,
+            'alasan' => $firstPayload['alasan'],
+        ]);
+        $this->assertDatabaseHas('penjualan_koreksis', [
+            'id' => $secondEventId,
+            'penjualan_id' => $otherSale->id,
+            'idempotency_key' => 'expiry-sale-correction-001',
+            'alasan' => $secondPayload['alasan'],
+        ]);
+        $this->assertSame(2, DB::table('penjualan_koreksis')->count());
+    }
+
+    public function test_sale_return_key_expires_without_deleting_append_only_return_event(): void
+    {
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-05T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $token = $owner->createToken('idempotency-return-sale')->plainTextToken;
+        $sale = Penjualan::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $cashier->id,
+            'total' => '100.00',
+        ]);
+        $headers = ['Idempotency-Key' => 'expiry-sale-return-001'];
+        $firstPayload = ['nominal' => '25.00', 'alasan' => 'Retur pertama.'];
+
+        $first = $this->withToken($token)->postJson('/api/v1/penjualans/'.$sale->id.'/retur', $firstPayload, $headers)->assertCreated();
+        $firstEventId = (int) $first->json('data.id');
+        $this->assertSame('2026-10-12 12:00:00.000000', DB::table('penjualan_returs')->where('id', $firstEventId)->value('idempotency_expires_at'));
+
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-12T11:59:59.999999Z'));
+        $this->withToken($token)->postJson('/api/v1/penjualans/'.$sale->id.'/retur', $firstPayload, $headers)
+            ->assertCreated()->assertJsonPath('data.id', (string) $firstEventId);
+        $this->assertSame(1, DB::table('penjualan_returs')->where('penjualan_id', $sale->id)->count());
+
+        Carbon::setTestNow(CarbonImmutable::parse('2026-10-12T12:00:00Z'));
+        $otherSale = Penjualan::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $cashier->id,
+            'total' => '100.00',
+        ]);
+        $secondPayload = ['nominal' => '40.00', 'alasan' => 'Retur transaksi lain.'];
+        $second = $this->withToken($token)->postJson('/api/v1/penjualans/'.$otherSale->id.'/retur', $secondPayload, $headers)->assertCreated();
+        $secondEventId = (int) $second->json('data.id');
+
+        $this->assertNotSame($firstEventId, $secondEventId);
+        $this->assertDatabaseHas('penjualan_returs', [
+            'id' => $firstEventId,
+            'idempotency_key' => null,
+            'payload_hash' => null,
+            'idempotency_expires_at' => null,
+            'nominal' => '25.00',
+        ]);
+        $this->assertDatabaseHas('penjualan_returs', [
+            'id' => $secondEventId,
+            'penjualan_id' => $otherSale->id,
+            'idempotency_key' => 'expiry-sale-return-001',
+            'nominal' => '40.00',
+        ]);
+        $this->assertSame(2, DB::table('penjualan_returs')->count());
     }
 }
