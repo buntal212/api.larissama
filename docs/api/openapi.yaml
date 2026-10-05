@@ -2216,7 +2216,8 @@ components:
     Timestamp:
       type: string
       format: date-time
-      description: RFC3339 dengan offset; timestamp disimpan/dikirim UTC. Tampilan dan periode mengikuti identifier IANA di warung; zona kosong/invalid menolak akses, backdate menunggu D08.
+      pattern: '^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$'
+      description: 'Profil RFC3339: jam 00–23, menit/detik 00–59, zona Z atau offset ±HH:MM. Leap second tidak didukung oleh penyimpanan transaksi. Timestamp disimpan/dikirim UTC; tampilan/periode memakai zona IANA warung. Zona kosong/invalid menolak akses dan backdate menunggu D08.'
     Timezone:
       type: string
       minLength: 1
