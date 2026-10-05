@@ -821,3 +821,8 @@ Hasil `WARUNG-TIMEZONE-INPUT-VALIDATION-CONFORMANCE-001`: PASS pada test commit 
 ## Hasil keputusan transaksi atas katalog nonaktif (D06)
 
 User memutuskan 2026-10-05 bahwa penjualan baru ditolak jika menu atau kategorinya nonaktif. `TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001` menguji menu nonaktif dan menu aktif dalam kategori nonaktif sebagai HTTP 422 schema-conformant pada `rincian.0.menu_id`, tanpa header/rincian parsial; menu dan kategori aktif tetap menghasilkan 201. Action mengunci row menu/kategori saat validasi agar perubahan status tidak berlomba dengan pencatatan. Test khusus 1/422; gabungan dengan empat area transaksi 51/9.759; suite penuh 419/64.739; Pint 150 file dan validator OpenAPI lulus. Pembatalan/koreksi penjualan dan dampaknya terhadap laporan tetap belum diputuskan; semua operasi masih DRAFT. Detail: [TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001](test-runs/TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001.md).
+
+
+## Hasil request login dengan field tak dikenal
+
+`LOGIN-UNKNOWN-FIELD-CONFORMANCE-001` mengonfirmasi OpenAPI login menetapkan `additionalProperties: false`, sementara probe sebelum perbaikan menerima HTTP 200 untuk kredensial valid ditambah `warung_id`. `LoginRequest` sekarang menolak field tersebut dengan 422 sebelum token diterbitkan. Pint lulus; focused `AuthApiTest` 27/3.668; suite penuh 463/65.093 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40; Compose test-only dibersihkan. Perubahan tidak mengubah spec atau schema database. Cakupan payload login lainnya dan seluruh operasi tetap terbuka; semua operasi DRAFT. Bukti: [LOGIN-UNKNOWN-FIELD-CONFORMANCE-001](test-runs/LOGIN-UNKNOWN-FIELD-CONFORMANCE-001.md).
