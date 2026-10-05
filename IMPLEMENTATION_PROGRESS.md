@@ -14,6 +14,8 @@ Slice terakhir selesai: `IDEMPOTENCY-KEY-WHITESPACE-CONFORMANCE-001`, T-API-01/0
 
 `API-PATH-ID-OVERFLOW-CONFORMANCE-001` selesai: commit test `8df7ec5`; seluruh 20 request detail/update dengan ID di atas PHP_INT_MAX dan unsigned BIGINT mendapat 404 schema-conformant tanpa perubahan data domain. Focused 20/1116, Pint PASS, suite penuh 349/53274 dalam 34.39 detik. Bukti: [hasil run](docs/backend/test-runs/API-PATH-ID-OVERFLOW-CONFORMANCE-001.md). Tidak ada perubahan runtime/schema/kontrak; seluruh operasi masih DRAFT.
 
+Slice aktif: `API-PAGINATION-NEGATIVE-BOUNDARY-CONFORMANCE-001`, T-API-02/03 dan D13. Uji `page=-1` serta `per_page=-1` di keenam GET list, dengan 422 schema-conformant dan error field yang sesuai; kriteria ada di [TEST_PLAN](docs/backend/TEST_PLAN.md). Belum ada perubahan runtime/kontrak.
+
 ## Ringkasan pelaksanaan
 
 | Milestone | Task implementasi | DONE | Gate |

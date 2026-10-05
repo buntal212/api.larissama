@@ -711,3 +711,7 @@ Keputusan user 2026-10-05: owner adalah pemilik warung, berhak atas semua operas
 ### Hasil ID path besar
 
 `API-PATH-ID-OVERFLOW-CONFORMANCE-001` lulus untuk seluruh 20 kombinasi enam detail dan empat update dengan ID `9223372036854775808` serta ID positif 40 digit. Keduanya diterima oleh schema parameter OpenAPI; semua request memberi 404 `NOT_FOUND` schema-conformant. Snapshot domain dan token memastikan tidak ada write; timestamp penggunaan token yang memang diperbarui Sanctum dikecualikan. Focused 20/1.116; Pint lulus; suite penuh 349/53.274 dalam 34,39 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40. Tidak ada perubahan runtime/schema/dependency; semua operasi tetap DRAFT. Bukti: [artefak run](test-runs/API-PATH-ID-OVERFLOW-CONFORMANCE-001.md).
+
+## Rencana penolakan nilai pagination negatif
+
+`API-PAGINATION-NEGATIVE-BOUNDARY-CONFORMANCE-001`, T-API-02/03 dan D13. Batas bawah `page=0` dan `per_page=0` sudah diuji pada enam GET list; tambahkan nilai `-1` untuk masing-masing parameter dan endpoint (12 request terpisah). Pastikan schema integer OpenAPI dengan `minimum: 1` menolak setiap nilai, lalu HTTP aktual merespons 422 `VALIDATION_ERROR` yang cocok dengan Error422 dan menandai field yang diuji. Pakai bearer role sah untuk setiap list. Tidak ada perubahan runtime/kontrak bila semua kasus sesuai; jika probe menemukan mismatch, ubah hanya validasi query yang terbukti bermasalah. Acceptance: 12 kasus schema+HTTP lulus, Pint, focused dan suite penuh di MySQL 8.0.40 Compose disposable, cleanup. Semua operasi tetap DRAFT.
