@@ -55,6 +55,23 @@ class PenjualanCorrectionApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($cancel, '/penjualans/{id}/pembatalan', 'post');
         $this->assertSame('batal', $cancel->json('data.sesudah.status'));
         $this->assertDatabaseHas('penjualans', ['id' => $cancelSale->id, 'status' => 'batal']);
+
+        $cancelReplay = $this->withToken($token)->postJson(
+            '/api/v1/penjualans/'.$cancelSale->id.'/pembatalan',
+            $cancelPayload,
+            $cancelHeaders,
+        )->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($cancelReplay, '/penjualans/{id}/pembatalan', 'post');
+        $this->assertSame($cancel->json('data.id'), $cancelReplay->json('data.id'));
+
+        $cancelKeyConflict = $this->withToken($token)->postJson(
+            '/api/v1/penjualans/'.$cancelSale->id.'/pembatalan',
+            ['alasan' => 'Alasan berbeda untuk key yang sama.'],
+            $cancelHeaders,
+        )->assertConflict();
+        $this->assertOperationResponseMatchesOpenApi($cancelKeyConflict, '/penjualans/{id}/pembatalan', 'post');
+        $this->assertSame('IDEMPOTENCY_KEY_REUSED', $cancelKeyConflict->json('code'));
+        $this->assertDatabaseCount('penjualan_koreksis', 2);
     }
 
     public function test_sale_correction_is_allowed_at_72_hour_boundary_and_rejected_afterward(): void
