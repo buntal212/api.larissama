@@ -10,6 +10,7 @@ use App\Models\PenjualanRinci;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -72,6 +73,98 @@ class TransactionTimestampRequestConformanceTest extends TestCase
         $this->assertTransactionTablesAreEmpty();
     }
 
+    #[DataProvider('offsetsOutsideRfc3339Range')]
+    public function test_sale_rejects_offset_outside_rfc3339_range_without_writing(string $timestamp): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $owner->createToken('sale-offset-range-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'bayar' => '1000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+
+        $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/penjualans', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $payload, ['Idempotency-Key' => 'sale-invalid-offset-range'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('tanggal');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+
+        $this->assertTransactionTablesAreEmpty();
+    }
+
+    #[DataProvider('offsetsOutsideRfc3339Range')]
+    public function test_purchase_rejects_offset_outside_rfc3339_range_without_writing(string $timestamp): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('purchase-offset-range-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'rincian' => [['nama_item' => 'Belanja harian', 'subtotal' => '1000.00']],
+        ];
+
+        $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/pembelians', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $payload, ['Idempotency-Key' => 'purchase-invalid-offset-range'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR')
+            ->assertJsonValidationErrors('tanggal');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+
+        $this->assertTransactionTablesAreEmpty();
+    }
+
+    #[DataProvider('validRfc3339OffsetBoundaries')]
+    public function test_sale_accepts_valid_rfc3339_offset_boundaries(string $timestamp, string $utcValue): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '1000.00']);
+        $token = $owner->createToken('sale-valid-offset-range-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'bayar' => '1000.00',
+            'metode_pembayaran' => 'cash',
+            'rincian' => [['menu_id' => (string) $menu->id, 'qty' => '1.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-valid-offset-range'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', str_replace(' ', 'T', $utcValue).'.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+        $this->assertSame($utcValue, DB::table('penjualans')->where('id', $response->json('data.id'))->value('tanggal'));
+    }
+
+    #[DataProvider('validRfc3339OffsetBoundaries')]
+    public function test_purchase_accepts_valid_rfc3339_offset_boundaries(string $timestamp, string $utcValue): void
+    {
+        $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $token = $owner->createToken('purchase-valid-offset-range-test')->plainTextToken;
+        $payload = [
+            'tanggal' => $timestamp,
+            'rincian' => [['nama_item' => 'Belanja harian', 'subtotal' => '1000.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-valid-offset-range'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
+        $response = $this->withToken($token)
+            ->postJson('/api/v1/pembelians', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.tanggal', str_replace(' ', 'T', $utcValue).'.000000Z');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
+        $this->assertSame($utcValue, DB::table('pembelians')->where('id', $response->json('data.id'))->value('tanggal'));
+    }
+
     /** @return array<string, array{string}> */
     public static function timestampsWithoutRfc3339Offset(): array
     {
@@ -79,6 +172,24 @@ class TransactionTimestampRequestConformanceTest extends TestCase
             'date only' => ['2026-10-04'],
             'timestamp without zone' => ['2026-10-04T23:30:00'],
             'timestamp with space separator' => ['2026-10-04 23:30:00+00:00'],
+        ];
+    }
+
+    /** @return array<string, array{string}> */
+    public static function offsetsOutsideRfc3339Range(): array
+    {
+        return [
+            'offset hour above maximum' => ['2026-10-04T23:30:00+24:00'],
+            'offset minute above maximum' => ['2026-10-04T23:30:00+00:60'],
+        ];
+    }
+
+    /** @return array<string, array{string, string}> */
+    public static function validRfc3339OffsetBoundaries(): array
+    {
+        return [
+            'utc designator' => ['2026-10-04T23:30:00Z', '2026-10-04 23:30:00'],
+            'maximum offset' => ['2026-10-04T23:30:00+23:59', '2026-10-03 23:31:00'],
         ];
     }
 
