@@ -510,3 +510,7 @@ T-SAL-01/T-BUY-01, T-API-01/02, D01/D08/D13. Sumber otoritatif: MySQL 8.0.40 tar
 ## Conformance rentang tahun timestamp MySQL — 2026-10-05
 
 `TRANSACTION-TIMESTAMP-MYSQL-RANGE-CONFORMANCE-001`: kedua FormRequest memvalidasi instant sesudah konversi UTC di rentang MySQL `DATETIME` tahun 1000–9999; helper/OpenAPI menolak tahun lokal di bawah 1000. Overflow offset menjadi 422 tanpa write; batas minimum/maksimum UTC diterima. Focused 83/13578, full 415/63350, Pint dan validator OAS lulus. Tanpa migration/schema change. Detail: artefak run terkait; seluruh operasi tetap DRAFT.
+
+## Pra-implementasi rentang batas periode lokal — 2026-10-05
+
+T-SAL-07/T-BUY-07/T-REP-03/04 dan T-API-01/02, D01/D08/D13. Sumber: `PeriodBounds` mengonversi tanggal lokal warung menjadi start UTC dan end-exclusive UTC; kolom `tanggal` MySQL `DATETIME` presisi 0 mendukung tahun 1000–9999. Verifikasi empat GET transaksi/list/report saat tanggal lokal masuk tahun UTC 0999/10000: expected 422 schema-conformant sebelum query bisnis. Periode aman yang berakhir pada nilai DATETIME representable tetap 200, raw data/report valid. Bila gap terkonfirmasi, tambahkan rule bersama pada date filter request yang memvalidasi hasil kedua batas setelah timezone conversion; dokumentasikan API. Tidak mengubah schema DB atau tanggal masa aktif warung. Files: shared period-range rule, empat FormRequest, feature conformance baru, README/OpenAPI, TEST_PLAN/tracker, artifact. Acceptance focused/full suite MySQL 8.0.40, Pint, OAS validator, cleanup; semua operasi tetap DRAFT.
