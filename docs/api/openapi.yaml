@@ -1705,8 +1705,10 @@ paths:
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. Validasi bentuk rincian D10 masih kandidat; operasi tetap DRAFT.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; TRANSACTION-REQUEST-CONFORMANCE-001
-        mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. Request parsial yang melanggar
-        oneOf D10 memang diuji 422, tetapi tidak cocok dengan request schema. SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001
+        mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. PURCHASE-REQUEST-SHAPE-CONFORMANCE-001
+        membuktikan oneOf menolak qty/harga satuan parsial dan rincian nominal tanpa subtotal; body berbentuk benar dengan
+        subtotal hasil hitung yang tidak cocok tetap ditolak runtime 422. Pasangan qty/harga satuan tanpa subtotal dihitung backend.
+        SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001
         menguji payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
         ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi kasir tanpa write.
         TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
