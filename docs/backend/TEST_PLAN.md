@@ -719,3 +719,10 @@ Keputusan user 2026-10-05: owner adalah pemilik warung, berhak atas semua operas
 ### Hasil nilai pagination negatif
 
 `API-PAGINATION-NEGATIVE-BOUNDARY-CONFORMANCE-001` lulus: 12 request `page=-1`/`per_page=-1` pada enam GET list ditolak schema OpenAPI dan runtime HTTP 422 `VALIDATION_ERROR`, dengan response Error422 dan field yang sesuai. Kasus nol yang sudah ada tetap lulus. `ApiPaginationQueryConformanceTest` 63/3.885; probe lower-bound 24/1.008; Pint lulus; suite penuh 361/53.778 dalam 42,13 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40. Tidak ada perubahan runtime/schema/dependency; Compose disposable dibersihkan; seluruh operasi tetap DRAFT. Bukti: [artefak run](test-runs/API-PAGINATION-NEGATIVE-BOUNDARY-CONFORMANCE-001.md).
+
+
+## Rencana dan hasil CI backend BE-004
+
+Workflow `Backend CI` pada `.github/workflows/backend.yml` memvalidasi OpenAPI 3.1, Pint, dan seluruh feature/unit suite melalui Docker Compose MySQL 8.0.40 yang sama dengan runner lokal. Acceptance lokal: YAML workflow dan dua Compose config dapat diparse/dirender, OpenAPI validator lulus, Pint bersih, full suite lulus, dan semua container/network disposable terhapus sesudah job. Workflow aktif pada push, pull request, atau pemanggilan manual. Tim tanpa Docker dapat menjalankan suite pada PHP 8.3+ dan database MySQL 8.0.40 disposable tersendiri; SQLite bawaan phpunit bukan pengganti gate MySQL.
+
+`BACKEND-CI-HARNESS-001` PASS untuk simulasi lokal dari perintah workflow: OpenAPI `OK`; Pint 145 file; suite 361 test / 53.778 assertions dalam 35,74 detik; kedua project Compose kosong sesudah cleanup. Run diuji terhadap commit implementasi `dfa6051dfe2013d9e3df7e314a83b8d8c80b811e`. GitHub-hosted workflow belum berjalan karena perubahan belum dipush, jadi CI remote belum diverifikasi dan BE-004 tetap `IN_PROGRESS`. Bukti dan batas: [artefak run](test-runs/BACKEND-CI-HARNESS-001.md).
