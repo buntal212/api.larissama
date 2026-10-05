@@ -40,6 +40,7 @@ class BuildLaporanPeriode
         [$startUtc, $endExclusiveUtc] = $this->periodBounds->utcBounds($dateFrom, $dateTo, $timezone);
         $totals = Pembelian::query()
             ->where('warung_id', $actor->warung_id)
+            ->where('status', 'tercatat')
             ->where('tanggal', '>=', $startUtc)
             ->where('tanggal', '<', $endExclusiveUtc)
             ->selectRaw('COUNT(*) AS jumlah_transaksi, COALESCE(SUM(total), 0) AS total_pembelian')

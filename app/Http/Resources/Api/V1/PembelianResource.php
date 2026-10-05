@@ -17,6 +17,9 @@ class PembelianResource extends JsonResource
         return [
             ...(new PembelianSummaryResource($this->resource))->toArray($request),
             'rincian' => PembelianRinciResource::collection($this->whenLoaded('rincian'))->toArray($request),
+            'riwayat_koreksi' => $this->resource->relationLoaded('koreksi')
+                ? PembelianKoreksiResource::collection($this->resource->getRelation('koreksi'))->toArray($request)
+                : [],
         ];
     }
 }

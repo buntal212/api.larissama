@@ -110,8 +110,8 @@ class ApiRouteOpenApiConformanceTest extends TestCase
             }
         }
 
-        $this->assertCount(28, $contractOperations, 'The approved contract inventory contains 28 operations.');
-        $this->assertCount(18, $contractPaths, 'The approved contract inventory contains 18 paths.');
+        $this->assertCount(30, $contractOperations, 'The contract contains 28 baseline operations and two purchase-correction operations.');
+        $this->assertCount(19, $contractPaths, 'The contract contains 18 baseline paths and one purchase-cancellation path.');
 
         $runtimeOperations = [];
         foreach (Route::getRoutes() as $route) {
@@ -199,8 +199,8 @@ class ApiRouteOpenApiConformanceTest extends TestCase
             }
         }
 
-        if (count($operations) !== 10) {
-            throw new LogicException('Expected 10 OpenAPI operations with an {id} path parameter.');
+        if (count($operations) !== 12) {
+            throw new LogicException('Expected 12 OpenAPI operations with an {id} path parameter.');
         }
 
         return $operations;

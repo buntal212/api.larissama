@@ -30,7 +30,7 @@ Hasil ini memvalidasi dokumen terhadap aturan OpenAPI 3.1, termasuk struktur ope
 
 ## Integritas dokumen OpenAPI
 
-`OPENAPI-DOCUMENT-INTEGRITY-001` menjaga integritas dasar `docs/api/openapi.yaml`: seluruh operasi mempunyai `operationId` non-kosong dan unik, setiap operasi mendeklarasikan setidaknya satu response, jumlah inventaris tetap 28 operasi, dan semua `$ref` JSON Pointer lokal mengarah ke node yang ada. Pemeriksaan memakai parser YAML yang sudah tersedia dan tidak menambah dependency.
+`OPENAPI-DOCUMENT-INTEGRITY-001` menjaga integritas dasar `docs/api/openapi.yaml`: seluruh operasi mempunyai `operationId` non-kosong dan unik, setiap operasi mendeklarasikan setidaknya satu response, jumlah inventaris sesuai baseline 28 operasi (atau jumlah revisi yang ditetapkan oleh test setelah penambahan scope D11), dan semua `$ref` JSON Pointer lokal mengarah ke node yang ada. OpenAPI kini berisi 30 operasi pada 19 path; dua operasi tambahan D11 tercatat terpisah dari baseline 28. Pemeriksaan memakai parser YAML yang sudah tersedia dan tidak menambah dependency.
 
 Kriteria lulus: focused test, Pint, dan suite backend pada MySQL 8.0.40 disposable lulus. Run ini menghasilkan focused 1 test / 116 assertions dan suite penuh 321 test / 36836 assertions; artefak [OPENAPI-DOCUMENT-INTEGRITY-001](test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md) mencatat command serta hasil.
 
@@ -315,7 +315,7 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 | T-BUY-03 | Rincian kosong/nama kosong/mismatch/pasangan sebagian | Array kosong/nama kosong ditolak 422; qty/harga_satuan tidak berpasangan dan subtotal nominal kosong ditolak 422 tanpa write; subtotal pembanding yang mismatch ditolak 422. Bentuk nominal dan hitungan masing-masing diterima serta boleh dicampur; setiap baris tersimpan dengan subtotal non-null. | D10 |
 | T-BUY-04 | Kegagalan detail terakhir | Tidak ada header/detail/total/efek retry parsial setelah rollback. | D09 |
 | T-BUY-05 | Independensi pembelian | Setelah P1/P2, jumlah/nilai penjualan, menu, dan snapshot tidak berubah; tidak ada syarat maupun efek stok/resep. | K03 |
-| T-BUY-06 | Koreksi pembelian dan laporan | Fitur wajib: perubahan/pembatalan menyimpan alasan dan aktor/waktu koreksi; riwayat lama tidak dihapus. Rancangkan schema audit dan endpoint tambahan; laporan menghitung nilai terakhir yang berlaku dan mengecualikan pembelian batal. Operasi koreksi berada di luar 28 endpoint awal. | D11 |
+| T-BUY-06 | Koreksi pembelian dan laporan | PATCH mengubah tanggal/catatan dan/atau mengganti seluruh rincian secara atomik; total mengikuti keadaan terkini. Tiap perubahan menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan key. POST pembatalan mempertahankan transaksi berstatus `dibatalkan`; GET detail menunjukkan riwayat. Laporan mengecualikan pembelian batal. Owner/manager tenant boleh, kasir/superadmin ditolak, tenant lain 404; retry identik me-replay event dan payload berbeda dengan key sama menghasilkan 409. Payload invalid, alasan kosong, no-op, atau state batal menghasilkan error tanpa write tambahan. | D04,D09,D11 |
 | T-BUY-07 | Batas hari lokal daftar pembelian | Untuk timezone Jakarta dan zona DST `America/New_York`, list memasukkan awal hari lokal dan mengecualikan awal hari berikutnya; hari DST 23 jam tetap mengikuti batas lokal. | D08,D13 |
 | T-RET-01 | Retry intent yang sama setelah respons hilang | Key sama untuk tenant/user/endpoint dan payload identik menghasilkan HTTP 201 dengan id/header/detail yang sama; tepat satu header. Uji sale dan purchase. | D09 |
 | T-RET-02 | Intent sama dengan payload berbeda | Key sama dengan payload body berbeda menghasilkan HTTP 409 `IDEMPOTENCY_KEY_REUSED`; tidak ada transaksi kedua/perubahan diam-diam. | D09 |
@@ -507,6 +507,14 @@ FAIL tidak dihapus oleh rerun; catat perbaikan dan run baru. NOT_APPLICABLE meme
 ## Hasil rollback seluruh batch migration T-DB-04
 
 `DATABASE-MIGRATION-ROLLBACK-001` lulus pada MySQL 8.0.40 disposable tanpa volume. Keempat belas migration berjalan pada fresh schema; `migrate:rollback` membatalkan seluruh batch sesuai urutan dependency. Query segera sesudah rollback menemukan nol tabel aplikasi dan hanya tabel `migrations`. `migrate` berikutnya menerapkan kembali seluruh 14 migration, `migrate:status` menunjukkan semuanya `Ran`, dan delapan tabel bisnis ada dalam keadaan kosong. Compose dibersihkan. Ini membuktikan rollback pada schema kosong saja; tidak menetapkan pemulihan data atau rollback pada schema berisi data. Guard users/token dan timezone tetap menolak perubahan balik ketika data terkait tersimpan. Detail: [artefak run](test-runs/DATABASE-MIGRATION-ROLLBACK-001.md).
+
+## Hasil guard `down()` saat data tersimpan T-DB-05
+
+## Verifikasi implementasi koreksi dan pembatalan pembelian D11
+
+`D11-PURCHASE-CORRECTION-001` membuktikan implementasi baseline D11: owner mengoreksi pembelian dalam tenant dengan alasan wajib, snapshot sebelum/sesudah, total hasil hitung ulang, dan replay idempotent; manager membatalkan tanpa menghapus header/rincian, replay mengembalikan event yang sama, dan retry baru ditolak; status/filter list/detail serta laporan mengecualikan yang dibatalkan. Kasir dan superadmin tidak memperoleh hak koreksi; tenant lain tersembunyi dengan 404; payload invalid/no-op tidak membuat audit event. Suite penuh lulus 490 test / 71310 assertions pada MySQL 8.0.40 Compose disposable, Pint lulus, dan `openapi-spec-validator` 0.9.0 menerima OpenAPI 3.1.
+
+Batas bukti: kedua operationId D11 baru belum memiliki cakupan conformance request/response runtime yang lengkap; seluruh 30 operasi tetap `DRAFT`. Retensi idempotency event sesudah header dihapus juga tetap terbuka menurut D09. Lihat [artefak run](test-runs/D11-PURCHASE-CORRECTION-001.md).
 
 ## Hasil guard `down()` saat data tersimpan T-DB-05
 

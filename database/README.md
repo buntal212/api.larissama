@@ -169,12 +169,29 @@ Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu`
 | `payload_hash` | CHAR(64), hash SHA-256 payload kanonis; internal, tidak dikirim ke API |
 | `tanggal` | DATETIME |
 | `total` | DECIMAL(15,2), jumlah seluruh subtotal rincian |
+| `status` | VARCHAR(20), `tercatat` atau `dibatalkan`; default `tercatat` |
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Nomor teknis saat ini memakai prefix `PB-` dan ULID. Pembelian tidak punya status/cancel; koreksi tidak tersedia sampai D11 diputuskan.
+Nomor teknis saat ini memakai prefix `PB-` dan ULID. Pembatalan mengubah status ke `dibatalkan` tanpa menghapus header/rincian. Koreksi mengubah tanggal/catatan dan/atau mengganti seluruh rincian; event append-only menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan key idempotensi pada `pembelian_koreksis` dalam transaksi yang sama.
 
-Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. Hanya user tenant yang berwenang membuat transaksi melalui API saat ini; superadmin tidak memiliki jalur transaksi atas nama tenant.
+Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. Owner dan manager dapat membuat, membaca, mengoreksi, serta membatalkan pembelian di warung sendiri; kasir dan superadmin tidak memiliki akses transaksi pembelian.
+
+### `pembelian_koreksis`
+
+| Kolom | Tipe/rule |
+| --- | --- |
+| `id` | BIGINT primary key |
+| `warung_id`, `pembelian_id` | BIGINT; FK gabungan ke header pembelian |
+| `user_id` | BIGINT; FK gabungan ke user tenant yang melakukan koreksi |
+| `jenis` | VARCHAR(20), `ubah` atau `batalkan` |
+| `alasan` | VARCHAR(1000), wajib |
+| `sebelum`, `sesudah` | JSON snapshot status, tanggal, total, catatan, dan rincian |
+| `idempotency_key` | VARCHAR(255), unik bersama `(warung_id, user_id, jenis)` |
+| `payload_hash` | CHAR(64), hash SHA-256 payload kanonis |
+| `created_at`, `updated_at` | timestamp; `created_at` adalah waktu audit |
+
+Baris koreksi bersifat append-only. FK RESTRICT menjaga agar header atau user pencatat tidak menghapus riwayat. Retry identik me-replay event yang sama; key operasi sama dengan payload berbeda menghasilkan 409. Laporan hanya menjumlahkan header berstatus `tercatat`.
 
 ### `pembelian_rincis`
 
@@ -192,7 +209,7 @@ Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. 
 
 Setiap header pembelian harus memiliki minimal satu rincian. Untuk pencatatan lengkap, buat satu baris per bahan dan backend menghitung subtotal dari kuantitas serta harga satuan yang diberikan. Untuk pencatatan ringkas, buat satu baris dengan `nama_item` berisi keterangan umum, misalnya `Belanja di pasar`; `qty`, `satuan`, dan `harga_satuan` boleh `NULL`, sedangkan `subtotal` berisi nominal total. Backend menghitung `pembelians.total` dari seluruh subtotal dalam transaksi database yang sama.
 
-Rincian pembelian adalah catatan bebas, bukan master bahan atau catatan stok. `pembelian_rincis` hanya terhubung ke header pembelian dan tidak memiliki relasi ke menu, resep, stok, maupun penjualan. Laporan periode menjumlahkan total pembelian berdasarkan `warung_id` dan tanggal header.
+Rincian pembelian adalah catatan bebas, bukan master bahan atau catatan stok. `pembelian_rincis` hanya terhubung ke header pembelian dan tidak memiliki relasi ke menu, resep, stok, maupun penjualan. Laporan periode menjumlahkan total pembelian berstatus `tercatat` berdasarkan `warung_id` dan tanggal header.
 
 ## Batas akses warung
 

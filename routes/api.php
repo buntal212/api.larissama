@@ -53,6 +53,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('pembelians', [PembelianController::class, 'index'])->name('pembelians.index');
         Route::post('pembelians', [PembelianController::class, 'store'])->name('pembelians.store');
         Route::get('pembelians/{id}', [PembelianController::class, 'show'])->where('id', '[1-9][0-9]*')->name('pembelians.show');
+        Route::patch('pembelians/{id}', [PembelianController::class, 'update'])->where('id', '[1-9][0-9]*')->name('pembelians.update');
+        Route::post('pembelians/{id}/pembatalan', [PembelianController::class, 'cancel'])->where('id', '[1-9][0-9]*')->name('pembelians.cancel');
 
         Route::get('laporan/penjualan', [LaporanController::class, 'penjualan'])->name('laporan.penjualan');
         Route::get('laporan/pembelian', [LaporanController::class, 'pembelian'])->name('laporan.pembelian');

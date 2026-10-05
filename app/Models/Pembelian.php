@@ -10,12 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'warung_id', 'user_id', 'no_transaksi', 'idempotency_key', 'payload_hash', 'tanggal', 'total', 'catatan',
+    'warung_id', 'user_id', 'no_transaksi', 'idempotency_key', 'payload_hash', 'tanggal', 'total', 'status', 'catatan',
 ])]
 class Pembelian extends Model
 {
     /** @use HasFactory<PembelianFactory> */
     use HasFactory;
+
+    protected $attributes = [
+        'status' => 'tercatat',
+    ];
 
     public function warung(): BelongsTo
     {
@@ -30,6 +34,11 @@ class Pembelian extends Model
     public function rincian(): HasMany
     {
         return $this->hasMany(PembelianRinci::class)->orderBy('id');
+    }
+
+    public function koreksi(): HasMany
+    {
+        return $this->hasMany(PembelianKoreksi::class, 'pembelian_id')->orderBy('id');
     }
 
     protected function casts(): array

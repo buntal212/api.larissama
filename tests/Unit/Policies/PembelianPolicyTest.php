@@ -25,7 +25,10 @@ class PembelianPolicyTest extends TestCase
         $this->assertSame($canRead, $policy->create($actor));
         $this->assertSame($canRead, $policy->view($actor, $ownPurchase));
         $this->assertFalse($policy->view($actor, $foreignPurchase));
-        $this->assertFalse($policy->update($actor, $ownPurchase));
+        $this->assertSame($canRead, $policy->update($actor, $ownPurchase));
+        $this->assertSame($canRead, $policy->cancel($actor, $ownPurchase));
+        $this->assertFalse($policy->update($actor, $foreignPurchase));
+        $this->assertFalse($policy->cancel($actor, $foreignPurchase));
         $this->assertFalse($policy->delete($actor, $ownPurchase));
         $this->assertFalse($policy->restore($actor, $ownPurchase));
         $this->assertFalse($policy->forceDelete($actor, $ownPurchase));

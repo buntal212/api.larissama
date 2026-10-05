@@ -5,7 +5,7 @@ namespace App\Http\Resources\Api\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class PembelianSummaryResource extends JsonResource
+class PembelianKoreksiResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,15 +16,13 @@ class PembelianSummaryResource extends JsonResource
     {
         return [
             'id' => (string) $this->getKey(),
-            'warung_id' => (string) $this->warung_id,
+            'pembelian_id' => (string) $this->pembelian_id,
             'user_id' => (string) $this->user_id,
-            'no_transaksi' => $this->no_transaksi,
-            'tanggal' => $this->tanggal?->utc()->toISOString(),
-            'total' => $this->total,
-            'status' => $this->status,
-            'catatan' => $this->catatan,
+            'jenis' => $this->jenis,
+            'alasan' => $this->alasan,
+            'sebelum' => $this->sebelum,
+            'sesudah' => $this->sesudah,
             'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

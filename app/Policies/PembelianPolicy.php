@@ -36,7 +36,12 @@ class PembelianPolicy
      */
     public function update(User $user, Pembelian $pembelian): bool
     {
-        return false;
+        return $this->view($user, $pembelian);
+    }
+
+    public function cancel(User $user, Pembelian $pembelian): bool
+    {
+        return $this->view($user, $pembelian);
     }
 
     /**

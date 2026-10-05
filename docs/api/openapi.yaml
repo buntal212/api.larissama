@@ -1637,6 +1637,7 @@ paths:
                   no_transaksi: PB-CONTOH-001
                   tanggal: '2026-10-04T03:00:00Z'
                   total: '150000.00'
+                  status: tercatat
                   catatan: null
                   created_at: '2026-10-04T03:00:00Z'
                   updated_at: '2026-10-04T03:00:00Z'
@@ -1673,6 +1674,13 @@ paths:
           - tanggal
           default: -tanggal
         description: Allowlist urutan; backend menambah id sebagai tie-breaker agar stabil.
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [tercatat, dibatalkan]
+        description: Filter status pembelian; tanpa filter, transaksi tercatat dan dibatalkan sama-sama tampil.
       - name: date_from
         in: query
         schema:
@@ -1691,10 +1699,10 @@ paths:
       - Pembelian
       summary: Catat Pembelian
       description: >-
-        Implementasi awal menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
+        Implementasi menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
-        memakai key sama menghasilkan 409. D10 menetapkan subtotal wajib dan dihitung backend pada bentuk qty/harga; D11 memerlukan operasi tambahan
-        edit/pembatalan dengan alasan audit, di luar 28 operasi awal. Operasi tetap DRAFT.
+        memakai key sama menghasilkan 409. D10 menetapkan subtotal wajib dan dihitung backend pada bentuk qty/harga.
+        Koreksi serta pembatalan D11 tersedia lewat operasi tambahan di luar 28 operasi awal. Operasi tetap DRAFT.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; TRANSACTION-REQUEST-CONFORMANCE-001
         mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. PURCHASE-REQUEST-SHAPE-CONFORMANCE-001
         membuktikan oneOf menolak qty/harga satuan parsial dan rincian nominal tanpa subtotal; body berbentuk benar dengan
@@ -1713,7 +1721,6 @@ paths:
       - D02
       - D13
       - D09
-      - D11
       responses:
         '201':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -1731,9 +1738,11 @@ paths:
                       no_transaksi: PB-CONTOH-001
                       tanggal: '2026-10-04T03:00:00Z'
                       total: '150000.00'
+                      status: tercatat
                       catatan: null
                       created_at: '2026-10-04T03:00:00Z'
                       updated_at: '2026-10-04T03:00:00Z'
+                      riwayat_koreksi: []
                       rincian:
                       - id: '6001'
                         pembelian_id: '601'
@@ -1753,9 +1762,11 @@ paths:
                       no_transaksi: PB-CONTOH-002
                       tanggal: '2026-10-04T03:00:00Z'
                       total: '95000.00'
+                      status: tercatat
                       catatan: null
                       created_at: '2026-10-04T03:00:00Z'
                       updated_at: '2026-10-04T03:00:00Z'
+                      riwayat_koreksi: []
                       rincian:
                       - id: '6002'
                         pembelian_id: '602'
@@ -1832,8 +1843,7 @@ paths:
       tags:
       - Pembelian
       summary: Detail Pembelian dan rincian
-      description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna.
-        TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji detail purchase ringkas dan rinci hasil API. Request schema, status lain, dan gate penuh masih terbuka.'
+      description: 'Detail dibatasi ke warung pengguna, menampilkan status saat ini serta riwayat koreksi berisi alasan dan snapshot sebelum/sesudah. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji detail purchase ringkas dan rinci hasil API. Request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: DRAFT
       x-implementation-status: IN_PROGRESS
       x-candidate-roles:
@@ -1857,9 +1867,11 @@ paths:
                   no_transaksi: PB-CONTOH-001
                   tanggal: '2026-10-04T03:00:00Z'
                   total: '150000.00'
+                  status: tercatat
                   catatan: null
                   created_at: '2026-10-04T03:00:00Z'
                   updated_at: '2026-10-04T03:00:00Z'
+                  riwayat_koreksi: []
                   rincian:
                   - id: '6001'
                     pembelian_id: '601'
@@ -1888,6 +1900,126 @@ paths:
           $ref: '#/components/responses/Error500'
       parameters:
       - $ref: '#/components/parameters/Id'
+    patch:
+      operationId: updatePembelian
+      tags:
+      - Pembelian
+      summary: Koreksi Pembelian
+      description: >-
+        Owner dan manager dapat mengubah tanggal, catatan, dan/atau seluruh rincian pada pembelian tercatat di warung sendiri.
+        `alasan` wajib; sertakan sedikitnya satu field yang diubah. Jika `rincian` dikirim, nilainya mengganti seluruh rincian;
+        backend menghitung subtotal dan total. Snapshot sebelum/sesudah, aktor, alasan, dan waktu disimpan sebagai audit append-only.
+        Pembelian yang sudah dibatalkan tidak dapat diedit. Idempotency-Key wajib; retry identik me-replay peristiwa audit 201,
+        key sama dengan payload berbeda menghasilkan 409. Operasi tambahan D11 di luar 28 operasi awal; masih DRAFT.
+      x-contract-status: DRAFT
+      x-implementation-status: IN_PROGRESS
+      x-candidate-roles: [owner, manager]
+      x-blocked-by: [D02, D13, D09]
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: '^\S(?:.*\S)?$'
+        description: Key unik per warung, user, dan operasi koreksi; retry memakai key dan payload yang sama.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PembelianUpdate'
+            example:
+              alasan: Total struk pasar sebelumnya kurang satu item.
+              rincian:
+              - nama_item: Beras
+                qty: '5.00'
+                satuan: kg
+                harga_satuan: '15000.00'
+      responses:
+        '201':
+          description: Peristiwa koreksi tercatat; response memuat snapshot sebelum dan sesudah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PembelianKoreksiResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
+
+  /pembelians/{id}/pembatalan:
+    post:
+      operationId: cancelPembelian
+      tags:
+      - Pembelian
+      summary: Batalkan Pembelian
+      description: >-
+        Owner dan manager dapat membatalkan pembelian tercatat di warung sendiri. `alasan` wajib; status berubah menjadi
+        `dibatalkan`, detail dan fakta header tidak dihapus. Snapshot, aktor, alasan, dan waktu tercatat sebagai audit append-only.
+        Pembatalan ulang dengan key baru menghasilkan 409; retry dengan key/payload sama me-replay peristiwa audit 201.
+        Laporan pembelian tidak menghitung transaksi dibatalkan. Operasi tambahan D11 di luar 28 operasi awal; masih DRAFT.
+      x-contract-status: DRAFT
+      x-implementation-status: IN_PROGRESS
+      x-candidate-roles: [owner, manager]
+      x-blocked-by: [D02, D13, D09]
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: '^\S(?:.*\S)?$'
+        description: Key unik per warung, user, dan operasi pembatalan; retry memakai key dan payload yang sama.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PembelianCancel'
+            example:
+              alasan: Transaksi tercatat dua kali.
+      responses:
+        '201':
+          description: Pembatalan tercatat; response memuat snapshot sebelum dan sesudah.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PembelianKoreksiResponse'
+        '400':
+          $ref: '#/components/responses/Error400'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+        '422':
+          $ref: '#/components/responses/Error422'
+        '429':
+          $ref: '#/components/responses/Error429'
+        '500':
+          $ref: '#/components/responses/Error500'
   /laporan/penjualan:
     get:
       operationId: getLaporanPenjualan
@@ -1961,8 +2093,8 @@ paths:
       - Laporan
       summary: Total pembelian pada periode
       description: >-
-        Implementasi awal menjumlahkan total dan menghitung header pembelian di periode timezone warung;
-        tidak join rincian atau mengurangi dari pendapatan sebagai laba. Masih DRAFT sampai gate lulus.
+        Menjumlah total dan menghitung header pembelian berstatus tercatat di periode timezone warung;
+        pembelian dibatalkan tidak masuk hitungan. Tidak join rincian atau mengurangi dari pendapatan sebagai laba. Masih DRAFT sampai gate lulus.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
@@ -1975,7 +2107,6 @@ paths:
       x-blocked-by:
       - D02
       - D13
-      - D11
       responses:
         '200':
           description: Kandidat hasil sukses; contoh sintetis, bukan data server.
@@ -3044,6 +3175,9 @@ components:
           $ref: '#/components/schemas/Timestamp'
         total:
           $ref: '#/components/schemas/Money'
+        status:
+          type: string
+          enum: [tercatat, dibatalkan]
         catatan:
           $ref: '#/components/schemas/Note'
         created_at:
@@ -3057,6 +3191,7 @@ components:
       - no_transaksi
       - tanggal
       - total
+      - status
       - catatan
       - created_at
       - updated_at
@@ -3120,6 +3255,9 @@ components:
           $ref: '#/components/schemas/Timestamp'
         total:
           $ref: '#/components/schemas/Money'
+        status:
+          type: string
+          enum: [tercatat, dibatalkan]
         catatan:
           $ref: '#/components/schemas/Note'
         created_at:
@@ -3131,6 +3269,10 @@ components:
           items:
             $ref: '#/components/schemas/PembelianRinci'
           minItems: 1
+        riwayat_koreksi:
+          type: array
+          items:
+            $ref: '#/components/schemas/PembelianKoreksi'
       required:
       - id
       - warung_id
@@ -3138,10 +3280,119 @@ components:
       - no_transaksi
       - tanggal
       - total
+      - status
       - catatan
       - created_at
       - updated_at
       - rincian
+      - riwayat_koreksi
+    PembelianUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 2
+      properties:
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '\S'
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        catatan:
+          $ref: '#/components/schemas/Note'
+        rincian:
+          type: array
+          items:
+            oneOf:
+            - $ref: '#/components/schemas/PurchaseNominalLineInput'
+            - $ref: '#/components/schemas/PurchaseCalculatedLineInput'
+          minItems: 1
+      required: [alasan]
+      description: Sertakan alasan dan minimal satu dari tanggal, catatan, atau rincian. Rincian yang dikirim mengganti semua rincian.
+    PembelianCancel:
+      type: object
+      additionalProperties: false
+      properties:
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          pattern: '\S'
+      required: [alasan]
+    PembelianStateSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [tercatat, dibatalkan]
+        tanggal:
+          $ref: '#/components/schemas/Timestamp'
+        total:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+        rincian:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseSnapshotLine'
+      required: [status, tanggal, total, catatan, rincian]
+    PurchaseSnapshotLine:
+      type: object
+      additionalProperties: false
+      properties:
+        nama_item:
+          type: string
+          minLength: 1
+          maxLength: 150
+        qty:
+          anyOf:
+          - $ref: '#/components/schemas/Quantity'
+          - type: 'null'
+        satuan:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 30
+          - type: 'null'
+        harga_satuan:
+          anyOf:
+          - $ref: '#/components/schemas/Money'
+          - type: 'null'
+        subtotal:
+          $ref: '#/components/schemas/Money'
+      required: [nama_item, qty, satuan, harga_satuan, subtotal]
+    PembelianKoreksi:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        pembelian_id:
+          $ref: '#/components/schemas/Id'
+        user_id:
+          $ref: '#/components/schemas/Id'
+        jenis:
+          type: string
+          enum: [ubah, batalkan]
+        alasan:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        sebelum:
+          $ref: '#/components/schemas/PembelianStateSnapshot'
+        sesudah:
+          $ref: '#/components/schemas/PembelianStateSnapshot'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+      required: [id, pembelian_id, user_id, jenis, alasan, sebelum, sesudah, created_at]
+    PembelianKoreksiResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/PembelianKoreksi'
+      required: [data]
     Period:
       type: object
       additionalProperties: false

@@ -10,12 +10,208 @@ use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PembelianApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_owner_can_correct_purchase_and_retries_return_the_original_audit_event(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $purchaseToken = $manager->createToken('purchase-correction-create')->plainTextToken;
+        $purchase = $this->withToken($purchaseToken)->postJson('/api/v1/pembelians', [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
+        ], ['Idempotency-Key' => 'purchase-correction-create-001'])->assertCreated()->json('data');
+        Sanctum::actingAs($owner);
+        $payload = [
+            'alasan' => 'Struk menunjukkan belanja beras dan cabai.',
+            'rincian' => [
+                ['nama_item' => 'Beras', 'qty' => '2.00', 'satuan' => 'kg', 'harga_satuan' => '50000.00'],
+                ['nama_item' => 'Cabai', 'subtotal' => '25000.00'],
+            ],
+        ];
+        $headers = ['Idempotency-Key' => 'purchase-correction-edit-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians/{id}', 'patch');
+        $response = $this->patchJson('/api/v1/pembelians/'.$purchase['id'], $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.pembelian_id', $purchase['id'])
+            ->assertJsonPath('data.user_id', (string) $owner->id)
+            ->assertJsonPath('data.jenis', 'ubah')
+            ->assertJsonPath('data.alasan', $payload['alasan'])
+            ->assertJsonPath('data.sebelum.total', '150000.00')
+            ->assertJsonPath('data.sesudah.total', '125000.00')
+            ->assertJsonPath('data.sesudah.rincian.0.subtotal', '100000.00')
+            ->assertJsonPath('data.sesudah.rincian.1.subtotal', '25000.00');
+        $this->assertOperationResponseMatchesOpenApi($response, '/pembelians/{id}', 'patch');
+
+        $correctionId = $response->json('data.id');
+        $this->assertDatabaseHas('pembelians', [
+            'id' => $purchase['id'],
+            'total' => '125000.00',
+            'status' => 'tercatat',
+        ]);
+        $this->assertDatabaseHas('pembelian_koreksis', [
+            'id' => $correctionId,
+            'pembelian_id' => $purchase['id'],
+            'user_id' => $owner->id,
+            'jenis' => 'ubah',
+            'alasan' => $payload['alasan'],
+        ]);
+        $this->assertSame(2, PembelianRinci::query()->where('pembelian_id', $purchase['id'])->count());
+
+        $replay = $this->patchJson('/api/v1/pembelians/'.$purchase['id'], $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.id', $correctionId);
+        $this->assertOperationResponseMatchesOpenApi($replay, '/pembelians/{id}', 'patch');
+        $this->assertSame(1, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase['id'])->count());
+
+        $detail = $this->getJson('/api/v1/pembelians/'.$purchase['id'])
+            ->assertOk()
+            ->assertJsonPath('data.total', '125000.00')
+            ->assertJsonPath('data.status', 'tercatat')
+            ->assertJsonPath('data.riwayat_koreksi.0.alasan', $payload['alasan']);
+        $this->assertOperationResponseMatchesOpenApi($detail, '/pembelians/{id}', 'get');
+
+        $report = $this->getJson('/api/v1/laporan/pembelian?date_from=2026-10-04&date_to=2026-10-04')
+            ->assertOk()
+            ->assertJsonPath('data.jumlah_transaksi', 1)
+            ->assertJsonPath('data.total_pembelian', '125000.00');
+        $this->assertOperationResponseMatchesOpenApi($report, '/laporan/pembelian', 'get');
+    }
+
+    public function test_manager_can_cancel_purchase_without_deleting_it_and_report_excludes_it(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $purchase = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+            'tanggal' => '2026-10-04 03:00:00',
+            'total' => '900.00',
+        ]);
+        PembelianRinci::factory()->create([
+            'warung_id' => $warung->id,
+            'pembelian_id' => $purchase->id,
+            'nama_item' => 'Beras',
+            'subtotal' => '900.00',
+        ]);
+        $token = $manager->createToken('purchase-cancel-manager')->plainTextToken;
+        $payload = ['alasan' => 'Transaksi tercatat dua kali.'];
+        $headers = ['Idempotency-Key' => 'purchase-cancel-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians/{id}/pembatalan', 'post');
+        $cancelled = $this->withToken($token)
+            ->postJson('/api/v1/pembelians/'.$purchase->id.'/pembatalan', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.jenis', 'batalkan')
+            ->assertJsonPath('data.sebelum.status', 'tercatat')
+            ->assertJsonPath('data.sesudah.status', 'dibatalkan');
+        $this->assertOperationResponseMatchesOpenApi($cancelled, '/pembelians/{id}/pembatalan', 'post');
+
+        $replay = $this->withToken($token)
+            ->postJson('/api/v1/pembelians/'.$purchase->id.'/pembatalan', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.id', $cancelled->json('data.id'));
+        $this->assertOperationResponseMatchesOpenApi($replay, '/pembelians/{id}/pembatalan', 'post');
+
+        $this->assertDatabaseHas('pembelians', ['id' => $purchase->id, 'status' => 'dibatalkan', 'total' => '900.00']);
+        $this->assertDatabaseHas('pembelian_rincis', ['pembelian_id' => $purchase->id, 'subtotal' => '900.00']);
+        $this->assertSame(1, DB::table('pembelian_koreksis')->where('pembelian_id', $purchase->id)->count());
+
+        $differentKey = $this->withToken($token)
+            ->postJson('/api/v1/pembelians/'.$purchase->id.'/pembatalan', $payload, ['Idempotency-Key' => 'purchase-cancel-002'])
+            ->assertConflict()
+            ->assertJsonPath('code', 'PEMBELIAN_SUDAH_DIBATALKAN');
+        $this->assertOperationResponseMatchesOpenApi($differentKey, '/pembelians/{id}/pembatalan', 'post');
+
+        $detail = $this->withToken($token)->getJson('/api/v1/pembelians/'.$purchase->id)
+            ->assertOk()
+            ->assertJsonPath('data.status', 'dibatalkan')
+            ->assertJsonPath('data.riwayat_koreksi.0.alasan', $payload['alasan']);
+        $this->assertOperationResponseMatchesOpenApi($detail, '/pembelians/{id}', 'get');
+
+        $listed = $this->withToken($token)->getJson('/api/v1/pembelians?status=dibatalkan')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (string) $purchase->id)
+            ->assertJsonPath('data.0.status', 'dibatalkan');
+        $this->assertOperationQueryMatchesOpenApi(['status' => 'dibatalkan'], '/pembelians', 'get');
+        $this->assertOperationResponseMatchesOpenApi($listed, '/pembelians', 'get');
+
+        $listedActive = $this->withToken($token)->getJson('/api/v1/pembelians?status=tercatat')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+        $this->assertOperationResponseMatchesOpenApi($listedActive, '/pembelians', 'get');
+
+        $report = $this->withToken($token)->getJson('/api/v1/laporan/pembelian?date_from=2026-10-04&date_to=2026-10-04')
+            ->assertOk()
+            ->assertJsonPath('data.jumlah_transaksi', 0)
+            ->assertJsonPath('data.total_pembelian', '0.00');
+        $this->assertOperationResponseMatchesOpenApi($report, '/laporan/pembelian', 'get');
+    }
+
+    public function test_unprivileged_and_cross_tenant_users_cannot_correct_purchase(): void
+    {
+        $warung = Warung::factory()->create();
+        $otherWarung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $manager->id]);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $otherManager = User::factory()->create(['warung_id' => $otherWarung->id, 'role' => 'manager']);
+        $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
+        $payload = ['alasan' => 'Perbaikan catatan.', 'catatan' => 'Keterangan diperbarui.'];
+
+        foreach ([
+            ['actor' => $cashier, 'status' => 403, 'role' => 'kasir'],
+            ['actor' => $superadmin, 'status' => 403, 'role' => 'superadmin'],
+            ['actor' => $otherManager, 'status' => 404, 'role' => 'manager'],
+        ] as $case) {
+            Sanctum::actingAs($case['actor']);
+            $response = $this->patchJson('/api/v1/pembelians/'.$purchase->id, $payload, [
+                'Idempotency-Key' => 'purchase-correction-denied-'.$case['role'],
+            ])
+                ->assertStatus($case['status']);
+
+            $this->assertOperationResponseMatchesOpenApi($response, '/pembelians/{id}', 'patch');
+        }
+
+        $this->assertSame('150000.00', $purchase->fresh()->total);
+        $this->assertSame(0, DB::table('pembelian_koreksis')->count());
+    }
+
+    public function test_invalid_and_noop_purchase_corrections_do_not_write_audit_rows(): void
+    {
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $manager->id]);
+        $token = $manager->createToken('purchase-correction-invalid')->plainTextToken;
+        $invalidPayloads = [
+            ['payload' => ['catatan' => 'Tidak ada alasan.'], 'error' => 'alasan'],
+            ['payload' => ['alasan' => '   ', 'catatan' => 'Whitespace reason.'], 'error' => 'alasan'],
+            ['payload' => ['alasan' => 'Tanpa perubahan.'], 'error' => 'alasan'],
+            ['payload' => ['alasan' => 'Rincian harus berisi baris.', 'rincian' => []], 'error' => 'rincian'],
+        ];
+
+        foreach ($invalidPayloads as $index => $case) {
+            $response = $this->withToken($token)
+                ->patchJson('/api/v1/pembelians/'.$purchase->id, $case['payload'], [
+                    'Idempotency-Key' => 'purchase-correction-invalid-'.$index,
+                ])
+                ->assertUnprocessable()
+                ->assertJsonPath('code', 'VALIDATION_ERROR')
+                ->assertJsonValidationErrors($case['error']);
+            $this->assertOperationResponseMatchesOpenApi($response, '/pembelians/{id}', 'patch');
+        }
+
+        $this->assertSame('150000.00', $purchase->fresh()->total);
+        $this->assertSame(0, DB::table('pembelian_koreksis')->count());
+    }
 
     public function test_purchase_timestamp_is_stored_as_utc_and_listed_by_warung_local_date(): void
     {

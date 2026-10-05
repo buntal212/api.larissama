@@ -25,6 +25,7 @@ class PembelianIndexRequest extends FormRequest
             'page' => ['sometimes', new PositivePageNumber],
             'per_page' => ['sometimes', 'integer', 'between:1,100'],
             'sort' => ['sometimes', Rule::in(['-tanggal', 'tanggal'])],
+            'status' => ['sometimes', Rule::in(['tercatat', 'dibatalkan'])],
             'date_from' => ['required_with:date_to', 'date_format:Y-m-d', new LocalPeriodUtcMysqlRange($timezone, 'start')],
             'date_to' => ['required_with:date_from', 'date_format:Y-m-d', 'after_or_equal:date_from', new LocalPeriodUtcMysqlRange($timezone, 'end')],
         ];

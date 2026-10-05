@@ -88,12 +88,13 @@ class CreatePembelian
                     'payload_hash' => $payloadHash,
                     'tanggal' => CarbonImmutable::parse((string) $input['tanggal'])->utc()->toDateTimeString(),
                     'total' => (string) $total->toScale(2, RoundingMode::HalfUp),
+                    'status' => 'tercatat',
                     'catatan' => $input['catatan'] ?? null,
                 ]);
 
                 $purchase->rincian()->createMany($lineData);
 
-                return $purchase->load('rincian');
+                return $purchase->load('rincian', 'koreksi');
             }, 3);
         } catch (QueryException $exception) {
             if ($exception->getCode() !== '23000') {

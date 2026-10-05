@@ -110,14 +110,14 @@ Action menyimpan kunci idempotensi, hash payload kanonis, header, dan detail dal
 
 Rincian nominal: `nama_item` dan `subtotal` wajib; qty/satuan/harga_satuan boleh NULL. Rincian hitungan: `nama_item`, qty, dan harga_satuan wajib; keduanya berpasangan, `satuan` opsional, dan subtotal dihitung backend. Nilai subtotal selalu disimpan dan tidak boleh NULL; bila client mengirim subtotal pada bentuk hitungan sebagai pembanding, nilainya harus sama dengan hasil hitung backend atau request ditolak 422. Rincian nominal dan hitungan boleh dicampur, dan total header menjumlahkan subtotal seluruh baris. Tidak ada lookup menu atau syarat master bahan.
 
-Action menetapkan warung/user dari identitas terautentikasi, menghitung total semua detail, dan menyimpan semuanya atomik. Input header.total tidak dipercaya. Bentuk ringkas dan rinci menggunakan endpoint serta tabel yang sama. Tidak ada status `selesai`/`batal` pembelian yang boleh dibuat diam-diam; D11 harus menambah schema dan kontrak jika dibutuhkan.
+Action menetapkan warung/user dari identitas terautentikasi, menghitung total semua detail, dan menyimpan semuanya atomik. Input header.total tidak dipercaya. Bentuk ringkas dan rinci menggunakan endpoint serta tabel yang sama. Koreksi mengganti keadaan terkini secara atomik dan menulis event audit snapshot sebelum/sesudah; pembatalan hanya mengubah status tanpa hard-delete. Laporan mengecualikan header berstatus `dibatalkan`.
 
 ### Laporan periode
 
 Timestamp disimpan UTC. Setiap warung memakai identifier IANA pada `warungs.timezone`; zona kosong atau invalid menolak akses tenant sampai diperbaiki. Periksa masa aktif dengan mengubah waktu saat ini dari UTC ke timezone warung, lalu bandingkan tanggal lokal inklusif terhadap `tanggal_mulai`/`tanggal_berakhir`. Untuk laporan, ubah awal `date_from` dan awal hari setelah `date_to` dari timezone warung ke UTC, lalu query rentang `[awal, awal_hari_berikutnya)`; jangan memakai `23:59:59` yang bisa melewatkan pecahan detik.
 
 - Pendapatan: jumlah `penjualans.total` dengan status selesai pada periode. Tidak mengambil bayar/kembalian, nama/harga menu terbaru, atau total pembelian.
-- Pembelian: jumlah `pembelians.total` pada periode; aturan transaksi yang dikoreksi menunggu D11.
+- Pembelian: jumlah `pembelians.total` berstatus `tercatat` pada periode; header `dibatalkan` tidak dihitung.
 - Count adalah jumlah header; detail tidak menggandakan count maupun total. Summary mencakup semua hasil filter, tidak hanya halaman list.
 - Periode kosong menghasilkan count 0 dan total `"0.00"` setelah query berhasil. Error jaringan/izin tidak boleh dikonversi ke nol oleh frontend.
 

@@ -24,9 +24,10 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         'penjualan_rincis',
         'pembelians',
         'pembelian_rincis',
+        'pembelian_koreksis',
     ];
 
-    public function test_eight_business_tables_have_expected_column_metadata(): void
+    public function test_nine_business_tables_have_expected_column_metadata(): void
     {
         foreach (self::BUSINESS_TABLES as $table) {
             $this->assertTrue(Schema::hasTable($table), "Expected business table {$table} to exist.");
@@ -50,6 +51,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertFalse(Schema::hasColumn('penjualan_rincis', 'jenis_item'));
         $this->assertColumn('pembelians', 'tanggal', 'datetime', null, null, null, false, 0);
         $this->assertColumn('pembelians', 'total', 'decimal', null, 15, 2, false);
+        $this->assertColumn('pembelians', 'status', 'varchar', 20, null, null, false);
         $this->assertColumn('pembelian_rincis', 'qty', 'decimal', null, 10, 2, true);
         $this->assertColumn('pembelian_rincis', 'satuan', 'varchar', 30, null, null, true);
         $this->assertColumn('pembelian_rincis', 'harga_satuan', 'decimal', null, 15, 2, true);
@@ -152,6 +154,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'payload_hash' => 'char(64)|NO|<NULL>|<NONE>|<NULL>',
                 'tanggal' => 'datetime|NO|<NULL>|<NONE>|0',
                 'total' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'status' => 'varchar(20)|NO|tercatat|<NONE>|<NULL>',
                 'catatan' => 'text|YES|<NULL>|<NONE>|<NULL>',
                 'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
                 'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
@@ -165,6 +168,20 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'satuan' => 'varchar(30)|YES|<NULL>|<NONE>|<NULL>',
                 'harga_satuan' => 'decimal(15,2)|YES|<NULL>|<NONE>|<NULL>',
                 'subtotal' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
+                'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+                'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
+            ],
+            'pembelian_koreksis' => [
+                'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
+                'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'pembelian_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'jenis' => 'varchar(20)|NO|<NULL>|<NONE>|<NULL>',
+                'alasan' => 'varchar(1000)|NO|<NULL>|<NONE>|<NULL>',
+                'sebelum' => 'json|NO|<NULL>|<NONE>|<NULL>',
+                'sesudah' => 'json|NO|<NULL>|<NONE>|<NULL>',
+                'idempotency_key' => 'varchar(255)|NO|<NULL>|<NONE>|<NULL>',
+                'payload_hash' => 'char(64)|NO|<NULL>|<NONE>|<NULL>',
                 'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
                 'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
             ],
@@ -209,7 +226,10 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['pembelians', 'pembelians_warung_nomor_unique', ['warung_id', 'no_transaksi']],
             ['pembelians', 'pembelians_idempotency_unique', ['warung_id', 'user_id', 'idempotency_key']],
             ['pembelians', 'pembelians_warung_tanggal_idx', ['warung_id', 'tanggal', 'id']],
+            ['pembelians', 'pembelians_warung_status_tanggal_idx', ['warung_id', 'status', 'tanggal', 'id']],
             ['pembelian_rincis', 'pembelian_rincis_warung_header_idx', ['warung_id', 'pembelian_id']],
+            ['pembelian_koreksis', 'pembelian_koreksi_idempotency_unique', ['warung_id', 'user_id', 'jenis', 'idempotency_key']],
+            ['pembelian_koreksis', 'pembelian_koreksi_riwayat_idx', ['warung_id', 'pembelian_id', 'id']],
         ];
 
         foreach ($indexes as [$table, $name, $columns]) {
@@ -231,6 +251,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['pembelians', 'pembelians_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
             ['pembelians', 'pembelians_warung_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
             ['pembelian_rincis', 'pembelian_rincis_warung_header_fk', ['warung_id', 'pembelian_id'], 'pembelians', ['warung_id', 'id']],
+            ['pembelian_koreksis', 'pembelian_koreksi_header_fk', ['warung_id', 'pembelian_id'], 'pembelians', ['warung_id', 'id']],
+            ['pembelian_koreksis', 'pembelian_koreksi_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
         ];
         $expectedNames = [];
 
