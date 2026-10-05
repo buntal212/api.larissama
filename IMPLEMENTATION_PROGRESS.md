@@ -343,4 +343,4 @@ User menetapkan owner sebagai pemilik warung dengan seluruh operasi tenant dalam
 
 Container test menggunakan project `larissama-backend-test`, database MySQL terisolasi `larissama_test`. Backend development tetap berjalan pada `larissama-backend-dev-local-app-1` dan `larissama-backend-dev-local-db-1`, dengan volume khusus, API port 8010, dan MySQL port 33309. Migration selesai; `GET /up` memberi HTTP 200 dari dalam app container. Host-side HTTP forwarding belum dapat diverifikasi dari sesi WSL ini. Container lama di project berbeda tidak disentuh. Kedua berkas Compose tervalidasi. Seluruh operasi OpenAPI tetap DRAFT; akses owner terbukti untuk jalur di atas, tetapi conformance status/payload dan matriks role penuh masih menjadi gate.
 
-Commit perubahan implementasi/test/docs/Docker dan hash follow-up dicatat pada checkpoint berikutnya.
+Commit perubahan implementasi/test/docs/Docker: `81b56d8440afcf0d6a28a0fd0cc1967ca9db0f25`.
