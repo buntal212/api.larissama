@@ -21,7 +21,11 @@ class PembelianStoreRequest extends FormRequest
         $quantity = 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$/';
 
         return [
-            'tanggal' => ['required', 'date'],
+            'tanggal' => [
+                'required',
+                'date',
+                'regex:/\\A\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})\\z/',
+            ],
             'catatan' => ['sometimes', 'nullable', 'string'],
             'rincian' => ['required', 'array', 'min:1'],
             'rincian.*.nama_item' => ['required', 'string', 'min:1', 'max:150'],
@@ -29,6 +33,14 @@ class PembelianStoreRequest extends FormRequest
             'rincian.*.satuan' => ['sometimes', 'nullable', 'string', 'min:1', 'max:30'],
             'rincian.*.harga_satuan' => ['sometimes', 'nullable', 'string', $money],
             'rincian.*.subtotal' => ['sometimes', 'string', $money],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'tanggal.regex' => 'Tanggal harus mengikuti format RFC3339 dengan zona waktu.',
         ];
     }
 
