@@ -14,7 +14,19 @@ Kebutuhan berasal dari K01–K08 pada [DECISIONS.md](DECISIONS.md), invariant IN
 | Contract | tests/Contract/ | Request/response runtime cocok dengan OpenAPI, termasuk tipe, nullability, kode status, errors. |
 | Alur lintas fitur | tests/Feature/ atau runner HTTP | Provisioning sampai laporan dan logout melalui API yang sebenarnya. |
 
-M0 memilih validator OpenAPI 3.1 yang sesuai lalu mencatat versi/command di tracker. Jangan mengunci package hanya karena dipakai App POS. PHPUnit sudah ada di composer.json; struktur folder baru belum dibuat pada tahap rancangan.
+M0 menggunakan `openapi-spec-validator` 0.9.0 dalam image Docker khusus, dengan base image dan paket Python terkunci. Command serta hasil dicatat pada tracker dan artefak run. Validator ini terpisah dari dependency Laravel/Composer. PHPUnit sudah ada di composer.json.
+
+## Validator spesifikasi OpenAPI 3.1
+
+Validasi statis dijalankan tanpa memasang tool ke host atau dependency aplikasi:
+
+```sh
+docker compose -f compose.openapi.yaml run --build --rm openapi-validator
+```
+
+`OPENAPI-SPEC-VALIDATOR-001` lulus pada Python 3.12.15 dan `openapi-spec-validator` 0.9.0: `docs/api/openapi.yaml: OK`. Dockerfile memakai base image digest tetap, paket utama dan seluruh dependency transitive dipatok di [`requirements.txt`](../../tools/openapi-validator/requirements.txt), dan spesifikasi di-mount read-only. Detail lingkungan dan command ada di [artefak run](test-runs/OPENAPI-SPEC-VALIDATOR-001.md).
+
+Hasil ini memvalidasi dokumen terhadap aturan OpenAPI 3.1, termasuk struktur operasi, schema, dan referensi pada dokumen. Ini tidak membuktikan kecocokan request/response runtime, ketepatan keputusan bisnis, atau kesiapan frontend. T-API-01 tetap parsial sampai lint/review kontrak dan contoh/pedoman integrasi yang tersisa selesai; semua operasi tetap `DRAFT`.
 
 ## Integritas dokumen OpenAPI
 

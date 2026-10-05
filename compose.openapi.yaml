@@ -1,0 +1,11 @@
+name: larissama-openapi-validator
+
+services:
+  openapi-validator:
+    build:
+      context: .
+      dockerfile: tools/openapi-validator/Dockerfile
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: ["docs/api/openapi.yaml"]

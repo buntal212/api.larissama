@@ -4,6 +4,10 @@ Versi kontrak: **0.1.0-draft**, 2026-10-05. [openapi.yaml](openapi.yaml) berisi 
 
 `OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa bahwa 28 operasi memiliki `operationId` unik dan response map, serta semua `$ref` JSON Pointer lokal dapat di-resolve ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Pemeriksaan ini bersifat struktural; kontrak tetap DRAFT dan belum menggantikan validator OpenAPI 3.1 atau conformance runtime menyeluruh.
 
+## Validasi spesifikasi
+
+`docs/api/openapi.yaml` lulus validasi OpenAPI 3.1 dengan `openapi-spec-validator` 0.9.0 di container Docker khusus: `docker compose -f compose.openapi.yaml run --build --rm openapi-validator`. Setup mengunci digest base image dan versi seluruh paket Python; file kontrak dibaca read-only. Bukti: [OPENAPI-SPEC-VALIDATOR-001](../backend/test-runs/OPENAPI-SPEC-VALIDATOR-001.md). Ini hanya memeriksa validitas spesifikasi; conformance runtime dan keputusan yang belum final masih menjadi gate. Semua operasi tetap DRAFT.
+
 ## Bentuk request pembelian
 
 `POST /api/v1/pembelians` menerima `rincian` yang berbentuk salah satu dari dua cara berikut:
