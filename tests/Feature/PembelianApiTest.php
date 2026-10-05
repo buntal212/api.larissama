@@ -468,14 +468,30 @@ class PembelianApiTest extends TestCase
             ->assertJsonPath('data.total_pembelian', '12000000000000.00');
     }
 
-    public function test_cashier_cannot_list_or_create_purchases(): void
+    public function test_cashier_cannot_read_or_create_purchases(): void
     {
         $warung = Warung::factory()->create();
         $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $existingPurchase = Pembelian::factory()->create([
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+        ]);
+        PembelianRinci::factory()->create([
+            'warung_id' => $warung->id,
+            'pembelian_id' => $existingPurchase->id,
+        ]);
         $token = $cashier->createToken('feature-test')->plainTextToken;
 
         $list = $this->withToken($token)->getJson('/api/v1/pembelians')->assertForbidden();
         $this->assertOperationResponseMatchesOpenApi($list, '/pembelians', 'get');
+
+        $detail = $this->withToken($token)
+            ->getJson('/api/v1/pembelians/'.$existingPurchase->id)
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FORBIDDEN');
+        $this->assertOperationResponseMatchesOpenApi($detail, '/pembelians/{id}', 'get');
+
         $payload = [
             'tanggal' => '2026-10-04T10:00:00+07:00',
             'rincian' => [['nama_item' => 'Belanja di pasar', 'subtotal' => '150000.00']],
@@ -488,8 +504,13 @@ class PembelianApiTest extends TestCase
             ->assertJsonPath('code', 'FORBIDDEN');
         $this->assertOperationResponseMatchesOpenApi($create, '/pembelians', 'post');
 
-        $this->assertDatabaseCount('pembelians', 0);
-        $this->assertDatabaseCount('pembelian_rincis', 0);
+        $this->assertDatabaseCount('pembelians', 1);
+        $this->assertDatabaseCount('pembelian_rincis', 1);
+        $this->assertDatabaseHas('pembelians', [
+            'id' => $existingPurchase->id,
+            'warung_id' => $warung->id,
+            'user_id' => $manager->id,
+        ]);
     }
 
     public function test_superadmin_cannot_read_tenant_purchases(): void
