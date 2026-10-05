@@ -826,3 +826,10 @@ User memutuskan 2026-10-05 bahwa penjualan baru ditolak jika menu atau kategorin
 ## Hasil request login dengan field tak dikenal
 
 `LOGIN-UNKNOWN-FIELD-CONFORMANCE-001` mengonfirmasi OpenAPI login menetapkan `additionalProperties: false`, sementara probe sebelum perbaikan menerima HTTP 200 untuk kredensial valid ditambah `warung_id`. `LoginRequest` sekarang menolak field tersebut dengan 422 sebelum token diterbitkan. Pint lulus; focused `AuthApiTest` 27/3.668; suite penuh 463/65.093 pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40; Compose test-only dibersihkan. Perubahan tidak mengubah spec atau schema database. Cakupan payload login lainnya dan seluruh operasi tetap terbuka; semua operasi DRAFT. Bukti: [LOGIN-UNKNOWN-FIELD-CONFORMANCE-001](test-runs/LOGIN-UNKNOWN-FIELD-CONFORMANCE-001.md).
+
+
+## Field body tak dikenal pada operasi API — 2026-10-05
+
+`ApiRequestUnknownFieldsConformanceTest` memeriksa 10 operasi dengan request body selain login: POST/PATCH admin warung, POST/PATCH user tenant, POST/PATCH kategori/menu, serta POST sale/purchase. Tiap body valid ditambah `unexpected_field`; schema OpenAPI menolaknya dan runtime menghasilkan 422 `VALIDATION_ERROR` dengan field yang tepat. Test memeriksa tidak ada write parsial pada warung/user/kategori/menu maupun header/rincian transaksi.
+
+Focused lulus 2 test / 502 assertions; Pint lulus; suite penuh lulus 465 test / 65.595 assertions dalam 38.26 detik pada PHP 8.3.35, Laravel 13.34.0, MySQL 8.0.40 Docker Compose test-only. Project disposable dibersihkan dan tidak menyisakan container. Tidak ada perubahan runtime, schema database, dependency, atau OpenAPI. Login ditangani terpisah oleh `LOGIN-UNKNOWN-FIELD-CONFORMANCE-001`; seluruh operasi tetap DRAFT dan conformance keseluruhan masih terbuka.
