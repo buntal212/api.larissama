@@ -151,6 +151,41 @@ class PenjualanCorrectionApiTest extends TestCase
         ]);
     }
 
+    public function test_sale_correction_rejects_future_date_and_accepts_backdate(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-08T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id]);
+        $sale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
+        $token = $owner->createToken('sale-correction-date-test')->plainTextToken;
+
+        $futurePayload = ['alasan' => 'Tanggal transaksi salah.', 'tanggal' => '2026-10-08T12:00:01Z'];
+        $future = $this->withToken($token)->patchJson(
+            '/api/v1/penjualans/'.$sale->id,
+            $futurePayload,
+            ['Idempotency-Key' => 'sale-correction-future-001'],
+        )->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($future, '/penjualans/{id}', 'patch');
+        $this->assertSame('VALIDATION_ERROR', $future->json('code'));
+        $this->assertArrayHasKey('tanggal', $future->json('errors'));
+        $this->assertSame('2026-10-08 11:00:00', $sale->fresh()->getRawOriginal('tanggal'));
+        $this->assertDatabaseMissing('penjualan_koreksis', ['penjualan_id' => $sale->id]);
+
+        $backdatePayload = ['alasan' => 'Tanggal transaksi dikoreksi mundur.', 'tanggal' => '2020-01-02T03:04:05+07:00'];
+        $backdateHeaders = ['Idempotency-Key' => 'sale-correction-backdate-001'];
+        $this->assertOperationRequestMatchesOpenApi($backdatePayload, $backdateHeaders, '/penjualans/{id}', 'patch');
+        $backdate = $this->withToken($token)->patchJson(
+            '/api/v1/penjualans/'.$sale->id,
+            $backdatePayload,
+            $backdateHeaders,
+        )->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($backdate, '/penjualans/{id}', 'patch');
+        $this->assertSame('2020-01-01T20:04:05.000000Z', $backdate->json('data.sesudah.tanggal'));
+        $this->assertSame('2020-01-01 20:04:05', $sale->fresh()->getRawOriginal('tanggal'));
+    }
+
     public function test_only_owner_and_manager_can_mutate_sales_inside_their_warung(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-08T12:00:00Z'));
