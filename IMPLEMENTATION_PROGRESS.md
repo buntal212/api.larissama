@@ -441,3 +441,8 @@ Hasil ini hanya menutup kombinasi tiga role dan empat operasi user; matriks D04 
 ## Harness CI backend BE-004 — 2026-10-05
 
 `BACKEND-CI-HARNESS-001` pada implementasi `dfa6051dfe2013d9e3df7e314a83b8d8c80b811e`: YAML workflow/Compose diparse, OpenAPI validator lulus, Pint lulus untuk 145 file, dan suite MySQL 8.0.40 lulus 361 test / 53.778 assertions dalam 35,74 detik. Composer tidak mengubah lock file. Kedua project Compose berhasil dihentikan dan `ps -a` kosong. Perintah merupakan simulasi lokal dari workflow; GitHub-hosted run belum ada karena tidak dipush. BE-004 tetap `IN_PROGRESS`, semua kontrak tetap DRAFT. Rincian: [artefak run](docs/backend/test-runs/BACKEND-CI-HARNESS-001.md).
+
+
+## Pra-implementasi request body tanpa payload T-API-02
+
+Gap: OpenAPI menyatakan body wajib pada 11 operasi, tetapi test sebelumnya hanya mengirim JSON rusak atau object kosong. Scope berikutnya: probe 11 request HTTP dengan `Content-Type: application/json` dan body kosong, memakai identitas/target yang lolos authorization dan idempotency header valid. Kriteria: 422 Error422 schema-conformant, request_id UUID, error validasi non-empty, dan tidak ada write/perubahan target. Tidak mengubah runtime atau aturan payload kecuali test menunjukkan mismatch; D13 dan semua operasi tetap DRAFT.
