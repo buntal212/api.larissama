@@ -1,0 +1,65 @@
+name: Deploy Laravel Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy API Larissama
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Check PHP
+        run: |
+          php -v
+          composer --version
+
+      - name: Install Composer dependencies
+        run: |
+          composer install \
+            --no-dev \
+            --prefer-dist \
+            --no-interaction \
+            --no-progress \
+            --optimize-autoloader
+
+      - name: Deploy to production
+        run: |
+          rsync -av --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.env' \
+            --exclude='.user.ini' \
+            --exclude='.well-known/' \
+            --exclude='storage/' \
+            ./ /www/wwwroot/apilarissama.udumbara.my.id/
+
+      - name: Prepare Laravel storage
+        run: |
+          cd /www/wwwroot/apilarissama.udumbara.my.id
+
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+
+          chmod -R 775 storage bootstrap/cache
+
+      - name: Laravel production commands
+        run: |
+          cd /www/wwwroot/apilarissama.udumbara.my.id
+
+          php artisan optimize:clear
+          php artisan migrate --force
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
