@@ -62,12 +62,11 @@ jobs:
   deploy:
     name: Deploy Production
 
+    # Deploy menunggu Backend CI berhasil
     needs: test
 
-    # Deploy hanya jika:
-    # - event adalah push
-    # - branch adalah main
-    # - Backend CI sukses
+    # Production hanya deploy ketika push ke branch main.
+    # Pull Request hanya menjalankan Backend CI.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     runs-on:
@@ -78,17 +77,46 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      # ========================================================
+      # CHECKOUT
+      # ========================================================
       - name: Checkout production source
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
 
+      # ========================================================
+      # CHECK SERVER
+      # ========================================================
       - name: Check production environment
         run: |
+          echo "========================================"
+          echo "PHP"
+          echo "========================================"
           php -v
+
+          echo ""
+          echo "========================================"
+          echo "COMPOSER"
+          echo "========================================"
           composer --version
+
+          echo ""
+          echo "========================================"
+          echo "RSYNC"
+          echo "========================================"
           rsync --version | head -n 1
 
+          echo ""
+          echo "========================================"
+          echo "DEPLOY USER"
+          echo "========================================"
+          whoami
+          groups
+
+      # ========================================================
+      # COMPOSER
+      # ========================================================
       - name: Install production Composer dependencies
         run: |
           composer install \
@@ -98,9 +126,16 @@ jobs:
             --no-progress \
             --optimize-autoloader
 
+      # ========================================================
+      # RSYNC DEPLOY
+      # ========================================================
       - name: Deploy source to production
         run: |
-          rsync -av --delete \
+          rsync -rlDv --delete \
+            --no-perms \
+            --no-owner \
+            --no-group \
+            --omit-dir-times \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='.env' \
@@ -109,6 +144,9 @@ jobs:
             --exclude='storage/' \
             ./ /www/wwwroot/apilarissama.udumbara.my.id/
 
+      # ========================================================
+      # PREPARE LARAVEL DIRECTORIES
+      # ========================================================
       - name: Prepare Laravel writable directories
         run: |
           cd /www/wwwroot/apilarissama.udumbara.my.id
@@ -122,17 +160,45 @@ jobs:
           chmod -R 775 storage
           chmod -R 775 bootstrap/cache
 
+      # ========================================================
+      # LARAVEL PRODUCTION
+      # ========================================================
       - name: Run Laravel production commands
         run: |
           cd /www/wwwroot/apilarissama.udumbara.my.id
 
+          echo "========================================"
+          echo "CLEAR OLD CACHE"
+          echo "========================================"
           php artisan optimize:clear
+
+          echo ""
+          echo "========================================"
+          echo "DATABASE MIGRATION"
+          echo "========================================"
           php artisan migrate --force
+
+          echo ""
+          echo "========================================"
+          echo "CONFIG CACHE"
+          echo "========================================"
           php artisan config:cache
+
+          echo ""
+          echo "========================================"
+          echo "ROUTE CACHE"
+          echo "========================================"
           php artisan route:cache
 
+      # ========================================================
+      # VERIFY
+      # ========================================================
       - name: Verify Laravel production
         run: |
           cd /www/wwwroot/apilarissama.udumbara.my.id
+
+          echo "========================================"
+          echo "LARAVEL PRODUCTION STATUS"
+          echo "========================================"
 
           php artisan about
