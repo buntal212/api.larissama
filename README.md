@@ -52,7 +52,7 @@ perilaku khusus MySQL, sehingga konfigurasi eksplisit diperlukan untuk full suit
 
 Rincian hasil test dan status tiap task ada di [tracker implementasi](IMPLEMENTATION_PROGRESS.md).
 Rincian operasi kontrak dan status handoff frontend ada di [panduan API](docs/api/README.md)
-dan [OpenAPI](docs/api/openapi.yaml); semuanya tetap DRAFT sampai tracker menyatakan siap.
+dan [OpenAPI](docs/api/openapi.yaml); status handoff per operationId tercatat di OpenAPI dan tracker. Saat ini seluruh 33 operasi READY_FOR_FRONTEND untuk alur utama.
 Prosedur rilis, migration, backup/restore, serta pemulihan operasional ada di [runbook backend](docs/backend/RUNBOOK.md). Runbook tersebut membedakan Compose development dari production dan belum mengklaim deployment atau restore production pernah dijalankan.
 
 ## About Laravel

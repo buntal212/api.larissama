@@ -1,6 +1,6 @@
 # Rencana Pelaksanaan Backend LarisSama
 
-Status: rencana pelaksanaan yang diperbarui 2026-10-06. D06 kini menambah tiga operationId penjualan (koreksi, pembatalan, retur); target menjadi 33 handler. Implementasi D06 dan gate integrasi/conformance/handoff berjalan. Seluruh operasi tetap DRAFT sampai bukti dan handoff per operationId terpenuhi. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
+Status: rencana pelaksanaan yang diperbarui 2026-10-06. D06 menambah tiga operationId penjualan (koreksi, pembatalan, retur); kontrak kini berisi 33 handler. Seluruh 33 operationId sudah `READY_FOR_FRONTEND` untuk alur utama pada server development, termasuk perubahan/retur transaksi. Edge-case conformance lanjutan dan regression G3/G4 tetap dicatat pada tracker dan OpenAPI, untuk dilanjutkan bersama laporan integrasi frontend. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
 
 ## Dokumen yang dipakai
 
@@ -90,4 +90,4 @@ AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lal
 - perilaku retry/correction jika fitur itu diserahkan;
 - run test yang mendukung dan keterbatasan yang masih berlaku.
 
-Semua operasi tetap DRAFT untuk integrasi live sampai slice masing-masing lulus. Frontend dapat membangun UI/model/adapter menggunakan schema OpenAPI dan mock untuk operasi yang implementasinya sudah DONE; endpoint koreksi/retur D06 sudah tersedia untuk UI dan adapter mock; live integration menunggu conformance penuh dan status READY_FOR_FRONTEND. Belum ada endpoint baru yang diserahkan untuk integrasi live. Lanjutkan dependency yang masih terbuka pada tracker; status READY hanya diberikan setelah implementasi, verifikasi yang diwajibkan, dan handoff slice terpenuhi.
+Seluruh 33 operasi dapat diintegrasikan langsung terhadap server development untuk alur utama sesuai status `READY_FOR_FRONTEND` pada OpenAPI. Gunakan mock untuk variasi edge-case yang ditandai `x-deferred-verification`. Milestone G3/G4 masih menyimpan regression dan conformance lanjutan; status handoff frontend tidak menyatakan seluruh gate backend atau deployment production selesai. Lanjutkan dependency yang masih terbuka pada tracker.

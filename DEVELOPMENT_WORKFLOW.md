@@ -103,7 +103,7 @@ Roadmap mengikuti rancangan delapan tabel. [IMPLEMENTATION_PLAN.md](IMPLEMENTATI
 | M4 | Pembelian ringkas/rinci yang independen, nomor/retry, riwayat dan laporan total pembelian; gate G4. |
 | M5 | Regression, environment, runbook, integrasi/handoff frontend dan rilis; gate G5. |
 
-Jangan menaikkan status milestone hanya karena dokumen atau migration selesai. Operasi API tetap DRAFT sampai perilaku/izin final, implementasi, dan test yang diwajibkan tersedia. Handoff memakai operationId, versi spec, commit yang diuji, environment, dan bukti sesuai panduan API.
+Jangan menaikkan status milestone hanya karena dokumen atau migration selesai. Operasi API tetap DRAFT sampai perilaku/izin inti, implementasi, dan bukti fungsional/tenant untuk alur utama tersedia. Jika edge-case lanjutan disepakati untuk menyusul setelah frontend mulai integrasi, catat pada `x-deferred-verification`; `READY_FOR_FRONTEND` tidak berarti seluruh gate milestone atau production selesai. Handoff memakai operationId, versi spec, commit yang diuji, environment, dan bukti sesuai panduan API.
 
 ## Disiplin perubahan dan commit
 

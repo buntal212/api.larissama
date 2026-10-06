@@ -3,10 +3,11 @@ info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
   description: >-
-    Status handoff 2026-10-06: 28 core operationId berstatus READY_FOR_FRONTEND
-    untuk integrasi fungsional; lima operationId koreksi/pembatalan/retur tambahan
-    tetap DRAFT. Pengujian edge-case lanjutan dijadwalkan setelah integrasi frontend
-    dimulai. x-contract-status per operationId adalah status handoff terkini. User menyetujui baseline wire D13: /api/v1,
+    Status handoff 2026-10-06: seluruh 33 operationId berstatus READY_FOR_FRONTEND
+    untuk integrasi alur utama, termasuk lima operationId koreksi/pembatalan/retur.
+    Pengujian edge-case lanjutan dijadwalkan setelah integrasi frontend dimulai;
+    x-deferred-verification per operationId menjelaskan batasnya. x-contract-status
+    adalah status handoff terkini. User menyetujui baseline wire D13: /api/v1,
     ID/decimal string, envelope data/meta, page integer >= 1 tanpa batas maksimum dan per_page 1–100, sort
     allowlist, dan error code/message/errors/request_id. Slice transaksi dan auth
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
@@ -19,7 +20,7 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06 menetapkan menu/kategori aktif untuk sale baru, koreksi/pembatalan beralasan sampai 72 jam sejak pencatatan, dan retur nominal penuh/sebagian beralasan setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Implementasi 33 operationId telah tersedia. Core 28 siap untuk integrasi frontend; tiga operasi koreksi/pembatalan/retur penjualan dan dua operasi koreksi/pembatalan pembelian tetap DRAFT sambil menunggu pengujian lanjutan setelah integrasi frontend dimulai.
+    D06 menetapkan menu/kategori aktif untuk sale baru, koreksi/pembatalan beralasan sampai 72 jam sejak pencatatan, dan retur nominal penuh/sebagian beralasan setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Implementasi 33 operationId tersedia dan seluruhnya siap untuk integrasi alur utama; lima operasi D06/D11 memiliki catatan edge-case tertunda masing-masing.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
     API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory kini 33 operation pada 21 path dan telah dicocokkan oleh test route terkini;
