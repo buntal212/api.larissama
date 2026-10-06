@@ -3,8 +3,10 @@ info:
   title: LarisSama Backend API — Draft
   version: 0.1.0-draft
   description: >-
-    Rancangan 2026-10-06; semua operasi tetap DRAFT sampai keputusan dan test
-    kontrak/fungsional lulus. User menyetujui baseline wire D13: /api/v1,
+    Status handoff 2026-10-06: 28 core operationId berstatus READY_FOR_FRONTEND
+    untuk integrasi fungsional; lima operationId koreksi/pembatalan/retur tambahan
+    tetap DRAFT. Pengujian edge-case lanjutan dijadwalkan setelah integrasi frontend
+    dimulai. x-contract-status per operationId adalah status handoff terkini. User menyetujui baseline wire D13: /api/v1,
     ID/decimal string, envelope data/meta, page integer >= 1 tanpa batas maksimum dan per_page 1–100, sort
     allowlist, dan error code/message/errors/request_id. Slice transaksi dan auth
     memiliki feature test HTTP pada MySQL 8.0.40 untuk sebagian create/read/report,
@@ -17,7 +19,7 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06 menetapkan menu/kategori aktif untuk sale baru, koreksi/pembatalan beralasan sampai 72 jam sejak pencatatan, dan retur nominal penuh/sebagian beralasan setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Implementasi 33 operationId telah tersedia; acceptance D06 terarah lulus, sementara seluruh kontrak tetap DRAFT sampai runtime conformance penuh dan handoff per operasi.
+    D06 menetapkan menu/kategori aktif untuk sale baru, koreksi/pembatalan beralasan sampai 72 jam sejak pencatatan, dan retur nominal penuh/sebagian beralasan setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Implementasi 33 operationId telah tersedia. Core 28 siap untuk integrasi frontend; tiga operasi koreksi/pembatalan/retur penjualan dan dua operasi koreksi/pembatalan pembelian tetap DRAFT sambil menunggu pengujian lanjutan setelah integrasi frontend dimulai.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
     API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory kini 33 operation pada 21 path dan telah dicocokkan oleh test route terkini;
@@ -26,8 +28,7 @@ info:
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
     REPORT-RBAC-CONFORMANCE-001 menguji kedua report: manager mendapat akses, kasir dan superadmin mendapat 403.
     `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner pada kedua laporan dan tenant isolation. API-END-TO-END-WORKFLOW-001 menguji satu alur HTTP
-    lintas provisioning, katalog, transaksi, laporan, dan logout pada MySQL 8.0.40; hasilnya parsial dan seluruh operasi
-    tetap DRAFT.
+    lintas provisioning, katalog, transaksi, laporan, dan logout pada MySQL 8.0.40; hasilnya parsial; status handoff saat ini mengikuti x-contract-status setiap operationId.
     TRANSACTION-LIST-QUERY-REJECTION-001 memeriksa Error422 untuk enum status sale dan tanggal list invalid.
     TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan date_from/date_to harus dikirim bersama; satu parameter saja menghasilkan Error422.
     API-END-TO-END-READBACK-001 menguji manager membaca list/detail transaksi yang dibuat pada workflow API dan mencocokkan response terpilih.
@@ -64,8 +65,9 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Request/status lain dan conformance lengkap belum diverifikasi. Maksimum 5 percobaan login per menit untuk username lowercase dan IP; uppercase ditolak dan tidak dinormalisasi.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Request/status lain dan conformance lengkap belum diverifikasi. Maksimum 5 percobaan login per menit untuk username lowercase dan IP; uppercase ditolak dan tidak dinormalisasi.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles: []
       x-blocked-by:
@@ -135,8 +137,9 @@ paths:
       tags:
       - Auth
       summary: Identitas dan konteks akses aktif
-      description: 'DRAFT: AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Status 400/500 dan conformance lainnya belum diverifikasi; waktu transaksi tetap disimpan UTC dan ditampilkan menurut timezone warung.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Status 400/500 dan conformance lainnya belum diverifikasi; waktu transaksi tetap disimpan UTC dan ditampilkan menurut timezone warung.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
@@ -192,11 +195,12 @@ paths:
       - Auth
       summary: Cabut sesi/token aktif
       description: AUTH-API-ACCEPTANCE-001 membuktikan hanya token bearer yang dikirim dicabut; AUTH-CONFORMANCE-001
-        mencocokkan response 204 tanpa body dengan kontrak. Operasi tetap DRAFT sampai error schema/conformance lain
-        dan keputusan pemblokir selesai. Middleware memeriksa
+        mencocokkan response 204 tanpa body dengan kontrak. READY_FOR_FRONTEND untuk integrasi logout inti; variasi error lanjutan dicatat
+        untuk susulan. Middleware memeriksa
         user/warung sebelum logout; jika akun sudah nonaktif atau kedaluwarsa, frontend tetap dapat menghapus token
         lokal, tetapi request logout tidak mencabut record token di server.
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
@@ -222,8 +226,9 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
@@ -291,8 +296,9 @@ paths:
       tags:
       - Admin
       summary: Buat warung dan owner awal
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji provisioning owner/hash/rollback; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422/500. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan conformance penuh belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): ADMIN-API-ACCEPTANCE-001 menguji provisioning owner/hash/rollback; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422/500. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses terpilih dengan requestBody OpenAPI. Payload invalid, status lain, dan conformance penuh belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
@@ -371,8 +377,9 @@ paths:
       tags:
       - Admin
       summary: Detail warung untuk superadmin
-      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET detail; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/404. Status lainnya, request schema, dan conformance seluruh operasi belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji GET detail; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/404. Status lainnya, request schema, dan conformance seluruh operasi belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
@@ -423,8 +430,9 @@ paths:
       tags:
       - Admin
       summary: Ubah identitas/status/masa aktif warung
-      description: 'DRAFT: ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji PATCH metadata/status dan validasi; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI. Payload/status lain dan conformance seluruh operasi belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji PATCH metadata/status dan validasi; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih dengan requestBody OpenAPI. Payload/status lain dan conformance seluruh operasi belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - superadmin
@@ -486,8 +494,9 @@ paths:
       tags:
       - Akses
       summary: Profil warung user aktif
-      description: 'DRAFT: CURRENT-WARUNG-API-ACCEPTANCE-001 menguji manager/kasir membaca profil dari tenant pada token, superadmin 403, tanpa token 401, dan response terpilih terhadap schema. OWNER-TENANT-ACCESS-CONFORMANCE-001 mencocokkan response profil owner dengan schema. Conformance status dan operasi lain masih terbuka.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): CURRENT-WARUNG-API-ACCEPTANCE-001 menguji manager/kasir membaca profil dari tenant pada token, superadmin 403, tanpa token 401, dan response terpilih terhadap schema. OWNER-TENANT-ACCESS-CONFORMANCE-001 mencocokkan response profil owner dengan schema. Conformance status dan operasi lain masih terbuka.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -539,8 +548,9 @@ paths:
       tags:
       - Akses
       summary: Daftar users
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): ADMIN-API-ACCEPTANCE-001 menguji list user tenant sendiri; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 200/403. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort fixture terpilih dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance penuh belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -605,8 +615,9 @@ paths:
       tags:
       - Akses
       summary: Tambah User
-      description: 'DRAFT: ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan membuat superadmin; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid dan status lain belum diverifikasi. Username/email hanya menerima huruf kecil; angka pada username diperbolehkan.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan membuat superadmin; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid dan status lain belum diverifikasi. Username/email hanya menerima huruf kecil; angka pada username diperbolehkan.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -666,8 +677,9 @@ paths:
       tags:
       - Akses
       summary: Detail User
-      description: 'DRAFT: owner dapat membaca user dalam warung sendiri; user tenant lain mendapat 404 dan manager/kasir/superadmin ditolak 403. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` menguji role boundary HTTP dan `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji isolasi tenant. Username/email wajib lowercase. Database produksi target dikonfirmasi kosong sehingga pemetaan user lama tidak dibutuhkan untuk rilis awal; status lain dan conformance penuh masih terbuka.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dapat membaca user dalam warung sendiri; user tenant lain mendapat 404 dan manager/kasir/superadmin ditolak 403. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` menguji role boundary HTTP dan `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji isolasi tenant. Username/email wajib lowercase. Database produksi target dikonfirmasi kosong sehingga pemetaan user lama tidak dibutuhkan untuk rilis awal; status lain dan conformance penuh masih terbuka.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -715,8 +727,9 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'DRAFT: owner dapat memperbarui user dalam warung sendiri; ID tenant lain memberi 404, role non-owner mendapat 403, dan warung_id/superadmin tidak dapat diinjeksi. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` menguji penolakan role tanpa write. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih; username/email wajib lowercase dan email nullable/unik global. Database produksi target kosong sehingga pemetaan user lama tidak dibutuhkan untuk rilis awal. Payload/status lain dan conformance penuh masih terbuka.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dapat memperbarui user dalam warung sendiri; ID tenant lain memberi 404, role non-owner mendapat 403, dan warung_id/superadmin tidak dapat diinjeksi. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` menguji penolakan role tanpa write. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih; username/email wajib lowercase dan email nullable/unik global. Database produksi target kosong sehingga pemetaan user lama tidak dibutuhkan untuk rilis awal. Payload/status lain dan conformance penuh masih terbuka.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -775,8 +788,9 @@ paths:
       tags:
       - Katalog
       summary: Daftar kategori-menus
-      description: 'DRAFT: owner dan manager dapat membaca katalog tenant sendiri; kasir hanya menerima kategori aktif, termasuk saat filter meminta aktif=false. CATALOG-ROLE-ACCEPTANCE-002 menguji akses role/tenant HTTP terkini. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/q/aktif terpilih; pagination menguji batas 100, penolakan 101, page/per_page nol, dan tipe non-integer. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membaca katalog tenant sendiri; kasir hanya menerima kategori aktif, termasuk saat filter meminta aktif=false. CATALOG-ROLE-ACCEPTANCE-002 menguji akses role/tenant HTTP terkini. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/q/aktif terpilih; pagination menguji batas 100, penolakan 101, page/per_page nol, dan tipe non-integer. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -845,8 +859,9 @@ paths:
       tags:
       - Katalog
       summary: Tambah KategoriMenu
-      description: 'DRAFT: owner dan manager dapat membuat kategori hanya dalam warung sendiri. Owner, manager, kasir, dan superadmin diuji pada HTTP feature tests; response 201/403/422/500 serta body sukses POST terpilih dicocokkan dengan schema OpenAPI. Payload invalid lain, seluruh status, dan conformance penuh masih terbuka.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membuat kategori hanya dalam warung sendiri. Owner, manager, kasir, dan superadmin diuji pada HTTP feature tests; response 201/403/422/500 serta body sukses POST terpilih dicocokkan dengan schema OpenAPI. Payload invalid lain, seluruh status, dan conformance penuh masih terbuka.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -905,8 +920,9 @@ paths:
       tags:
       - Katalog
       summary: Detail KategoriMenu
-      description: 'DRAFT: owner dan manager dapat membaca detail kategori tenant sendiri; kasir hanya dapat membaca kategori aktif. ID tenant lain memberi 404. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema; status lain dan conformance penuh belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membaca detail kategori tenant sendiri; kasir hanya dapat membaca kategori aktif. ID tenant lain memberi 404. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema; status lain dan conformance penuh belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -956,8 +972,9 @@ paths:
       tags:
       - Katalog
       summary: Ubah KategoriMenu
-      description: 'DRAFT: owner dan manager dapat memperbarui kategori tenant sendiri, termasuk status. Role tenant, superadmin, injeksi warung_id, dan isolasi tenant diuji pada HTTP feature tests. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih juga dicocokkan. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat memperbarui kategori tenant sendiri, termasuk status. Role tenant, superadmin, injeksi warung_id, dan isolasi tenant diuji pada HTTP feature tests. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih juga dicocokkan. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1017,8 +1034,9 @@ paths:
       tags:
       - Katalog
       summary: Daftar menus
-      description: 'DRAFT: owner dan manager dapat membaca daftar menu tenant sendiri; kasir hanya menerima menu aktif dalam kategori aktif, termasuk saat filter meminta aktif=false. CATALOG-ROLE-ACCEPTANCE-002 menguji akses role/tenant HTTP terkini. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan q/kategori_menu_id/per_page/sort dan halaman terpilih; pagination menguji batas 100, penolakan 101, page/per_page nol, dan tipe non-integer. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membaca daftar menu tenant sendiri; kasir hanya menerima menu aktif dalam kategori aktif, termasuk saat filter meminta aktif=false. CATALOG-ROLE-ACCEPTANCE-002 menguji akses role/tenant HTTP terkini. CATALOG-CONFORMANCE-001 mencocokkan response 200/422 dengan schema. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan q/kategori_menu_id/per_page/sort dan halaman terpilih; pagination menguji batas 100, penolakan 101, page/per_page nol, dan tipe non-integer. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1093,8 +1111,9 @@ paths:
       tags:
       - Katalog
       summary: Tambah Menu
-      description: 'DRAFT: owner dan manager dapat membuat menu dalam warung sendiri. Harga dikirim sebagai decimal string; kode unik per warung dan kategori satu tenant. Kategori lintas tenant, warung_id, harga_modal, gambar, serta harga invalid ditolak. CATALOG-ROLE-ACCEPTANCE-002 menguji role/tenant dan Error500; CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dan body sukses POST terpilih. Payload/status lain dan conformance penuh belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membuat menu dalam warung sendiri. Harga dikirim sebagai decimal string; kode unik per warung dan kategori satu tenant. Kategori lintas tenant, warung_id, harga_modal, gambar, serta harga invalid ditolak. CATALOG-ROLE-ACCEPTANCE-002 menguji role/tenant dan Error500; CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dan body sukses POST terpilih. Payload/status lain dan conformance penuh belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1158,8 +1177,9 @@ paths:
       tags:
       - Katalog
       summary: Detail Menu
-      description: 'DRAFT: owner dan manager dapat membaca detail menu tenant sendiri; kasir hanya dapat membaca menu aktif dalam kategori aktif. ID tenant lain memberi 404. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema. Penjualan baru hanya menerima menu aktif dalam kategori aktif sesuai D06; katalog nonaktif menghasilkan 422 pada POST sale (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`).'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membaca detail menu tenant sendiri; kasir hanya dapat membaca menu aktif dalam kategori aktif. ID tenant lain memberi 404. CATALOG-CONFORMANCE-001 mencocokkan response 200/404 dengan schema. Penjualan baru hanya menerima menu aktif dalam kategori aktif sesuai D06; katalog nonaktif menghasilkan 422 pada POST sale (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`).'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1212,8 +1232,9 @@ paths:
       tags:
       - Katalog
       summary: Ubah Menu
-      description: 'DRAFT: owner dan manager dapat memperbarui nama, harga, kategori, dan status menu dalam warung sendiri. Kategori lintas tenant, ID tenant lain, dan role tanpa hak tulis ditolak. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih dicocokkan dengan schema OpenAPI. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
-      x-contract-status: DRAFT
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat memperbarui nama, harga, kategori, dan status menu dalam warung sendiri. Kategori lintas tenant, ID tenant lain, dan role tanpa hak tulis ditolak. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih dicocokkan dengan schema OpenAPI. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1277,7 +1298,7 @@ paths:
       - Penjualan
       summary: Riwayat Penjualan
       description: >-
-        Implementasi awal tersedia tetapi masih DRAFT; belum siap integrasi live. Setiap item berasal
+        READY_FOR_FRONTEND untuk alur inti; extended edge-case tercatat untuk susulan. Setiap item berasal
         dari menu terdaftar; kasir hanya membaca penjualan miliknya, manager membaca seluruh penjualan warung.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200 dengan schema. TRANSACTION-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/status pada query sukses terpilih.
         ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response;
@@ -1294,7 +1315,8 @@ paths:
         SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; `OWNER-TENANT-ACCESS-CONFORMANCE-001` juga menguji owner membaca transaksi di tenant sendiri dan menerima 404 untuk transaksi tenant lain.
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
         CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan list kasir hanya berisi transaksi miliknya dengan meta.total tepat 1.
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1392,7 +1414,7 @@ paths:
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. D05 diputuskan: harga menu > 0, qty > 0 hingga dua desimal, diskon
         rincian/header tidak lebih besar dari subtotal, cash boleh lebih dari total, QRIS/transfer harus tepat, dan
-        pembulatan half-up per rincian. Operasi tetap DRAFT sampai seluruh conformance selesai.
+        pembulatan half-up per rincian. READY_FOR_FRONTEND untuk alur create inti; variasi edge-case tercatat untuk susulan.
         Setiap item wajib berasal dari menu aktif dalam kategori aktif. `TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`
         membuktikan menu nonaktif atau kategori nonaktif ditolak 422 pada rincian tanpa write, sedangkan katalog aktif menerima sale.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422;
@@ -1404,7 +1426,8 @@ paths:
         schema request melarang field tambahan. SALE-DECIMAL-EXACT-CONFORMANCE-001 membuktikan harga 17.25 × qty 3.00
         menghasilkan subtotal/total 51.75 dan kembalian 8.25 sebagai decimal eksak di response dan MySQL.
         Query, body/status lain, serta gate penuh masih terbuka.
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1514,9 +1537,10 @@ paths:
       tags:
       - Penjualan
       summary: Detail Penjualan dan rincian
-      description: 'Implementasi awal tersedia tetapi masih DRAFT; detail dibatasi ke warung pengguna dan untuk
+      description: 'READY_FOR_FRONTEND untuk alur detail inti; detail dibatasi ke warung pengguna dan untuk
         kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji manager membaca detail sale yang dibuat kasir. CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan kasir mendapat 200 untuk detail miliknya dan 404 untuk detail kasir lain pada tenant yang sama. Request schema, status lain, dan gate penuh masih terbuka.'
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1713,7 +1737,7 @@ paths:
       - Pembelian
       summary: Riwayat Pembelian
       description: >-
-        Implementasi awal tersedia tetapi masih DRAFT; seluruh data dibatasi ke warung pengguna.
+        READY_FOR_FRONTEND untuk alur list inti; seluruh data dibatasi ke warung pengguna.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/403. TRANSACTION-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort untuk dua halaman query sukses terpilih.
         ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response;
         ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 membuktikan per_page=101 ditolak dengan HTTP 422, schema response 422,
@@ -1728,7 +1752,8 @@ paths:
         TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas hari Asia/Jakarta, dan TRANSACTION-LIST-DST-CONFORMANCE-001 membuktikan batas hari DST 23 jam di America/New_York pada kedua list.
         SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; `OWNER-TENANT-ACCESS-CONFORMANCE-001` juga menguji owner membaca transaksi di tenant sendiri dan menerima 404 untuk transaksi tenant lain.
         API-END-TO-END-READBACK-001 menguji manager membaca list purchase sesudah pembelian ringkas/rinci dibuat lewat API.
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1816,7 +1841,7 @@ paths:
         Implementasi menerima bentuk ringkas atau rinci dan menyimpan header/detail atomik.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. D10 menetapkan subtotal wajib dan dihitung backend pada bentuk qty/harga.
-        Koreksi serta pembatalan D11 tersedia lewat operasi tambahan di luar 28 operasi awal. Operasi tetap DRAFT.
+        Koreksi serta pembatalan D11 tersedia lewat operasi tambahan di luar 28 operasi awal. READY_FOR_FRONTEND untuk create inti;
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422; TRANSACTION-REQUEST-CONFORMANCE-001
         mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. PURCHASE-REQUEST-SHAPE-CONFORMANCE-001
         membuktikan oneOf menolak qty/harga satuan parsial dan rincian nominal tanpa subtotal; body berbentuk benar dengan
@@ -1826,7 +1851,8 @@ paths:
         ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi kasir tanpa write.
         TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
         schema request melarang field tambahan. Query, body/status lain, dan gate penuh masih terbuka.
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -1958,7 +1984,8 @@ paths:
       - Pembelian
       summary: Detail Pembelian dan rincian
       description: 'Detail dibatasi ke warung pengguna, menampilkan status saat ini serta riwayat koreksi berisi alasan dan snapshot sebelum/sesudah. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji detail purchase ringkas dan rinci hasil API. Request schema, status lain, dan gate penuh masih terbuka.'
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -2154,12 +2181,13 @@ paths:
         Menjumlahkan penjualan non-batal menurut tanggal transaksi lokal dan mengurangi nominal retur yang dicatat
         pada periode lokal retur. Respons memisahkan jumlah penjualan kotor, retur, dan pendapatan bersih;
         retur dapat membuat pendapatan periode negatif. Tidak menjumlahkan bayar atau join rincian.
-        Masih DRAFT sampai gate lulus.
+        READY_FOR_FRONTEND untuk alur laporan inti; edge-case lanjutan tercatat untuk susulan.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
         superadmin; D04 kini mengizinkan owner serta manager; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
@@ -2222,12 +2250,13 @@ paths:
       summary: Total pembelian pada periode
       description: >-
         Menjumlah total dan menghitung header pembelian berstatus tercatat di periode timezone warung;
-        pembelian dibatalkan tidak masuk hitungan. Tidak join rincian atau mengurangi dari pendapatan sebagai laba. Masih DRAFT sampai gate lulus.
+        pembelian dibatalkan tidak masuk hitungan. Tidak join rincian atau mengurangi dari pendapatan sebagai laba. READY_FOR_FRONTEND untuk alur laporan inti; edge-case lanjutan tercatat untuk susulan.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
         superadmin; D04 kini mengizinkan owner serta manager; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
-      x-contract-status: DRAFT
+      x-contract-status: READY_FOR_FRONTEND
+      x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
