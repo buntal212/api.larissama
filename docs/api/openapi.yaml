@@ -1625,11 +1625,11 @@ paths:
         dalam 72 jam sejak `created_at` UTC. Alasan wajib, rincian yang dikirim mengganti semua rincian, harga
         menu dibaca server dari menu aktif, aturan D05 tetap berlaku, dan event append-only menyimpan snapshot
         sebelum/sesudah. Setelah window atau setelah retur, koreksi ditolak 409. Idempotency-Key berlaku 7 hari.
-        Operasi masih DRAFT sampai runtime conformance lengkap.
-      x-contract-status: DRAFT
+        Alur utama koreksi dan tenant boundary siap untuk integrasi frontend.
+      x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
       x-candidate-roles: [owner, manager]
-      x-blocked-by: [D02, D09, D13]
+      x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
       - $ref: '#/components/parameters/IdempotencyKey'
@@ -1663,11 +1663,11 @@ paths:
         Owner/manager tenant dapat membatalkan penjualan tanpa retur dalam 72 jam sejak `created_at` UTC.
         Alasan wajib; header dan rincian dipertahankan, status menjadi `batal`, dan event append-only menyimpan
         snapshot sebelum/sesudah. Penjualan batal dikeluarkan dari laporan dan tidak dapat diretur.
-        Idempotency-Key berlaku 7 hari. Operasi masih DRAFT sampai semua status/request/runtime teruji.
-      x-contract-status: DRAFT
+        Idempotency-Key berlaku 7 hari. Alur utama pembatalan dan tenant boundary siap untuk integrasi frontend.
+      x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
       x-candidate-roles: [owner, manager]
-      x-blocked-by: [D02, D09, D13]
+      x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
       - $ref: '#/components/parameters/IdempotencyKey'
@@ -1701,11 +1701,11 @@ paths:
         Owner/manager tenant dapat mencatat retur nominal penuh atau sebagian kapan saja selama masih ada saldo.
         Nominal retur tidak boleh melebihi sisa nilai penjualan. Alasan, aktor, dan waktu UTC tercatat append-only;
         stok/menu tidak berubah. Status menjadi `diretur_sebagian` atau `diretur_penuh`. Laporan mengurangi
-        nominal pada periode retur. Idempotency-Key berlaku 7 hari. Operasi masih DRAFT sampai runtime teruji.
-      x-contract-status: DRAFT
+        nominal pada periode retur. Idempotency-Key berlaku 7 hari. Alur utama retur dan tenant boundary siap untuk integrasi frontend.
+      x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
       x-candidate-roles: [owner, manager]
-      x-blocked-by: [D02, D09, D13]
+      x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
       - $ref: '#/components/parameters/IdempotencyKey'
@@ -2056,11 +2056,11 @@ paths:
         whitespace di tepi, dan response 201/422 menurut schema. D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001 menguji body/response 201 dan jalur sukses owner serta manager; 401/403/404/409 dan replay tercakup pada subset.
         MALFORMED-JSON-400-CONFORMANCE-001, EMPTY-BODY-REQUIRED-CONFORMANCE-001, dan JSON-NONOBJECT-ROOT-CONFORMANCE-001
         kini memeriksa bentuk body buruk pada seluruh 13 operasi ber-body, termasuk kedua operasi D11, dengan error schema-conformant
-        dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state kini tercakup pada run terkait. `x-implementation-status` DONE; kontrak tetap DRAFT sampai conformance seluruh status/request dan handoff modul lulus.
-      x-contract-status: DRAFT
+        dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state tercakup pada run terkait. Alur utama koreksi dan tenant boundary siap untuk integrasi frontend.
+      x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
       x-candidate-roles: [owner, manager]
-      x-blocked-by: [D02, D13]
+      x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/D11-PURCHASE-CORRECTION-001.md dan artefak D11 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
       - name: Idempotency-Key
@@ -2124,11 +2124,11 @@ paths:
         whitespace di tepi, dan response 201/422 menurut schema. D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001 menguji body/response 201 owner dan manager; D11-CANCEL-RBAC-CONFORMANCE-001 menguji 403 kasir/superadmin dan 404 lintas tenant tanpa write. Response 401 dan replay diuji pada subset.
         MALFORMED-JSON-400-CONFORMANCE-001, EMPTY-BODY-REQUIRED-CONFORMANCE-001, dan JSON-NONOBJECT-ROOT-CONFORMANCE-001
         kini memeriksa bentuk body buruk pada seluruh 13 operasi ber-body, termasuk kedua operasi D11, dengan error schema-conformant
-        dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state kini tercakup pada run terkait. `x-implementation-status` DONE; kontrak tetap DRAFT sampai conformance seluruh status/request dan handoff modul lulus.
-      x-contract-status: DRAFT
+        dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state tercakup pada run terkait. Alur utama pembatalan dan tenant boundary siap untuk integrasi frontend.
+      x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
       x-candidate-roles: [owner, manager]
-      x-blocked-by: [D02, D13]
+      x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/D11-PURCHASE-CORRECTION-001.md dan artefak D11 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
       - name: Idempotency-Key

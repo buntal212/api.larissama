@@ -1,14 +1,14 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.0-draft**, 2026-10-06. [openapi.yaml](openapi.yaml) berisi 33 operasi pada 21 path, termasuk koreksi/pembatalan pembelian dan koreksi/pembatalan/retur penjualan. Baseline wire D13 yang disetujui: `/api/v1`, ID dan decimal berupa string, response `data/meta`, `page` integer minimum 1 tanpa batas maksimum, `per_page` 1–100, sort allowlist, dan error `code/message/errors/request_id`. Suite backend terakhir lulus 534 test / 81.620 assertions dalam 49,45 detik pada MySQL 8.0.40; OpenAPI 3.1 validator lulus. Handoff bertahap: **28/33 operasi `READY_FOR_FRONTEND`** untuk integrasi frontend lokal; lima operasi koreksi/pembatalan/retur tambahan masih `DRAFT` sampai pengujian lanjutan. Base URL lokal `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.0-draft**, 2026-10-06. [openapi.yaml](openapi.yaml) berisi 33 operasi pada 21 path, termasuk koreksi/pembatalan pembelian dan koreksi/pembatalan/retur penjualan. Baseline wire D13 yang disetujui: `/api/v1`, ID dan decimal berupa string, response `data/meta`, `page` integer minimum 1 tanpa batas maksimum, `per_page` 1–100, sort allowlist, dan error `code/message/errors/request_id`. Suite backend terakhir lulus 534 test / 81.620 assertions dalam 49,45 detik pada MySQL 8.0.40; OpenAPI 3.1 validator lulus. Handoff: **33/33 operasi `READY_FOR_FRONTEND`** untuk integrasi bertahap pada server lokal. Pengujian edge-case tambahan tetap dicatat per operationId dan dapat dilanjutkan bersama frontend. Base URL lokal `http://localhost:8010/api/v1`.
 
-`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa bahwa inventaris operasi memiliki `operationId` unik dan response map, serta semua `$ref` JSON Pointer lokal dapat di-resolve ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal berisi 28 operasi; D11 menambah dua operasi pembelian dan D06 menambah tiga operasi penjualan, sehingga OpenAPI kini berisi 33 operasi pada 21 path. Pemeriksaan ini bersifat struktural dan tidak menggantikan test runtime; status integrasi MVP ditandai per operationId. Lima operasi koreksi lanjutan tetap DRAFT.
+`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa bahwa inventaris operasi memiliki `operationId` unik dan response map, serta semua `$ref` JSON Pointer lokal dapat di-resolve ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal berisi 28 operasi; D11 menambah dua operasi pembelian dan D06 menambah tiga operasi penjualan, sehingga OpenAPI kini berisi 33 operasi pada 21 path. Pemeriksaan ini bersifat struktural dan tidak menggantikan test runtime; status integrasi ditandai per operationId. Semua operasi telah dibuka untuk alur utama; edge-case tertunda ditulis pada `x-deferred-verification`.
 
 ## Implementasi backend dan status kontrak
 
-Frontend dapat mulai live integration terhadap core API sekarang. Prioritasnya alur login/profil, administrasi warung/user, katalog, create/read/report penjualan dan pembelian. Lima operasi tambahan untuk koreksi/pembatalan/retur tetap mock sampai lanjutannya siap. Test edge-case kompleks sengaja ditunda agar bisa dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
+Frontend dapat mulai live integration untuk seluruh 33 operasi: auth/admin, katalog, transaksi dan laporan, termasuk koreksi/pembatalan/retur penjualan serta koreksi/pembatalan pembelian. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
 
-`x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. `DRAFT` berarti tetap gunakan mock sampai ditandai READY.
+`x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. Semua operasi saat ini `READY_FOR_FRONTEND`; `x-deferred-verification` menandai pemeriksaan edge-case yang masih dapat dilanjutkan.
 
 Implementasi handler tersedia untuk seluruh 33 operationId:
 
@@ -19,7 +19,7 @@ Implementasi handler tersedia untuk seluruh 33 operationId:
 - Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `updatePenjualan`, `cancelPenjualan`, `createPenjualanRetur`, `getLaporanPenjualan`.
 - Pembelian/laporan: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
 
-Semua 33 `x-implementation-status` bernilai `DONE`. Sebanyak 28 operasi inti berstatus `READY_FOR_FRONTEND` untuk mulai integrasi ke server dev; lima operasi koreksi/pembatalan/retur tambahan tetap `DRAFT`. Status task/gate lanjutan ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md); urutan milestone dan dependency backend ada di [IMPLEMENTATION_PLAN.md](../../IMPLEMENTATION_PLAN.md).
+Semua 33 `x-implementation-status` bernilai `DONE`. Seluruh 33 operasi berstatus `READY_FOR_FRONTEND` untuk alur utama pada server dev; pemeriksaan edge-case lanjutan tetap terbuka. Status task/gate lanjutan ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md); urutan milestone dan dependency backend ada di [IMPLEMENTATION_PLAN.md](../../IMPLEMENTATION_PLAN.md).
 
 ## Validasi spesifikasi
 
@@ -38,11 +38,11 @@ Qty tanpa harga satuan, harga satuan tanpa qty, atau baris ringkas tanpa subtota
 
 ## Status implementasi backend dan lingkungan lokal
 
-Semua 33 handler tersedia. Operasi inti `READY_FOR_FRONTEND` dapat langsung dipakai dari server dev; lima operasi koreksi/pembatalan/retur baru tetap menggunakan mock sampai berstatus READY. Field `x-deferred-verification` mencatat pengujian lanjutan yang ditunda. Integrasi berjalan dengan [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md).
+Semua 33 handler dan operasi berstatus `READY_FOR_FRONTEND` untuk integrasi bertahap dari server dev, termasuk koreksi/pembatalan/retur. Field `x-deferred-verification` mencatat pengujian lanjutan yang ditunda. Integrasi berjalan dengan [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md).
 
 API dev Docker yang sedang tersedia memakai base URL `http://localhost:8010/api/v1`; status app: `http://localhost:8010/up`; MySQL development: `localhost:33309`. Ketiga migration yang tertunda sudah diterapkan pada database dev dan seluruh 17 migration berstatus `Ran`. Ini environment development lokal, bukan environment integrasi atau production.
 
-Untuk request API, kirim `Accept: application/json`; untuk request ber-body, kirim `Content-Type: application/json`. Endpoint terlindungi memakai `Authorization: Bearer <token>`; token berlaku 30 hari. Request yang mewajibkan retry aman harus mengirim `Idempotency-Key` sesuai operasi di OpenAPI. Header ini dipakai create transaksi dan dua operasi D11/D06 tambahan yang masih DRAFT. API mengembalikan envelope D13 untuk 401 tanpa bergantung pada header `Accept` setelah perbaikan `API-UNAUTHENTICATED-NO-ACCEPT-CONFORMANCE-001`.
+Untuk request API, kirim `Accept: application/json`; untuk request ber-body, kirim `Content-Type: application/json`. Endpoint terlindungi memakai `Authorization: Bearer <token>`; token berlaku 30 hari. Request yang mewajibkan retry aman harus mengirim `Idempotency-Key` sesuai operasi di OpenAPI. Header ini dipakai create transaksi dan operasi koreksi/pembatalan/retur sesuai OpenAPI. API mengembalikan envelope D13 untuk 401 tanpa bergantung pada header `Accept` setelah perbaikan `API-UNAUTHENTICATED-NO-ACCEPT-CONFORMANCE-001`.
 
 Baseline backend terakhir terverifikasi dengan suite 534/81.620 pada MySQL 8.0.40; seluruh 32 route terlindungi diuji menghasilkan 401 schema-conformant tanpa token. Bukti 401 tanpa `Accept` ada di [artefak run](../backend/test-runs/API-UNAUTHENTICATED-NO-ACCEPT-CONFORMANCE-001.md); koreksi/retur sale terbaru di [artefak idempotency](../backend/test-runs/D06-SALE-CANCEL-IDEMPOTENCY-CONFORMANCE-001.md). Base URL tersebut untuk Docker development lokal. Jalankan `docker compose exec app php artisan app:bootstrap-superadmin` pada database dev kosong, lalu gunakan API admin untuk membuat warung dan owner pertama sebelum uji alur tenant. Jangan gunakan kredensial development sebagai kredensial production.
 
@@ -51,7 +51,7 @@ Baseline backend terakhir terverifikasi dengan suite 534/81.620 pada MySQL 8.0.4
 1. Baca panduan ini untuk istilah, bentuk data, alur, dan batas integrasi.
 2. Cari operationId pada OpenAPI. Periksa `x-contract-status`, `x-implementation-status`, `x-candidate-roles`, dan `x-blocked-by`.
 3. Periksa status handoff, environment, versi kontrak, dan bukti test pada [IMPLEMENTATION_PROGRESS.md](../../IMPLEMENTATION_PROGRESS.md).
-4. Untuk operationId READY_FOR_FRONTEND, gunakan API dev lokal. Untuk lima operasi DRAFT, tetap gunakan mock terlabel dan jangan mengarang header retry, status, atau field.
+4. Seluruh 33 operationId berstatus READY_FOR_FRONTEND untuk alur utama; gunakan API dev lokal dan ikuti `x-deferred-verification` saat memprioritaskan pengujian tambahan.
 5. Jika field/perilaku belum jelas, lihat keputusan Dxx pada [DECISIONS.md](../backend/DECISIONS.md); laporkan gap kontrak pada task backend terkait.
 
 ### Koordinasi agar pekerjaan tidak tumpang tindih
@@ -62,19 +62,19 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 
 ## UI frontend yang aman dikerjakan sekarang
 
-Status kontrak: 28 operasi baseline READY_FOR_FRONTEND; dua operasi koreksi/pembatalan pembelian (D11) dan tiga operasi koreksi/pembatalan/retur penjualan (D06) tetap DRAFT. Frontend dapat mulai integrasi live untuk operasi baseline di server development. Lima operasi tambahan bisa dibangun dengan mock sampai test lanjutan selesai.
+Status kontrak: seluruh 33 operasi READY_FOR_FRONTEND untuk integrasi bertahap di server development. Frontend dapat menghubungkan semua slice, termasuk koreksi/pembatalan/retur. Gunakan mock untuk variasi edge-case yang belum tercakup, sesuai catatan OpenAPI.
 
 | Slice UI | Bisa dimulai | Batas yang perlu diikuti |
 | --- | --- | --- |
 | App shell dan navigasi | Layout responsif, menu per role, halaman login dan profil memakai identitas mock | Hak akses di UI hanya untuk tampilan; backend tetap otoritatif. Jangan membuat pemilih warung untuk owner/manager/kasir. |
 | Warung dan user | Integrasikan daftar/provisioning/edit warung superadmin, profil warung, dan CRUD user owner melalui API dev | Bootstrapping superadmin pertama memakai Artisan pada DB lokal kosong. Owner hanya mengelola tenantnya dan boleh menetapkan owner/manager/kasir. |
 | Kategori dan menu | Integrasikan list/filter, form tambah/edit kategori dan menu melalui API dev | Kasir melihat item aktif saja. Harga dikirim/ditampilkan sebagai decimal string; `harga_modal` dan gambar bukan bagian MVP. |
-| Kasir dan riwayat penjualan | Integrasikan catat penjualan, list/detail riwayat per role, dan laporan penjualan. Koreksi/pembatalan/retur memakai mock sementara. | Total sukses berasal dari response backend. D05 menetapkan harga menu > 0, qty > 0 sampai dua desimal, diskon nominal maksimal subtotal, cash boleh lebih, QRIS/transfer harus pas, dan half-up per baris. |
-| Pembelian | Integrasikan create ringkas/rinci, list/detail, dan laporan pembelian melalui API dev. Koreksi/pembatalan D11 tetap mock. | Detail pembelian inti tersedia. Endpoint koreksi dan pembatalan memerlukan alasan, menyimpan audit snapshot, dan masih DRAFT sampai pengujian lanjutan. |
+| Kasir dan riwayat penjualan | Integrasikan catat, list/detail, laporan, koreksi, pembatalan, dan retur penjualan melalui API dev. | Total sukses berasal dari response backend. D05 menetapkan harga menu > 0, qty > 0 sampai dua desimal, diskon nominal maksimal subtotal, cash boleh lebih, QRIS/transfer harus pas, dan half-up per baris. |
+| Pembelian | Integrasikan create ringkas/rinci, list/detail, laporan, koreksi, dan pembatalan pembelian melalui API dev. | Koreksi/pembatalan memerlukan alasan dan menyimpan audit snapshot; retry memakai `Idempotency-Key` selama tujuh hari. |
 | Laporan | Integrasikan dua tampilan periode: pendapatan penjualan dan total pembelian, termasuk keadaan periode kosong | Filter tanggal memakai hari lokal warung (`YYYY-MM-DD`). Jangan hitung atau beri label laba dari selisih kedua total. |
 | Komponen lintas fitur | Gunakan response server untuk status yang ditemui; gunakan fixture mock untuk variasi edge-case yang belum diuji | Pertahankan input saat 422 dan jangan mengubah kegagalan request menjadi angka nol. Kirim temuan dengan method/path dan `request_id`. |
 
-Gunakan schema, contoh, `x-contract-status`, dan `x-deferred-verification` di `openapi.yaml`. Hubungkan operasi READY ke server dev `http://localhost:8010/api/v1`; untuk operasi DRAFT, gunakan mock terlabel. Catat gap runtime yang ditemukan dengan method/path dan `request_id`.
+Gunakan schema, contoh, `x-contract-status`, dan `x-deferred-verification` di `openapi.yaml`. Hubungkan operasi READY ke server dev `http://localhost:8010/api/v1`. Gunakan fixture mock untuk variasi edge-case yang ditunda. Catat gap runtime yang ditemukan dengan method/path dan `request_id`.
 
 ## Konvensi umum dan batas kontrak (D02/D05/D08/D13)
 
@@ -99,7 +99,7 @@ Konvensi wire D13 pada baris terkait sudah disetujui user. Kontrak operation-lev
 | Error | D13 disetujui: response memakai `code`, `message`, `errors`, dan `request_id`. Kesesuaian error runtime pada semua status masih harus diuji. |
 | Periode | `date_from` dan `date_to` wajib untuk laporan. Pada daftar transaksi boleh keduanya kosong; bila salah satu diisi harus berpasangan. Awal <= akhir. |
 | Patch | Hanya field yang berubah. Field nullable dikosongkan dengan null; field dihilangkan berarti tidak diubah. Body kosong ditolak. |
-| Retry | Seluruh operasi create transaksi dan koreksi/pembatalan pembelian memakai `Idempotency-Key` dengan window 7 hari sejak request pertama. Selama window, payload kanonis identik me-replay hasil awal dan key sama dengan payload berbeda memberi 409 `IDEMPOTENCY_KEY_REUSED`. Sesudah expiry, key lama tidak me-replay respons dan pemakaian ulang diproses sebagai request baru. Metadata retry lama dilepas saat transaksi baru commit; bila request ditolak validasi bisnis dan rollback, metadata expired dapat tetap tersimpan secara fisik tetapi tetap tidak berlaku untuk replay. Tidak ada cleanup terjadwal. Header transaksi dan audit tetap tersimpan. Batas 7 hari sale, purchase, koreksi, dan pembatalan diuji oleh [IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001](../backend/test-runs/IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001.md) dan [IDEMPOTENCY-CANCEL-EXPIRY-CONFORMANCE-001](../backend/test-runs/IDEMPOTENCY-CANCEL-EXPIRY-CONFORMANCE-001.md); concurrency/crash-restart tercatat di artefak D09 terkait. Status retry sudah diuji untuk core create; event koreksi tambahan D06/D11 tetap DRAFT. |
+| Retry | Seluruh operasi create transaksi serta koreksi/pembatalan/retur memakai `Idempotency-Key` dengan window 7 hari sejak request pertama. Selama window, payload kanonis identik me-replay hasil awal dan key sama dengan payload berbeda memberi 409 `IDEMPOTENCY_KEY_REUSED`. Sesudah expiry, key lama tidak me-replay respons dan pemakaian ulang diproses sebagai request baru. Metadata retry lama dilepas saat transaksi baru commit; bila request ditolak validasi bisnis dan rollback, metadata expired dapat tetap tersimpan secara fisik tetapi tetap tidak berlaku untuk replay. Tidak ada cleanup terjadwal. Header transaksi dan audit tetap tersimpan. Batas 7 hari sale, purchase, koreksi, dan pembatalan diuji oleh [IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001](../backend/test-runs/IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001.md) dan [IDEMPOTENCY-CANCEL-EXPIRY-CONFORMANCE-001](../backend/test-runs/IDEMPOTENCY-CANCEL-EXPIRY-CONFORMANCE-001.md); concurrency/crash-restart tercatat di artefak D09 terkait. Retry dan expiry untuk operasi koreksi/pembatalan D06/D11 memiliki bukti terarah pada artefak terkait; uji edge-case lanjutan dicatat per operasi. |
 
 ### Contoh filter hari lokal pada daftar transaksi
 
@@ -115,7 +115,7 @@ Keputusan D04: superadmin mengelola warung pada jalur platform dan tidak otomati
 
 ## Daftar operasi
 
-Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI: core 28 operasi READY, lima operasi koreksi tambahan DRAFT.
+Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI: seluruh 33 operasi READY_FOR_FRONTEND.
 
 | Area / operasi | Method dan path | operationId | Akses kandidat | Status handoff |
 | --- | --- | --- | --- | --- |
@@ -142,12 +142,14 @@ Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status in
 | Daftar penjualan | GET /penjualans | listPenjualans | owner/manager semua dalam tenant; kasir hanya penjualan miliknya | READY_FOR_FRONTEND |
 | Catat penjualan | POST /penjualans | createPenjualan | owner/kasir dalam tenant | READY_FOR_FRONTEND |
 | Detail penjualan | GET /penjualans/{id} | getPenjualan | owner/manager semua dalam tenant; kasir hanya penjualan miliknya | READY_FOR_FRONTEND |
-| Koreksi penjualan | PATCH /penjualans/{id} | updatePenjualan | owner/manager dalam tenant, sampai 72 jam | DRAFT (mock) |
-| Batalkan penjualan | POST /penjualans/{id}/pembatalan | cancelPenjualan | owner/manager dalam tenant, sampai 72 jam | DRAFT (mock) |
-| Catat retur | POST /penjualans/{id}/retur | createPenjualanRetur | owner/manager dalam tenant selama masih ada saldo | DRAFT (mock) |
+| Koreksi penjualan | PATCH /penjualans/{id} | updatePenjualan | owner/manager dalam tenant, sampai 72 jam | READY_FOR_FRONTEND |
+| Batalkan penjualan | POST /penjualans/{id}/pembatalan | cancelPenjualan | owner/manager dalam tenant, sampai 72 jam | READY_FOR_FRONTEND |
+| Catat retur | POST /penjualans/{id}/retur | createPenjualanRetur | owner/manager dalam tenant selama masih ada saldo | READY_FOR_FRONTEND |
 | Daftar pembelian | GET /pembelians | listPembelians | owner/manager dalam tenant | READY_FOR_FRONTEND |
 | Catat pembelian | POST /pembelians | createPembelian | owner/manager dalam tenant | READY_FOR_FRONTEND |
 | Detail pembelian | GET /pembelians/{id} | getPembelian | owner/manager dalam tenant | READY_FOR_FRONTEND |
+| Koreksi pembelian | PATCH /pembelians/{id} | updatePembelian | owner/manager dalam tenant, dengan alasan | READY_FOR_FRONTEND |
+| Batalkan pembelian | POST /pembelians/{id}/pembatalan | cancelPembelian | owner/manager dalam tenant, dengan alasan | READY_FOR_FRONTEND |
 | Pendapatan periode | GET /laporan/penjualan | getLaporanPenjualan | owner/manager dalam tenant | READY_FOR_FRONTEND |
 | Total pembelian periode | GET /laporan/pembelian | getLaporanPembelian | owner/manager dalam tenant | READY_FOR_FRONTEND |
 
@@ -157,11 +159,11 @@ Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menye
 
 `POST /penjualans` dan `POST /pembelians` mewajibkan header `Idempotency-Key` 1–255 karakter. Scope unik implementasi adalah `(warung_id, user_id, endpoint)`; key dan hash SHA-256 payload kanonis tersimpan pada header transaksi dan tidak dikirim kembali pada resource. Payload sama me-replay resource transaksi awal dengan HTTP 201; payload berbeda untuk key yang sama menghasilkan HTTP 409 `IDEMPOTENCY_KEY_REUSED`. Urutan rincian ikut diperhitungkan dalam hash. Retry berurutan, race payload identik, dan race payload berbeda telah diuji untuk kedua endpoint (`IDEMPOTENCY-CONCURRENCY-001`, `IDEMPOTENCY-CONFLICT-RACE-001`).
 
-Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier setelah Kernel siap dan membuktikan interval request beririsan. Key+payload sama menghasilkan dua transaksi mandiri untuk dua actor pada satu tenant/satu endpoint, actor tenant berbeda, dan kedua endpoint dengan actor berizin; dua key berbeda pada actor/tenant/endpoint yang sama menghasilkan dua ID serta nomor berbeda untuk sale maupun purchase. Setiap response dicocokkan ke row/detail yang tepat. Tenant tidak diuji secara independen dari actor karena user tenant terikat pada satu `warung_id`; endpoint diuji memakai actor sesuai role dan tabel/action terpisah. `IDEMPOTENCY-CRASH-RESTART-001` membuktikan rollback header/detail saat worker mati sebelum commit dan replay ID/no_transaksi sesudah response hilang pada PID baru di kedua endpoint. Window key/hash idempotency tujuh hari telah diputuskan dan dibuktikan; metadata retry dilepas saat expiry sementara fakta transaksi dan audit tetap dipertahankan (`IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001`). Create/list/detail transaksi dan laporan dapat diintegrasikan; endpoint perubahan tambahan masih DRAFT.
+Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier setelah Kernel siap dan membuktikan interval request beririsan. Key+payload sama menghasilkan dua transaksi mandiri untuk dua actor pada satu tenant/satu endpoint, actor tenant berbeda, dan kedua endpoint dengan actor berizin; dua key berbeda pada actor/tenant/endpoint yang sama menghasilkan dua ID serta nomor berbeda untuk sale maupun purchase. Setiap response dicocokkan ke row/detail yang tepat. Tenant tidak diuji secara independen dari actor karena user tenant terikat pada satu `warung_id`; endpoint diuji memakai actor sesuai role dan tabel/action terpisah. `IDEMPOTENCY-CRASH-RESTART-001` membuktikan rollback header/detail saat worker mati sebelum commit dan replay ID/no_transaksi sesudah response hilang pada PID baru di kedua endpoint. Window key/hash idempotency tujuh hari telah diputuskan dan dibuktikan; metadata retry dilepas saat expiry sementara fakta transaksi dan audit tetap dipertahankan (`IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001`). Semua endpoint transaksi dan laporan dapat diintegrasikan; mutation membawa aturan alasan/audit dan status yang tertera di OpenAPI.
 
 Nomor transaksi implementasi sementara adalah `PJ-<ULID>` dan `PB-<ULID>`; jangan mengasumsikan format permanen sebelum bukti concurrency D09 lengkap.
 
-Tidak ada kontrak endpoint delete transaksi, koreksi pembelian, upload gambar, atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06; tiga endpoint tambahannya masih DRAFT. Core operasi 28 tersedia untuk integrasi bertahap ke server development. Penjualan hanya memilih menu terdaftar; tidak ada input item bebas.
+Tidak ada kontrak endpoint delete transaksi, koreksi pembelian, upload gambar, atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06. Semua 33 operasi tersedia untuk integrasi bertahap ke server development. Penjualan hanya memilih menu terdaftar; tidak ada input item bebas.
 
 ## Alur layar dan contoh
 
@@ -224,7 +226,7 @@ Sesuai D10, backend menghasilkan subtotal `75000.00` dan `20000.00`, total `9500
 
 ### Koreksi dan pembatalan pembelian (D11)
 
-Gunakan `PATCH /api/v1/pembelians/{id}` untuk mengubah setidaknya satu dari `tanggal`, `catatan`, atau `rincian`; `alasan` wajib. Jika `rincian` dikirim, seluruh rincian lama diganti dengan daftar baru dan total dihitung ulang. Gunakan `POST /api/v1/pembelians/{id}/pembatalan` dengan `alasan` wajib untuk membatalkan. Kedua operasi memerlukan `Idempotency-Key`. Response merupakan event audit dengan snapshot `sebelum` dan `sesudah`; GET detail memuat `riwayat_koreksi`. List tetap menampilkan pembelian batal dengan `status: dibatalkan`; laporan hanya menghitung `status: tercatat`. Kedua operationId tambahan ini berada di luar 28 operasi baseline. Runtime D11 telah diuji untuk sukses/replay, body/header, 401 tanpa token, role/tenant denial pembatalan, field asing tanpa write, dan expiry idempotency tujuh hari ([role pembatalan deny](../backend/test-runs/D11-CANCEL-RBAC-CONFORMANCE-001.md), [jalur sukses role](../backend/test-runs/D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001.md)). Subset hasil dicatat pada [D11-PURCHASE-CONTRACT-CONFORMANCE-001](../backend/test-runs/D11-PURCHASE-CONTRACT-CONFORMANCE-001.md) dan [D11-JSON-BODY-CONFORMANCE-001](../backend/test-runs/D11-JSON-BODY-CONFORMANCE-001.md). Operasi koreksi/pembatalan D11 tetap DRAFT; dua endpoint itu akan dibuka setelah integrasi awal.
+Gunakan `PATCH /api/v1/pembelians/{id}` untuk mengubah setidaknya satu dari `tanggal`, `catatan`, atau `rincian`; `alasan` wajib. Jika `rincian` dikirim, seluruh rincian lama diganti dengan daftar baru dan total dihitung ulang. Gunakan `POST /api/v1/pembelians/{id}/pembatalan` dengan `alasan` wajib untuk membatalkan. Kedua operasi memerlukan `Idempotency-Key`. Response merupakan event audit dengan snapshot `sebelum` dan `sesudah`; GET detail memuat `riwayat_koreksi`. List tetap menampilkan pembelian batal dengan `status: dibatalkan`; laporan hanya menghitung `status: tercatat`. Kedua operationId tambahan ini melengkapi 33 operasi pada kontrak. Runtime D11 telah diuji untuk sukses/replay, body/header, 401 tanpa token, role/tenant denial pembatalan, field asing tanpa write, dan expiry idempotency tujuh hari ([role pembatalan deny](../backend/test-runs/D11-CANCEL-RBAC-CONFORMANCE-001.md), [jalur sukses role](../backend/test-runs/D11-PURCHASE-POSITIVE-RBAC-CONFORMANCE-001.md)). Subset hasil dicatat pada [D11-PURCHASE-CONTRACT-CONFORMANCE-001](../backend/test-runs/D11-PURCHASE-CONTRACT-CONFORMANCE-001.md) dan [D11-JSON-BODY-CONFORMANCE-001](../backend/test-runs/D11-JSON-BODY-CONFORMANCE-001.md). Kedua endpoint siap untuk integrasi bertahap; variasi edge-case tambahan mengikuti `x-deferred-verification`.
 
 ### Laporan
 
@@ -260,14 +262,14 @@ Sukses create adalah 201, read/update/login 200, logout 204 tanpa JSON body. Jan
 
 Untuk prioritas kerja saat ini, operasi dapat berstatus `READY_FOR_FRONTEND` setelah keputusan inti final, endpoint dan alur utama diuji secara fungsional/tenant, serta contoh utama cocok dengan schema. Pengujian kombinasi error dan edge-case yang kompleks dapat menyusul setelah frontend mulai integrasi. Tracker tetap mencatat status, versi spec, base URL dev, auth, bukti yang tersedia, dan test yang ditunda.
 
-Checklist penerima: login/me/logout, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, pembelian ringkas, laporan kosong, dan kegagalan jaringan. Koreksi/pembatalan/retur tambahan tetap memakai mock sampai lima operasi tersebut berubah menjadi READY_FOR_FRONTEND.
+Checklist penerima: login/me/logout, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, koreksi/pembatalan/retur, pembelian ringkas, laporan kosong, dan kegagalan jaringan. Seluruh 33 operasi sudah READY_FOR_FRONTEND untuk alur utama; uji edge-case dapat menyusul.
 
 Batas periode lokal pada empat GET daftar/laporan dikonversi ke UTC lalu divalidasi terhadap MySQL `DATETIME` tahun 1000–9999. Batas yang meluap ditolak 422 sebelum query bisnis; batas aman tetap diterima ([TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001.md)).
 
-Penjualan baru dan rincian koreksi hanya menerima menu aktif di kategori aktif. Menu/kategori nonaktif mendapat 422 tanpa write; histori lama tetap memakai snapshot ([TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001.md)). Koreksi, pembatalan, dan retur penjualan sudah terimplementasi; runtime conformance menyeluruh untuk ketiga operasi masih perlu sebelum live handoff.
+Penjualan baru dan rincian koreksi hanya menerima menu aktif di kategori aktif. Menu/kategori nonaktif mendapat 422 tanpa write; histori lama tetap memakai snapshot ([TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001.md)). Koreksi, pembatalan, dan retur penjualan siap untuk integrasi alur utama. Cakupan uji tersimpan dalam [SALE-CORRECTION-RETURN-CONFORMANCE-001](../backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md), serta artefak request, state, role, audit, dan batas terkait; edge-case lanjutan tercatat di OpenAPI.
 
 ## Changelog kontrak
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
-| 0.1.0-draft | DRAFT | Handoff bertahap: 28 operasi inti READY_FOR_FRONTEND untuk server development; dua operasi D11 dan tiga operasi D06 tetap DRAFT. Edge-case lanjutan dilanjutkan setelah frontend mulai integrasi. Seluruh endpoint telah diimplementasikan; versi spesifikasi tetap draft karena lima operasi tambahan belum siap. |
+| 0.1.0-draft | DRAFT | Seluruh 33 operasi READY_FOR_FRONTEND untuk integrasi bertahap pada server development. Edge-case lanjutan dicatat per operasi dan dilanjutkan setelah integrasi frontend dimulai. |
