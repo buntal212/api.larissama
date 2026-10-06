@@ -1,28 +1,95 @@
-name: Deploy Laravel Production
+name: Backend CI & Deploy
 
 on:
   push:
-    branches:
-      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
+  # ============================================================
+  # BACKEND CI
+  # ============================================================
+  test:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Validate OpenAPI 3.1 contract
+        run: |
+          docker compose \
+            --project-name larissama-openapi-ci \
+            -f compose.openapi.yaml \
+            run --build --rm openapi-validator
+
+      - name: Match container user to workspace owner
+        run: |
+          printf 'LARISSAMA_UID=%s\n' "$(id -u)" >> "$GITHUB_ENV"
+          printf 'LARISSAMA_GID=%s\n' "$(id -g)" >> "$GITHUB_ENV"
+
+      - name: Run Pint and full suite on disposable MySQL 8.0.40
+        run: |
+          docker compose \
+            --project-name larissama-backend-ci \
+            -f compose.test.yaml \
+            run --build --rm test-runner \
+            sh -lc 'composer install --no-interaction --prefer-dist --no-progress && vendor/bin/pint --test && php artisan test --no-progress'
+
+      - name: Clean up disposable Compose projects
+        if: always()
+        run: |
+          docker compose \
+            --project-name larissama-backend-ci \
+            -f compose.test.yaml \
+            down --remove-orphans
+
+          docker compose \
+            --project-name larissama-openapi-ci \
+            -f compose.openapi.yaml \
+            down --remove-orphans
+
+  # ============================================================
+  # DEPLOY PRODUCTION
+  # ============================================================
   deploy:
-    name: Deploy API Larissama
+    name: Deploy Production
+
+    needs: test
+
+    # Deploy hanya jika:
+    # - event adalah push
+    # - branch adalah main
+    # - Backend CI sukses
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     runs-on:
       - self-hosted
       - Linux
       - X64
 
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+    timeout-minutes: 15
 
-      - name: Check PHP
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Check production environment
         run: |
           php -v
           composer --version
+          rsync --version | head -n 1
 
-      - name: Install Composer dependencies
+      - name: Install production Composer dependencies
         run: |
           composer install \
             --no-dev \
@@ -31,7 +98,7 @@ jobs:
             --no-progress \
             --optimize-autoloader
 
-      - name: Deploy to production
+      - name: Deploy source to production
         run: |
           rsync -av --delete \
             --exclude='.git/' \
@@ -42,7 +109,7 @@ jobs:
             --exclude='storage/' \
             ./ /www/wwwroot/apilarissama.udumbara.my.id/
 
-      - name: Prepare Laravel storage
+      - name: Prepare Laravel writable directories
         run: |
           cd /www/wwwroot/apilarissama.udumbara.my.id
 
@@ -52,9 +119,10 @@ jobs:
           mkdir -p storage/logs
           mkdir -p bootstrap/cache
 
-          chmod -R 775 storage bootstrap/cache
+          chmod -R 775 storage
+          chmod -R 775 bootstrap/cache
 
-      - name: Laravel production commands
+      - name: Run Laravel production commands
         run: |
           cd /www/wwwroot/apilarissama.udumbara.my.id
 
@@ -62,3 +130,9 @@ jobs:
           php artisan migrate --force
           php artisan config:cache
           php artisan route:cache
+
+      - name: Verify Laravel production
+        run: |
+          cd /www/wwwroot/apilarissama.udumbara.my.id
+
+          php artisan about
