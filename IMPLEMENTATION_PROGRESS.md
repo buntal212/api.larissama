@@ -551,3 +551,7 @@ User menetapkan transaksi baru ditolak bila menu atau kategorinya nonaktif. Comm
 ## Siklus migration fresh/rollback — 2026-10-05
 
 `MIGRATION-FRESH-ROLLBACK-001` dijalankan pada commit source `2032836` dengan Docker Compose disposable: 16 migration berhasil pada fresh install, seluruh 16 berhasil di-rollback dalam satu batch kosong, seluruh schema berhasil dipasang lagi, dan `migrate:status` menunjukkan semua `Ran`. Container/network dibersihkan. Tidak ada perubahan runtime/schema. Ini menutup kriteria migrasi bersih BE-201/301/401; backfill data user lama tidak diperlukan untuk produksi fresh install yang dikonfirmasi user. Detail: [artefak run](docs/backend/test-runs/MIGRATION-FRESH-ROLLBACK-001.md).
+
+## Kontrak provisioning warung — 2026-10-06
+
+Commit `ff4c871` menyelaraskan `ProvisionWarung`, `WarungStoreRequest`, OpenAPI versi `0.1.1-draft`, panduan API, dan README database. `POST /admin/warungs` tidak lagi meminta `kode`; action membuat `WRG-<ULID>` dan response tetap menyertakan kode. Feature tests `AdminWarungApiTest` dan `ApiRequestUnknownFieldsConformanceTest`: 11 passed / 1.194 assertions pada PHP 8.3 Docker test runner dan MySQL 8.0.40. Pint PASS; OpenAPI validator PASS. Compose database test dibersihkan. Regression suite penuh tidak dijalankan.
