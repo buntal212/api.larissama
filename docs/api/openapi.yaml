@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.0-draft
+  version: 0.1.1-draft
   description: >-
     Status handoff 2026-10-06: seluruh 33 operationId berstatus READY_FOR_FRONTEND
     untuk integrasi alur utama, termasuk lima operationId koreksi/pembatalan/retur.
@@ -363,7 +363,6 @@ paths:
             examples:
               warung_dan_owner:
                 value:
-                  kode: W-A
                   nama: Warung A
                   timezone: Asia/Jakarta
                   tanggal_mulai: '2026-10-01'
@@ -2534,6 +2533,7 @@ components:
           type: string
           minLength: 1
           maxLength: 30
+          description: Dibuat backend saat provisioning warung; selalu disertakan pada response. Superadmin dapat mengubahnya melalui PATCH.
         nama:
           type: string
           minLength: 1
@@ -2719,10 +2719,6 @@ components:
       type: object
       additionalProperties: false
       properties:
-        kode:
-          type: string
-          minLength: 1
-          maxLength: 30
         nama:
           type: string
           minLength: 1
@@ -2751,13 +2747,12 @@ components:
         owner:
           $ref: '#/components/schemas/OwnerCreate'
       required:
-      - kode
       - nama
       - timezone
       - tanggal_mulai
       - tanggal_berakhir
       - owner
-      description: 'D04: warung dan owner awal dibuat atomik; tanggal NULL berarti tanpa batas sesuai D03.'
+      description: 'D04: warung dan owner awal dibuat atomik; kode warung dibuat otomatis oleh backend dan dikembalikan pada response; tanggal NULL berarti tanpa batas sesuai D03.'
     WarungUpdate:
       type: object
       additionalProperties: false

@@ -58,7 +58,7 @@ Tipe berikut menjelaskan maksud desain. Migration harus memakai tipe Laravel yan
 | Kolom | Tipe/rule |
 | --- | --- |
 | `id` | BIGINT primary key |
-| `kode` | VARCHAR(30), unique |
+| `kode` | VARCHAR(30), unique global; dibuat otomatis oleh backend saat provisioning warung |
 | `nama` | VARCHAR(150) |
 | `alamat` | TEXT, nullable |
 | `telepon` | VARCHAR(30), nullable |

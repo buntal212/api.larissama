@@ -18,7 +18,7 @@ class AdminWarungApiTest extends TestCase
     {
         $superadmin = User::factory()->superadmin()->create();
         $token = $superadmin->createToken('admin-feature-test')->plainTextToken;
-        $payload = $this->warungPayload('WRG-ADMIN-001', 'owner-admin-001');
+        $payload = $this->warungPayload('owner-admin-001');
         $this->assertOperationRequestMatchesOpenApi($payload, [], '/admin/warungs', 'post');
 
         $response = $this->withToken($token)
@@ -37,7 +37,7 @@ class AdminWarungApiTest extends TestCase
             ['id', 'warung_id', 'nama', 'username', 'email', 'role', 'aktif', 'created_at', 'updated_at'],
             array_keys($body['data']['owner']),
         );
-        $this->assertSame($payload['kode'], $body['data']['warung']['kode']);
+        $this->assertMatchesRegularExpression('/^WRG-[0-9A-HJKMNP-TV-Z]{26}$/', $body['data']['warung']['kode']);
         $this->assertSame($payload['nama'], $body['data']['warung']['nama']);
         $this->assertSame($payload['timezone'], $body['data']['warung']['timezone']);
         $this->assertTrue($body['data']['warung']['aktif']);
@@ -50,7 +50,7 @@ class AdminWarungApiTest extends TestCase
 
         $this->assertDatabaseHas('warungs', [
             'id' => (int) $body['data']['warung']['id'],
-            'kode' => $payload['kode'],
+            'kode' => $body['data']['warung']['kode'],
             'timezone' => $payload['timezone'],
             'tanggal_mulai' => null,
             'tanggal_berakhir' => null,
@@ -85,7 +85,7 @@ class AdminWarungApiTest extends TestCase
     {
         $superadmin = User::factory()->superadmin()->create();
         $token = $superadmin->createToken('admin-feature-test')->plainTextToken;
-        $payload = $this->warungPayload('WRG-INVALID-TZ', 'owner-invalid-tz');
+        $payload = $this->warungPayload('owner-invalid-tz');
         $payload['timezone'] = 'Invalid/Timezone';
 
         $this->assertOperationRequestMatchesOpenApi($payload, [], '/admin/warungs', 'post');
@@ -105,7 +105,7 @@ class AdminWarungApiTest extends TestCase
     {
         $superadmin = User::factory()->superadmin()->create();
         $token = $superadmin->createToken('admin-feature-test')->plainTextToken;
-        $payload = $this->warungPayload('WRG-UPPERCASE-OWNER', 'Owner123');
+        $payload = $this->warungPayload('Owner123');
         $payload['owner']['email'] = 'Owner123@example.com';
 
         $this->assertOperationRequestDoesNotMatchOpenApi($payload, '/admin/warungs', 'post');
@@ -140,7 +140,7 @@ class AdminWarungApiTest extends TestCase
         $warung = Warung::factory()->create();
         $actor = User::factory()->create(['warung_id' => $warung->id, 'role' => $role]);
         $token = $actor->createToken('admin-feature-test')->plainTextToken;
-        $payload = $this->warungPayload('WRG-DENIED-001', 'owner-denied-001');
+        $payload = $this->warungPayload('owner-denied-001');
 
         $response = $this->withToken($token)
             ->postJson('/api/v1/admin/warungs', $payload)
@@ -150,17 +150,15 @@ class AdminWarungApiTest extends TestCase
         $this->assertD13ErrorEnvelope($response, 'FORBIDDEN');
         $this->assertSame(1, Warung::query()->count());
         $this->assertSame(1, User::query()->count());
-        $this->assertDatabaseMissing('warungs', ['kode' => $payload['kode']]);
         $this->assertDatabaseMissing('users', ['username' => $payload['owner']['username']]);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function warungPayload(string $kode, string $ownerUsername): array
+    private function warungPayload(string $ownerUsername): array
     {
         return [
-            'kode' => $kode,
             'nama' => 'Warung Uji Admin',
             'timezone' => 'Asia/Jakarta',
             'alamat' => null,

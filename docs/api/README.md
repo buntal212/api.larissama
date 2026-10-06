@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.0-draft**, 2026-10-06. [openapi.yaml](openapi.yaml) berisi 33 operasi pada 21 path, termasuk koreksi/pembatalan pembelian dan koreksi/pembatalan/retur penjualan. Baseline wire D13 yang disetujui: `/api/v1`, ID dan decimal berupa string, response `data/meta`, `page` integer minimum 1 tanpa batas maksimum, `per_page` 1–100, sort allowlist, dan error `code/message/errors/request_id`. Suite backend terakhir lulus 534 test / 81.620 assertions dalam 49,45 detik pada MySQL 8.0.40; OpenAPI 3.1 validator lulus. Handoff: **33/33 operasi `READY_FOR_FRONTEND`** untuk integrasi bertahap pada server lokal. Pengujian edge-case tambahan tetap dicatat per operationId dan dapat dilanjutkan bersama frontend. Base URL lokal `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.1-draft**, 2026-10-06. [openapi.yaml](openapi.yaml) berisi 33 operasi pada 21 path, termasuk koreksi/pembatalan pembelian dan koreksi/pembatalan/retur penjualan. Baseline wire D13 yang disetujui: `/api/v1`, ID dan decimal berupa string, response `data/meta`, `page` integer minimum 1 tanpa batas maksimum, `per_page` 1–100, sort allowlist, dan error `code/message/errors/request_id`. Suite backend terakhir lulus 534 test / 81.620 assertions dalam 49,45 detik pada MySQL 8.0.40; OpenAPI 3.1 validator lulus. Handoff: **33/33 operasi `READY_FOR_FRONTEND`** untuk integrasi bertahap pada server lokal. Pengujian edge-case tambahan tetap dicatat per operationId dan dapat dilanjutkan bersama frontend. Base URL lokal `http://localhost:8010/api/v1`.
 
 `OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa bahwa inventaris operasi memiliki `operationId` unik dan response map, serta semua `$ref` JSON Pointer lokal dapat di-resolve ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal berisi 28 operasi; D11 menambah dua operasi pembelian dan D06 menambah tiga operasi penjualan, sehingga OpenAPI kini berisi 33 operasi pada 21 path. Pemeriksaan ini bersifat struktural dan tidak menggantikan test runtime; status integrasi ditandai per operationId. Semua operasi telah dibuka untuk alur utama; edge-case tertunda ditulis pada `x-deferred-verification`.
 
@@ -26,6 +26,26 @@ Semua 33 `x-implementation-status` bernilai `DONE`. Seluruh 33 operasi berstatus
 `docs/api/openapi.yaml` lulus validasi OpenAPI 3.1 dengan `openapi-spec-validator` 0.9.0 di container Docker khusus: `docker compose -f compose.openapi.yaml run --build --rm openapi-validator`. Setup mengunci digest base image dan versi seluruh paket Python; file kontrak dibaca read-only. Bukti: [OPENAPI-SPEC-VALIDATOR-001](../backend/test-runs/OPENAPI-SPEC-VALIDATOR-001.md). Ini hanya memeriksa validitas spesifikasi; kesiapan integrasi dasar ditentukan per operationId. Pengujian edge-case yang ditunda tercatat di `x-deferred-verification`.
 
 Seluruh contoh inline request/response diuji terhadap schema OpenAPI tiap operasi melalui [OPENAPI-EXAMPLES-CONFORMANCE-001](../backend/test-runs/OPENAPI-EXAMPLES-CONFORMANCE-001.md), dan contoh parameter query `DateFrom`/`DateTo` diperiksa melalui [OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001](../backend/test-runs/OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001.md). Ini memeriksa contoh dalam dokumen; response server aktual tetap dicakup terpisah oleh feature conformance tests.
+
+## Provisioning warung
+
+`POST /api/v1/admin/warungs` hanya menerima data profil warung dan owner awal. Jangan kirim `kode`: properti itu bukan bagian dari request create, dan server akan menolak field tambahan dengan `422 VALIDATION_ERROR`. Backend membuat kode format `WRG-` diikuti ULID 26 karakter, menyimpannya sebagai unik global, lalu mengembalikannya sebagai `data.warung.kode` pada response `201`. Gunakan nilai response tersebut untuk menampilkan atau mencari warung. Superadmin masih dapat mengubah kode melalui `PATCH /api/v1/admin/warungs/{id}`.
+
+Contoh minimum body create:
+
+```json
+{
+  "nama": "Warung A",
+  "timezone": "Asia/Jakarta",
+  "tanggal_mulai": null,
+  "tanggal_berakhir": null,
+  "owner": {
+    "nama": "Pemilik A",
+    "username": "owner_a",
+    "password": "contoh-password"
+  }
+}
+```
 
 ## Bentuk request pembelian
 
@@ -272,4 +292,5 @@ Penjualan baru dan rincian koreksi hanya menerima menu aktif di kategori aktif. 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
+| 0.1.1-draft | DRAFT | `POST /admin/warungs` tidak menerima `kode`; backend menghasilkan `WRG-<ULID>` dan mengembalikannya pada response. PATCH warung tetap mengizinkan superadmin mengubah kode. |
 | 0.1.0-draft | DRAFT | Seluruh 33 operasi READY_FOR_FRONTEND untuk integrasi bertahap pada server development. Edge-case lanjutan dicatat per operasi dan dilanjutkan setelah integrasi frontend dimulai. |

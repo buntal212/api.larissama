@@ -19,7 +19,6 @@ class WarungStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'kode' => ['required', 'string', 'min:1', 'max:30', Rule::unique('warungs', 'kode')],
             'nama' => ['required', 'string', 'min:1', 'max:150'],
             'timezone' => ['required', 'string', 'timezone'],
             'alamat' => ['sometimes', 'nullable', 'string'],

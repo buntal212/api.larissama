@@ -5,12 +5,12 @@ namespace App\Actions\Admin;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProvisionWarung
 {
     /**
      * @param  array{
-     *     kode:string,
      *     nama:string,
      *     timezone:string,
      *     alamat?:?string,
@@ -28,6 +28,7 @@ class ProvisionWarung
             $ownerAttributes = $attributes['owner'];
             unset($attributes['owner']);
 
+            $attributes['kode'] = 'WRG-'.Str::ulid();
             $attributes['aktif'] ??= true;
             $warung = Warung::query()->create($attributes);
 
