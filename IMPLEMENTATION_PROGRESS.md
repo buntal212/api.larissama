@@ -555,3 +555,7 @@ User menetapkan transaksi baru ditolak bila menu atau kategorinya nonaktif. Comm
 ## Kontrak provisioning warung — 2026-10-06
 
 Commit `ff4c871` menyelaraskan `ProvisionWarung`, `WarungStoreRequest`, OpenAPI versi `0.1.1-draft`, panduan API, dan README database. `POST /admin/warungs` tidak lagi meminta `kode`; action membuat `WRG-<ULID>` dan response tetap menyertakan kode. Feature tests `AdminWarungApiTest` dan `ApiRequestUnknownFieldsConformanceTest`: 11 passed / 1.194 assertions pada PHP 8.3 Docker test runner dan MySQL 8.0.40. Pint PASS; OpenAPI validator PASS. Compose database test dibersihkan. Regression suite penuh tidak dijalankan.
+
+## Kode menu dibuat backend — 2026-10-06
+
+Commit `8fcb9bf` menyelaraskan create menu: `POST /menus` tidak menerima `kode`; backend membangkitkan `MNL-<ULID>` dan tetap memvalidasi perubahan kode PATCH secara tenant-scoped. Contract OpenAPI versi `0.1.2-draft`, panduan frontend, database README, dan T-CAT-01 diperbarui. Sembilan feature test file warung/menu terkait: 36 passed / 9.862 assertions pada PHP 8.3 Docker test runner dan MySQL 8.0.40. Pint PASS; OpenAPI validator PASS. Compose database test dibersihkan. Regression suite penuh tidak dijalankan.
