@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.1-draft
+  version: 0.1.2-draft
   description: >-
     Status handoff 2026-10-06: seluruh 33 operationId berstatus READY_FOR_FRONTEND
     untuk integrasi alur utama, termasuk lima operationId koreksi/pembatalan/retur.
@@ -1111,7 +1111,7 @@ paths:
       tags:
       - Katalog
       summary: Tambah Menu
-      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membuat menu dalam warung sendiri. Harga dikirim sebagai decimal string; kode unik per warung dan kategori satu tenant. Kategori lintas tenant, warung_id, harga_modal, gambar, serta harga invalid ditolak. CATALOG-ROLE-ACCEPTANCE-002 menguji role/tenant dan Error500; CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dan body sukses POST terpilih. Payload/status lain dan conformance penuh belum diuji.'
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membuat menu dalam warung sendiri. Harga dikirim sebagai decimal string; kode `MNL-<ULID>` dibuat backend dan dikembalikan pada response. Kode tetap dapat diubah melalui PATCH dan unik per warung. Kategori lintas tenant, kode pada payload create, warung_id, harga_modal, gambar, serta harga invalid ditolak. CATALOG-ROLE-ACCEPTANCE-002 menguji role/tenant dan Error500; CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dan body sukses POST terpilih. Payload/status lain dan conformance penuh belum diuji.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -1135,7 +1135,7 @@ paths:
                   id: '1001'
                   warung_id: '1'
                   kategori_menu_id: '101'
-                  kode: NASI
+                  kode: MNL-01J9M0G8H2Q4X7K5P3N6R1T9VW
                   nama: Nasi
                   harga: '15000.00'
                   deskripsi: null
@@ -1168,7 +1168,6 @@ paths:
               menu:
                 value:
                   kategori_menu_id: '101'
-                  kode: NASI
                   nama: Nasi
                   harga: '15000.00'
   /menus/{id}:
@@ -2761,6 +2760,7 @@ components:
           type: string
           minLength: 1
           maxLength: 30
+          description: Field opsional saat PATCH; backend memvalidasi keunikan global.
         nama:
           type: string
           minLength: 1
@@ -2951,10 +2951,6 @@ components:
       properties:
         kategori_menu_id:
           $ref: '#/components/schemas/Id'
-        kode:
-          type: string
-          minLength: 1
-          maxLength: 30
         nama:
           type: string
           minLength: 1
@@ -2968,7 +2964,6 @@ components:
           default: true
       required:
       - kategori_menu_id
-      - kode
       - nama
       - harga
     MenuUpdate:
@@ -2981,6 +2976,7 @@ components:
           type: string
           minLength: 1
           maxLength: 30
+          description: Dibuat backend saat create; selalu disertakan pada response. Saat diubah lewat PATCH, backend memvalidasi keunikan dalam warung.
         nama:
           type: string
           minLength: 1
@@ -3007,6 +3003,7 @@ components:
           type: string
           minLength: 1
           maxLength: 30
+          description: Dibuat backend saat create; selalu disertakan pada response. Nilai dapat diubah melalui PATCH.
         nama:
           type: string
           minLength: 1

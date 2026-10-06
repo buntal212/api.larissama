@@ -103,7 +103,7 @@ Relasi: satu warung memiliki banyak user. Validasi aplikasi harus memastikan use
 | `id` | BIGINT primary key |
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` mendukung FK tenant |
 | `kategori_menu_id` | BIGINT bagian FK gabungan dengan `warung_id` |
-| `kode` | VARCHAR(30), unique bersama `warung_id` |
+| `kode` | VARCHAR(30), unique bersama `warung_id`; dibuat otomatis backend saat menu dibuat |
 | `nama` | VARCHAR(150) |
 | `harga` | DECIMAL(15,2) |
 | `harga_modal` | DECIMAL(15,2), nullable |
@@ -123,7 +123,7 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `id` | BIGINT primary key |
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
 | `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
-| `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
+| `no_transaksi` | VARCHAR(50), prefix `PJ-` + ULID; dibuat backend, unique bersama `warung_id` |
 | `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint penjualan saat terisi |
 | `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
 | `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
@@ -200,7 +200,7 @@ Kedua tabel audit memakai FK tenant gabungan ke penjualan dan user pencatat. Eve
 | `id` | BIGINT primary key |
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
 | `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
-| `no_transaksi` | VARCHAR(50), unique bersama `warung_id` |
+| `no_transaksi` | VARCHAR(50), prefix `PB-` + ULID; dibuat backend, unique bersama `warung_id` |
 | `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint pembelian saat terisi |
 | `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
 | `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |

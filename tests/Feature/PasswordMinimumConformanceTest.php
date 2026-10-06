@@ -17,7 +17,6 @@ class PasswordMinimumConformanceTest extends TestCase
         $superadmin = User::factory()->superadmin()->create();
         $superadminToken = $superadmin->createToken('password-minimum-admin')->plainTextToken;
         $provisionPayload = [
-            'kode' => 'WRG-PASSWORD-MIN',
             'nama' => 'Warung Password',
             'timezone' => 'Asia/Jakarta',
             'alamat' => null,
@@ -41,7 +40,6 @@ class PasswordMinimumConformanceTest extends TestCase
         $this->assertSame(1, User::query()->count());
 
         $minimumProvisionPayload = $provisionPayload;
-        $minimumProvisionPayload['kode'] = 'WRG-PASSWORD-EIGHT';
         $minimumProvisionPayload['owner']['username'] = 'owner-password-eight';
         $minimumProvisionPayload['owner']['password'] = '12345678';
         $this->assertOperationRequestMatchesOpenApi($minimumProvisionPayload, [], '/admin/warungs', 'post');

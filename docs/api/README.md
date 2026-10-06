@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.1-draft**, 2026-10-06. [openapi.yaml](openapi.yaml) berisi 33 operasi pada 21 path, termasuk koreksi/pembatalan pembelian dan koreksi/pembatalan/retur penjualan. Baseline wire D13 yang disetujui: `/api/v1`, ID dan decimal berupa string, response `data/meta`, `page` integer minimum 1 tanpa batas maksimum, `per_page` 1–100, sort allowlist, dan error `code/message/errors/request_id`. Suite backend terakhir lulus 534 test / 81.620 assertions dalam 49,45 detik pada MySQL 8.0.40; OpenAPI 3.1 validator lulus. Handoff: **33/33 operasi `READY_FOR_FRONTEND`** untuk integrasi bertahap pada server lokal. Pengujian edge-case tambahan tetap dicatat per operationId dan dapat dilanjutkan bersama frontend. Base URL lokal `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.2-draft**, 2026-10-06. [openapi.yaml](openapi.yaml) berisi 33 operasi pada 21 path, termasuk koreksi/pembatalan pembelian dan koreksi/pembatalan/retur penjualan. Baseline wire D13 yang disetujui: `/api/v1`, ID dan decimal berupa string, response `data/meta`, `page` integer minimum 1 tanpa batas maksimum, `per_page` 1–100, sort allowlist, dan error `code/message/errors/request_id`. Suite backend terakhir lulus 534 test / 81.620 assertions dalam 49,45 detik pada MySQL 8.0.40; OpenAPI 3.1 validator lulus. Handoff: **33/33 operasi `READY_FOR_FRONTEND`** untuk integrasi bertahap pada server lokal. Pengujian edge-case tambahan tetap dicatat per operationId dan dapat dilanjutkan bersama frontend. Base URL lokal `http://localhost:8010/api/v1`.
 
 `OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa bahwa inventaris operasi memiliki `operationId` unik dan response map, serta semua `$ref` JSON Pointer lokal dapat di-resolve ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal berisi 28 operasi; D11 menambah dua operasi pembelian dan D06 menambah tiga operasi penjualan, sehingga OpenAPI kini berisi 33 operasi pada 21 path. Pemeriksaan ini bersifat struktural dan tidak menggantikan test runtime; status integrasi ditandai per operationId. Semua operasi telah dibuka untuk alur utama; edge-case tertunda ditulis pada `x-deferred-verification`.
 
@@ -27,9 +27,9 @@ Semua 33 `x-implementation-status` bernilai `DONE`. Seluruh 33 operasi berstatus
 
 Seluruh contoh inline request/response diuji terhadap schema OpenAPI tiap operasi melalui [OPENAPI-EXAMPLES-CONFORMANCE-001](../backend/test-runs/OPENAPI-EXAMPLES-CONFORMANCE-001.md), dan contoh parameter query `DateFrom`/`DateTo` diperiksa melalui [OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001](../backend/test-runs/OPENAPI-PARAMETER-EXAMPLES-CONFORMANCE-001.md). Ini memeriksa contoh dalam dokumen; response server aktual tetap dicakup terpisah oleh feature conformance tests.
 
-## Provisioning warung
+## Kode Warung dan Menu
 
-`POST /api/v1/admin/warungs` hanya menerima data profil warung dan owner awal. Jangan kirim `kode`: properti itu bukan bagian dari request create, dan server akan menolak field tambahan dengan `422 VALIDATION_ERROR`. Backend membuat kode format `WRG-` diikuti ULID 26 karakter, menyimpannya sebagai unik global, lalu mengembalikannya sebagai `data.warung.kode` pada response `201`. Gunakan nilai response tersebut untuk menampilkan atau mencari warung. Superadmin masih dapat mengubah kode melalui `PATCH /api/v1/admin/warungs/{id}`.
+`POST /api/v1/admin/warungs` hanya menerima data profil warung dan owner awal. Jangan kirim `kode`: properti itu bukan bagian dari request create, dan server akan menolak field tambahan dengan `422 VALIDATION_ERROR`. Backend membuat kode format `WRG-` diikuti ULID 26 karakter, menyimpannya sebagai unik global, lalu mengembalikannya sebagai `data.warung.kode` pada response `201`. Gunakan nilai response tersebut untuk menampilkan atau mencari warung. Superadmin masih dapat mengubah kode melalui `PATCH /api/v1/admin/warungs/{id}`; pemeriksaan unik global tetap dilakukan backend.
 
 Contoh minimum body create:
 
@@ -44,6 +44,20 @@ Contoh minimum body create:
     "username": "owner_a",
     "password": "contoh-password"
   }
+}
+```
+
+Untuk `POST /api/v1/menus`, perlakuannya sama: jangan kirim `kode`; backend mengisi kode berformat `MNL-` + ULID 26 karakter. Response menu menaruhnya di `data.kode`. Kolom tersebut tetap dibatasi unique bersama `warung_id` di database, dan owner/manager masih dapat mengubah kode melalui `PATCH /api/v1/menus/{id}`; pemeriksaan unik per warung tetap dilakukan backend. Kode warung unik global; kode menu unik per warung.
+
+Pada tabel aplikasi, kolom literal `kode` hanya ada di `warungs` dan `menus`. `penjualans.no_transaksi` (`PJ-<ULID>`) dan `pembelians.no_transaksi` (`PB-<ULID>`) juga sudah dibuat backend, bukan dikirim client.
+
+Contoh minimum body create menu:
+
+```json
+{
+  "kategori_menu_id": "101",
+  "nama": "Nasi",
+  "harga": "15000.00"
 }
 ```
 
@@ -202,7 +216,7 @@ POST /api/v1/kategori-menus
 {"nama":"Makanan","urutan":0}
 
 POST /api/v1/menus
-{"kategori_menu_id":"101","kode":"NASI","nama":"Nasi","harga":"15000.00"}
+{"kategori_menu_id":"101","nama":"Nasi","harga":"15000.00"}
 ```
 
 Menu dapat dinonaktifkan dengan `PATCH /api/v1/menus/{id}` memakai body `{"aktif":false}`; tidak ada endpoint hapus. Harga menu harus positif. Aturan transaksi final mengikuti D05/D06; endpoint katalog inti berstatus READY_FOR_FRONTEND.
@@ -292,5 +306,6 @@ Penjualan baru dan rincian koreksi hanya menerima menu aktif di kategori aktif. 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
+| 0.1.2-draft | DRAFT | `POST /menus` tidak menerima `kode`; backend menghasilkan `MNL-<ULID>` dan mengembalikannya pada response. |
 | 0.1.1-draft | DRAFT | `POST /admin/warungs` tidak menerima `kode`; backend menghasilkan `WRG-<ULID>` dan mengembalikannya pada response. PATCH warung tetap mengizinkan superadmin mengubah kode. |
 | 0.1.0-draft | DRAFT | Seluruh 33 operasi READY_FOR_FRONTEND untuk integrasi bertahap pada server development. Edge-case lanjutan dicatat per operasi dan dilanjutkan setelah integrasi frontend dimulai. |

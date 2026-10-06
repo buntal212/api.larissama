@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -37,7 +38,6 @@ class MenuApiTest extends TestCase
         $token = $manager->createToken('menu-feature-test')->plainTextToken;
         $createPayload = [
             'kategori_menu_id' => (string) $category->id,
-            'kode' => 'M-NASI',
             'nama' => 'Nasi Goreng',
             'harga' => '15000.00',
             'deskripsi' => 'Porsi reguler',
@@ -56,6 +56,7 @@ class MenuApiTest extends TestCase
             array_keys($menu),
         );
         $this->assertIsString($menu['id']);
+        $this->assertMatchesRegularExpression('/^MNL-[0-9A-HJKMNP-TV-Z]{26}$/', $menu['kode']);
         $this->assertSame((string) $warung->id, $menu['warung_id']);
         $this->assertSame((string) $category->id, $menu['kategori_menu_id']);
         $this->assertSame('15000.00', $menu['harga']);
@@ -66,7 +67,7 @@ class MenuApiTest extends TestCase
             'id' => (int) $menu['id'],
             'warung_id' => $warung->id,
             'kategori_menu_id' => $category->id,
-            'kode' => 'M-NASI',
+            'kode' => $menu['kode'],
             'harga' => '15000.00',
             'aktif' => true,
         ]);
@@ -145,34 +146,72 @@ class MenuApiTest extends TestCase
         $this->assertSame([(string) $menu['id']], array_column($inactive->json('data'), 'id'));
     }
 
-    public function test_menu_code_is_unique_per_warung_not_global(): void
+    public function test_backend_generates_distinct_menu_codes_for_the_same_warung(): void
+    {
+        $warung = Warung::factory()->create();
+        $category = KategoriMenu::factory()->create(['warung_id' => $warung->id]);
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $token = $manager->createToken('menu-feature-test')->plainTextToken;
+        $payload = [
+            'kategori_menu_id' => (string) $category->id,
+            'nama' => 'Menu Otomatis',
+            'harga' => '10000.00',
+        ];
+        $this->assertOperationRequestMatchesOpenApi($payload, [], '/menus', 'post');
+
+        $first = $this->withToken($token)->postJson('/api/v1/menus', $payload)->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($first, '/menus', 'post');
+        $second = $this->withToken($token)
+            ->postJson('/api/v1/menus', [...$payload, 'nama' => 'Menu Otomatis Kedua'])
+            ->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($second, '/menus', 'post');
+        $firstCode = $first->json('data.kode');
+        $secondCode = $second->json('data.kode');
+
+        $this->assertMatchesRegularExpression('/^MNL-[0-9A-HJKMNP-TV-Z]{26}$/', $firstCode);
+        $this->assertMatchesRegularExpression('/^MNL-[0-9A-HJKMNP-TV-Z]{26}$/', $secondCode);
+        $this->assertNotSame($firstCode, $secondCode);
+        $this->assertSame(2, Menu::query()->where('warung_id', $warung->id)->count());
+    }
+
+    public function test_menu_code_changes_are_validated_for_uniqueness_within_the_warung(): void
     {
         $warungA = Warung::factory()->create();
         $warungB = Warung::factory()->create();
         $categoryA = KategoriMenu::factory()->create(['warung_id' => $warungA->id]);
         $categoryB = KategoriMenu::factory()->create(['warung_id' => $warungB->id]);
-        $managerA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'manager']);
-        Menu::factory()->create([
-            'warung_id' => $warungB->id,
-            'kategori_menu_id' => $categoryB->id,
-            'kode' => 'M-SHARED',
-        ]);
-        $token = $managerA->createToken('menu-feature-test')->plainTextToken;
-
-        $payload = [
+        $menuA = Menu::factory()->create([
+            'warung_id' => $warungA->id,
             'kategori_menu_id' => $categoryA->id,
             'kode' => 'M-SHARED',
-            'nama' => 'Menu A',
-            'harga' => '10000.00',
-        ];
-        $this->withToken($token)->postJson('/api/v1/menus', $payload)->assertCreated();
+        ]);
+        $menuAToUpdate = Menu::factory()->create([
+            'warung_id' => $warungA->id,
+            'kategori_menu_id' => $categoryA->id,
+            'kode' => 'M-OTHER',
+        ]);
+        $menuB = Menu::factory()->create([
+            'warung_id' => $warungB->id,
+            'kategori_menu_id' => $categoryB->id,
+            'kode' => 'M-B-OLD',
+        ]);
+        $managerA = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'manager']);
+        $managerB = User::factory()->create(['warung_id' => $warungB->id, 'role' => 'manager']);
 
-        $duplicate = $this->withToken($token)
-            ->postJson('/api/v1/menus', [...$payload, 'nama' => 'Duplikat A'])
+        $duplicate = $this->withToken($managerA->createToken('menu-code-unique-test')->plainTextToken)
+            ->patchJson('/api/v1/menus/'.$menuAToUpdate->id, ['kode' => 'M-SHARED'])
             ->assertUnprocessable();
+        $this->assertOperationResponseMatchesOpenApi($duplicate, '/menus/{id}', 'patch');
         $this->assertD13ErrorEnvelope($duplicate, 'VALIDATION_ERROR', 'kode');
-        $this->assertSame(1, Menu::query()->where('warung_id', $warungA->id)->where('kode', 'M-SHARED')->count());
-        $this->assertSame(1, Menu::query()->where('warung_id', $warungB->id)->where('kode', 'M-SHARED')->count());
+        $this->assertSame('M-OTHER', $menuAToUpdate->fresh()->kode);
+
+        Auth::forgetGuards();
+        $validForOtherWarung = $this->withToken($managerB->createToken('menu-code-unique-test')->plainTextToken)
+            ->patchJson('/api/v1/menus/'.$menuB->id, ['kode' => 'M-SHARED'])
+            ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($validForOtherWarung, '/menus/{id}', 'patch');
+        $this->assertSame('M-SHARED', $validForOtherWarung->json('data.kode'));
+        $this->assertSame('M-SHARED', $menuA->fresh()->kode);
     }
 
     public function test_menu_rejects_category_from_another_warung_on_create_and_update(): void
@@ -188,14 +227,13 @@ class MenuApiTest extends TestCase
         $create = $this->withToken($token)
             ->postJson('/api/v1/menus', [
                 'kategori_menu_id' => $categoryB->id,
-                'kode' => 'M-CROSS',
                 'nama' => 'Kategori Silang',
                 'harga' => '10000.00',
             ])
             ->assertUnprocessable();
         $this->assertOperationResponseMatchesOpenApi($create, '/menus', 'post');
         $this->assertD13ErrorEnvelope($create, 'VALIDATION_ERROR', 'kategori_menu_id');
-        $this->assertDatabaseMissing('menus', ['kode' => 'M-CROSS']);
+        $this->assertSame(1, Menu::query()->count());
 
         $update = $this->withToken($token)
             ->patchJson('/api/v1/menus/'.$menu->id, ['kategori_menu_id' => $categoryB->id])
@@ -297,10 +335,16 @@ class MenuApiTest extends TestCase
         $token = $manager->createToken('menu-feature-test')->plainTextToken;
         $payload = [
             'kategori_menu_id' => $category->id,
-            'kode' => 'M-INJECT',
             'nama' => 'Injeksi',
             'harga' => '10000.00',
         ];
+
+        $clientCode = $this->withToken($token)
+            ->postJson('/api/v1/menus', [...$payload, 'kode' => 'M-SUPPLIED'])
+            ->assertUnprocessable();
+        $this->assertOperationRequestDoesNotMatchOpenApi([...$payload, 'kode' => 'M-SUPPLIED'], '/menus', 'post');
+        $this->assertOperationResponseMatchesOpenApi($clientCode, '/menus', 'post');
+        $this->assertD13ErrorEnvelope($clientCode, 'VALIDATION_ERROR', 'kode');
 
         foreach ([
             ['warung_id' => $warungB->id],
@@ -315,7 +359,7 @@ class MenuApiTest extends TestCase
         }
 
         $badPrice = $this->withToken($token)
-            ->postJson('/api/v1/menus', [...$payload, 'kode' => 'M-PRICE', 'harga' => '10000'])
+            ->postJson('/api/v1/menus', [...$payload, 'harga' => '10000'])
             ->assertUnprocessable();
         $this->assertOperationResponseMatchesOpenApi($badPrice, '/menus', 'post');
         $this->assertD13ErrorEnvelope($badPrice, 'VALIDATION_ERROR', 'harga');
@@ -328,7 +372,7 @@ class MenuApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($badSort, '/menus', 'get');
         $this->assertD13ErrorEnvelope($badSort, 'VALIDATION_ERROR', 'sort');
 
-        $this->assertSame(0, Menu::query()->where('kode', 'M-INJECT')->count());
+        $this->assertSame(0, Menu::query()->count());
         $this->assertNotSame($category->warung_id, $foreignCategory->warung_id);
     }
 
@@ -353,12 +397,12 @@ class MenuApiTest extends TestCase
             'warung_id' => $warung->id,
             'kategori_menu_id' => $category->id,
         ]);
+        $initialMenuCount = Menu::query()->count();
         $token = $actor->createToken('menu-feature-test')->plainTextToken;
 
         $create = $this->withToken($token)
             ->postJson('/api/v1/menus', [
                 'kategori_menu_id' => $category?->id,
-                'kode' => 'M-DENIED-'.$role,
                 'nama' => 'Tidak Diizinkan',
                 'harga' => '10000.00',
             ])
@@ -375,7 +419,7 @@ class MenuApiTest extends TestCase
             $this->assertDatabaseHas('menus', ['id' => $menu->id, 'nama' => $menu->nama]);
         }
 
-        $this->assertDatabaseMissing('menus', ['kode' => 'M-DENIED-'.$role]);
+        $this->assertSame($initialMenuCount, Menu::query()->count());
     }
 
     public function test_menu_price_must_be_positive_on_create_and_update(): void
@@ -391,7 +435,6 @@ class MenuApiTest extends TestCase
         $token = $manager->createToken('menu-price-positive-test')->plainTextToken;
         $createPayload = [
             'kategori_menu_id' => (string) $category->id,
-            'kode' => 'M-ZERO-PRICE',
             'nama' => 'Menu Gratis',
             'harga' => '0.00',
         ];
@@ -400,7 +443,7 @@ class MenuApiTest extends TestCase
         $create = $this->withToken($token)->postJson('/api/v1/menus', $createPayload)->assertUnprocessable();
         $this->assertOperationResponseMatchesOpenApi($create, '/menus', 'post');
         $this->assertD13ErrorEnvelope($create, 'VALIDATION_ERROR', 'harga');
-        $this->assertDatabaseMissing('menus', ['kode' => 'M-ZERO-PRICE']);
+        $this->assertSame(1, Menu::query()->count());
 
         $updatePayload = ['harga' => '0.00'];
         $this->assertOperationRequestDoesNotMatchOpenApi($updatePayload, '/menus/{id}', 'patch');

@@ -86,7 +86,6 @@ class OwnerTenantAccessConformanceTest extends TestCase
 
         $menuPayload = [
             'kategori_menu_id' => (string) $categoryId,
-            'kode' => 'MENU-OWNER',
             'nama' => 'Es Teh',
             'harga' => '5000.00',
         ];

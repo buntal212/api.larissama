@@ -22,7 +22,6 @@ class ProvisionWarungAtomicityTest extends TestCase
     {
         $superadmin = User::factory()->superadmin()->create();
         $token = $superadmin->createToken('admin-atomicity-test')->plainTextToken;
-        $warungCode = 'WRG-ROLLBACK-'.Str::upper(Str::random(8));
         $ownerUsername = 'fail-owner-'.Str::lower(Str::random(16));
         $triggerName = 'test_fail_admin_owner_'.Str::lower(Str::random(8));
         $triggerInstalled = false;
@@ -40,7 +39,6 @@ class ProvisionWarungAtomicityTest extends TestCase
 
             $response = $this->withToken($token)
                 ->postJson('/api/v1/admin/warungs', [
-                    'kode' => $warungCode,
                     'nama' => 'Warung Rollback Uji',
                     'timezone' => 'Asia/Jakarta',
                     'alamat' => null,
@@ -59,7 +57,6 @@ class ProvisionWarungAtomicityTest extends TestCase
 
             $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'post');
             $this->assertD13ErrorEnvelope($response, 'INTERNAL_ERROR');
-            $this->assertDatabaseMissing('warungs', ['kode' => $warungCode]);
             $this->assertDatabaseMissing('users', ['username' => $ownerUsername]);
             $this->assertSame(1, DB::table('users')->count());
             $this->assertSame(0, DB::table('warungs')->count());
@@ -69,7 +66,7 @@ class ProvisionWarungAtomicityTest extends TestCase
             }
 
             DB::table('users')->where('username', $ownerUsername)->delete();
-            DB::table('warungs')->where('kode', $warungCode)->delete();
+            DB::table('warungs')->where('nama', 'Warung Rollback Uji')->delete();
             DB::table('personal_access_tokens')
                 ->where('tokenable_type', User::class)
                 ->where('tokenable_id', $superadmin->getKey())

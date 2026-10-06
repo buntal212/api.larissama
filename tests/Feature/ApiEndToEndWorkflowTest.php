@@ -25,7 +25,6 @@ class ApiEndToEndWorkflowTest extends TestCase
 
         $ownerPassword = 'Owner-e2e-secret';
         $provisionPayload = [
-            'kode' => 'WRG-E2E-001',
             'nama' => 'Warung End to End',
             'timezone' => 'Asia/Jakarta',
             'alamat' => null,
@@ -96,7 +95,6 @@ class ApiEndToEndWorkflowTest extends TestCase
 
         $menuPayload = [
             'kategori_menu_id' => $categoryResponse->json('data.id'),
-            'kode' => 'M-NASI-E2E',
             'nama' => 'Nasi Goreng',
             'harga' => '15000.00',
             'deskripsi' => null,

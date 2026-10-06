@@ -65,7 +65,6 @@ class CatalogServerErrorConformanceTest extends TestCase
                     'path' => '/menus',
                     'payload' => [
                         'kategori_menu_id' => (string) $category->id,
-                        'kode' => 'MENU-BARU',
                         'nama' => 'Menu baru',
                         'harga' => '12000.00',
                     ],

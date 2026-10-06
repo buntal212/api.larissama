@@ -27,10 +27,6 @@ class MenuStoreRequest extends FormRequest
                 'min:1',
                 Rule::exists('kategori_menus', 'id')->where('warung_id', $actor instanceof User ? $actor->warung_id : null),
             ],
-            'kode' => [
-                'required', 'string', 'min:1', 'max:30',
-                Rule::unique('menus', 'kode')->where('warung_id', $actor instanceof User ? $actor->warung_id : null),
-            ],
             'nama' => ['required', 'string', 'min:1', 'max:150'],
             'harga' => ['required', 'string', 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,12}\.[0-9]{2})$/'],
             'deskripsi' => ['sometimes', 'nullable', 'string'],

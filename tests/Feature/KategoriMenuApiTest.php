@@ -333,7 +333,6 @@ class KategoriMenuApiTest extends TestCase
 
         $menuCreate = [
             'kategori_menu_id' => (string) $category->id,
-            'kode' => 'M-DITOLAK',
             'nama' => 'Menu Ditolak',
             'harga' => '12000.00',
         ];

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
@@ -70,6 +71,7 @@ class MenuController extends Controller
         abort_unless($actor instanceof User, 401);
 
         $attributes = $request->validated();
+        $attributes['kode'] = 'MNL-'.Str::ulid();
         $attributes['aktif'] ??= true;
         $menu = $actor->warung()->firstOrFail()->menus()->create($attributes);
 
