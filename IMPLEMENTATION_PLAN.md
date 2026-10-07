@@ -13,7 +13,7 @@ Status: rencana pelaksanaan yang diperbarui 2026-10-07. D17 menambah pendaftaran
 | [openapi.yaml](docs/api/openapi.yaml) | Bentuk wire API kandidat, parameter, schema, contoh, status, dan keputusan pemblokir per operasi. |
 | [panduan API](docs/api/README.md) | Petunjuk AI frontend, alur integrasi, null/decimal/errors, dan changelog kontrak. |
 | [TEST_PLAN.md](docs/backend/TEST_PLAN.md) | Skenario, fixture sintetis, expected result, gate, dan format pencatatan test. |
-| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 31 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
+| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 32 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
 | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Proses kerja per slice dan aturan commit berdasarkan kelompok perubahan terkait. |
 
 Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah catatan progres; keputusan berada di register; payload berada di OpenAPI. Jika salah satu berubah, perbarui artefak terkait secara eksplisit dan commit file yang saling terkait sebagai satu kelompok.
@@ -33,7 +33,7 @@ Aplikasi tidak memerlukan workflow dapur, resep, stok, item penjualan bebas, ata
 | Milestone | Task | Hasil yang harus tersedia | Kriteria gate |
 | --- | --- | --- | --- |
 | M0 — Kesiapan dan kontrak | BE-001–004 | Runtime dan DB test; inventaris migration; keputusan awal; konvensi/API draft ditinjau; validator dan harness tersedia. | G0: runtime/harness aman, keputusan prasyarat tersedia, lint kontrak lulus. |
-| M1 — Akses dan administrasi | BE-101–105 | Warung/users, login/me/logout, tenant/policy/status aktif, admin warung+owner, pengelolaan user tenant. 12 operasi akses/admin. | G1: auth, role, tenant, provisioning, dan kontrak lulus; operasi terkait siap frontend. |
+| M1 — Akses dan administrasi | BE-101–107 | Warung/users, login/me/logout, tenant/policy/status aktif, admin warung+owner, pengelolaan user tenant, dan baca lintas tenant khusus superadmin dengan selector `warung_id` eksplisit. | G1: auth, role, tenant, provisioning, scope baca superadmin, dan kontrak lulus; operasi terkait siap frontend. |
 | M2 — Kategori dan menu | BE-201–204 | Migration/model/API katalog, filter/pagination, harga decimal, kategori satu warung. 8 operasi katalog. | G2: katalog dan arsip sesuai aturan; data tenant lain tidak terbaca/terubah; strategi D16 dipilih; kontrak lulus. |
 | M3 — Penjualan dan pendapatan | BE-301–307 | Pesanan pending editable, list/detail lintas pencatat dan filter status pembayaran, pembayaran terpisah, koreksi/pembatalan beralasan, retur, retry, audit, dan pendapatan menurut waktu pembayaran. | G3: nominal/snapshot/rollback/retry/concurrency/window edit/retur/laporan lulus pada engine target; kontrak siap. |
 | M4 — Pembelian dan total periode | BE-401–406 | Action atomic ringkas/rinci, nomor/retry, riwayat/detail, koreksi dengan alasan dan snapshot, serta laporan pembelian. 5 operasi transaksi dan 1 laporan. | G4: “Belanja di pasar + nominal” diterima, total detail benar, koreksi/pembatalan menjaga audit, tenant/rollback/retry/laporan lulus. |

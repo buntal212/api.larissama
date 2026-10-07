@@ -249,7 +249,7 @@ class KategoriMenuApiTest extends TestCase
         $this->assertDatabaseMissing('kategori_menus', ['nama' => 'Tidak Diizinkan']);
     }
 
-    public function test_superadmin_cannot_read_tenant_category_or_menu_catalog(): void
+    public function test_superadmin_reads_only_the_selected_tenant_category_and_menu_catalog(): void
     {
         $warung = Warung::factory()->create();
         $category = KategoriMenu::factory()->create([
@@ -277,20 +277,33 @@ class KategoriMenuApiTest extends TestCase
         ];
 
         foreach ($catalogs as $catalog) {
-            $query = ['page' => '1', 'per_page' => '20', 'sort' => $catalog['sort']];
+            $query = [
+                'page' => '1',
+                'per_page' => '20',
+                'sort' => $catalog['sort'],
+                'warung_id' => (string) $warung->id,
+            ];
             $this->assertOperationQueryMatchesOpenApi($query, $catalog['path'], 'get');
             $list = $this->withToken($token)
                 ->getJson('/api/v1'.$catalog['path'].'?'.http_build_query($query))
-                ->assertForbidden();
+                ->assertOk();
+            $this->assertContains(
+                str_contains($catalog['path'], 'kategori') ? (string) $category->id : (string) $menu->id,
+                array_column($list->json('data'), 'id'),
+            );
             $this->assertOperationResponseMatchesOpenApi($list, $catalog['path'], 'get');
-            $this->assertD13ErrorEnvelope($list, 'FORBIDDEN');
 
             $detailPath = $catalog['path'].'/{id}';
             $detail = $this->withToken($token)
-                ->getJson('/api/v1'.$catalog['detail_path'])
-                ->assertForbidden();
+                ->getJson('/api/v1'.$catalog['detail_path'].'?warung_id='.$warung->id)
+                ->assertOk()
+                ->assertJsonPath('data.warung_id', (string) $warung->id);
             $this->assertOperationResponseMatchesOpenApi($detail, $detailPath, 'get');
-            $this->assertD13ErrorEnvelope($detail, 'FORBIDDEN');
+
+            $unselected = $this->withToken($token)
+                ->getJson('/api/v1'.$catalog['detail_path'])
+                ->assertUnprocessable();
+            $this->assertD13ErrorEnvelope($unselected, 'VALIDATION_ERROR', 'warung_id');
         }
 
         $this->assertDatabaseHas('kategori_menus', ['id' => $category->id, 'nama' => 'Katalog Privat']);

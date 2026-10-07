@@ -6,26 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\KategoriMenuIndexRequest;
 use App\Http\Requests\Api\V1\KategoriMenuStoreRequest;
 use App\Http\Requests\Api\V1\KategoriMenuUpdateRequest;
+use App\Http\Requests\Api\V1\TenantReadRequest;
 use App\Http\Resources\Api\V1\KategoriMenuResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\KategoriMenu;
 use App\Models\User;
 use App\Support\ApiPagination;
+use App\Support\TenantReadScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class KategoriMenuController extends Controller
 {
-    public function index(KategoriMenuIndexRequest $request): JsonResponse
+    public function index(KategoriMenuIndexRequest $request, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', KategoriMenu::class);
 
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $filters = $request->validated();
-        $query = $this->tenantCategories($actor);
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+        $query = $this->tenantCategories($warungId);
 
         if ($actor->role === 'kasir') {
             $query->where('aktif', true);
@@ -70,20 +72,21 @@ class KategoriMenuController extends Controller
         return response()->json(['data' => (new KategoriMenuResource($category))->resolve($request)], 201);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function show(TenantReadRequest $request, string $id, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', KategoriMenu::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $query = $this->tenantCategories($actor);
+        $warungId = $tenantReadScope->resolve($actor, $request->validated());
+        $query = $this->tenantCategories($warungId);
 
         if ($actor->role === 'kasir') {
             $query->where('aktif', true);
         }
 
         $category = $query->findOrFail($id);
-        Gate::authorize('view', $category);
+        Gate::authorize('view', [$category, $warungId]);
 
         return response()->json(['data' => (new KategoriMenuResource($category))->resolve($request)]);
     }
@@ -98,9 +101,9 @@ class KategoriMenuController extends Controller
         return response()->json(['data' => (new KategoriMenuResource($category))->resolve($request)]);
     }
 
-    private function tenantCategories(User $actor): Builder
+    private function tenantCategories(string $warungId): Builder
     {
-        return KategoriMenu::query()->where('warung_id', $actor->warung_id);
+        return KategoriMenu::query()->where('warung_id', $warungId);
     }
 
     /** @param array<string, mixed> $filters */

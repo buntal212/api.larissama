@@ -6,26 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\MenuIndexRequest;
 use App\Http\Requests\Api\V1\MenuStoreRequest;
 use App\Http\Requests\Api\V1\MenuUpdateRequest;
+use App\Http\Requests\Api\V1\TenantReadRequest;
 use App\Http\Resources\Api\V1\MenuResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\Menu;
 use App\Models\User;
 use App\Support\ApiPagination;
+use App\Support\TenantReadScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 class MenuController extends Controller
 {
-    public function index(MenuIndexRequest $request): JsonResponse
+    public function index(MenuIndexRequest $request, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', Menu::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $filters = $request->validated();
-        $query = $this->tenantMenus($actor);
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+        $query = $this->tenantMenus($warungId);
 
         if ($actor->role === 'kasir') {
             $query->where('menus.aktif', true)
@@ -78,12 +80,13 @@ class MenuController extends Controller
         return response()->json(['data' => (new MenuResource($menu))->resolve($request)], 201);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function show(TenantReadRequest $request, string $id, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', Menu::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
-        $query = $this->tenantMenus($actor);
+        $warungId = $tenantReadScope->resolve($actor, $request->validated());
+        $query = $this->tenantMenus($warungId);
 
         if ($actor->role === 'kasir') {
             $query->where('menus.aktif', true)
@@ -91,7 +94,7 @@ class MenuController extends Controller
         }
 
         $menu = $query->findOrFail($id);
-        Gate::authorize('view', $menu);
+        Gate::authorize('view', [$menu, $warungId]);
 
         return response()->json(['data' => (new MenuResource($menu))->resolve($request)]);
     }
@@ -106,11 +109,11 @@ class MenuController extends Controller
         return response()->json(['data' => (new MenuResource($menu))->resolve($request)]);
     }
 
-    private function tenantMenus(User $actor): Builder
+    private function tenantMenus(string $warungId): Builder
     {
         return Menu::query()
-            ->where('warung_id', $actor->warung_id)
-            ->whereHas('kategoriMenu', fn (Builder $category): Builder => $category->where('warung_id', $actor->warung_id));
+            ->where('warung_id', $warungId)
+            ->whereHas('kategoriMenu', fn (Builder $category): Builder => $category->where('warung_id', $warungId));
     }
 
     /** @param array<string, mixed> $filters */

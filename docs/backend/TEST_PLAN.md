@@ -1,6 +1,12 @@
 # Rancangan Test dan Kriteria Lulus
 
-Status saat ini: slice D18 lulus pada MySQL 8.0.40 Compose disposable dengan 78 test / 30.684 assertions pada sembilan feature test files. Cakupan mencakup pembuatan pesanan pending, edit/batal beralasan, pembayaran penuh dan replay idempotent, daftar/filter lintas pencatat, schema migration, pendapatan berdasarkan waktu pembayaran, serta batas koreksi 72 jam sejak dibayar. Laravel Pint (201 file) dan validator OpenAPI 3.1 lulus. Full regression suite G3/G4 dan production handoff tetap mengikuti tracker.
+## BE-107: baca lintas tenant superadmin dengan selector eksplisit
+
+Untuk setiap GET resource tenant (users, kategori, menu, penjualan, pembelian, dan kedua laporan), superadmin wajib mengirim `warung_id` query. Buktikan list dan laporan hanya berisi/agregasi data warung terpilih, sedangkan detail tenant lain di luar pilihan mengembalikan 404. Selector hilang, format salah, atau ID warung tidak ada harus menghasilkan 422 sesuai Error422. Pengguna tenant yang mengirim selector juga harus ditolak 422; request tanpa selector tetap memakai warung dari bearer token. Pastikan superadmin tidak memperoleh hak tulis lewat selector: create/update/pembayaran/koreksi tetap ditolak dan tidak mengubah data.
+
+Lulus ketika cakupan role di atas tercermin di OpenAPI, semua query dibatasi dengan ID tervalidasi (termasuk timezone laporan), detail tidak membocorkan keberadaan record tenant lain, dan test membuktikan read-only di seluruh resource. Tidak perlu mengulang full regression G3/G4 untuk slice ini; gunakan focused tenant-scope/role/API contract tests.
+
+Status terkini: BE-107 baca lintas warung superadmin lulus focused di MySQL 8.0.40 Compose disposable dengan 101 test / 15.315 assertions; Pint dan validator OpenAPI 3.1 lulus. Hasilnya dicatat pada artefak conformance di bawah. Slice D18 sebelumnya lulus 78 test / 30.684 assertions. Full regression suite G3/G4 dan production handoff tetap mengikuti tracker.
 
 Kebutuhan berasal dari K01–K09 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung keputusan terbuka tetap kandidat; perbarui hanya skenario yang terdampak sebelum dijadikan gate.
 

@@ -112,7 +112,7 @@ class LaporanApiTest extends TestCase
         }
     }
 
-    public function test_cashier_and_superadmin_cannot_read_either_report(): void
+    public function test_cashier_is_forbidden_and_superadmin_must_select_a_warung_for_reports(): void
     {
         $warung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
         $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
@@ -122,24 +122,31 @@ class LaporanApiTest extends TestCase
             Pembelian::query()->count(),
         ];
 
-        $actors = [
-            ['user' => $cashier, 'name' => 'cashier'],
-            ['user' => $superadmin, 'name' => 'superadmin'],
-        ];
         $reports = ['penjualan', 'pembelian'];
+        $cashierToken = $cashier->createToken('report-rbac-cashier')->plainTextToken;
+        $superadminToken = $superadmin->createToken('report-rbac-superadmin')->plainTextToken;
 
-        foreach ($actors as $actor) {
-            $token = $actor['user']->createToken("report-rbac-{$actor['name']}")->plainTextToken;
+        foreach ($reports as $report) {
+            $path = "/laporan/{$report}";
+            $this->app['auth']->forgetGuards();
+            $cashierResponse = $this->withToken($cashierToken)
+                ->getJson("/api/v1{$path}?date_from=2026-10-04&date_to=2026-10-04")
+                ->assertForbidden()
+                ->assertJsonPath('code', 'FORBIDDEN');
+            $this->assertOperationResponseMatchesOpenApi($cashierResponse, $path, 'get');
 
-            foreach ($reports as $report) {
-                $path = "/laporan/{$report}";
-                $response = $this->withToken($token)
-                    ->getJson("/api/v1{$path}?date_from=2026-10-04&date_to=2026-10-04")
-                    ->assertForbidden()
-                    ->assertJsonPath('code', 'FORBIDDEN');
+            $this->app['auth']->forgetGuards();
+            $missingScope = $this->withToken($superadminToken)
+                ->getJson("/api/v1{$path}?date_from=2026-10-04&date_to=2026-10-04")
+                ->assertUnprocessable();
+            $this->assertD13ErrorEnvelope($missingScope, 'warung_id');
 
-                $this->assertOperationResponseMatchesOpenApi($response, $path, 'get');
-            }
+            $this->app['auth']->forgetGuards();
+            $selectedScope = $this->withToken($superadminToken)
+                ->getJson("/api/v1{$path}?warung_id={$warung->id}&date_from=2026-10-04&date_to=2026-10-04")
+                ->assertOk()
+                ->assertJsonPath('data.period.timezone', 'Asia/Jakarta');
+            $this->assertOperationResponseMatchesOpenApi($selectedScope, $path, 'get');
         }
 
         $this->assertSame($transactionCounts, [

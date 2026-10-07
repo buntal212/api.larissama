@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTenantReadScope;
 use App\Models\Menu;
 use App\Models\User;
 use App\Rules\PositivePageNumber;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
 #[FailOnUnknownFields]
 class MenuIndexRequest extends FormRequest
 {
+    use ValidatesTenantReadScope;
+
     public function authorize(): bool
     {
         return $this->user()?->can('viewAny', Menu::class) ?? false;
@@ -20,13 +23,14 @@ class MenuIndexRequest extends FormRequest
     public function rules(): array
     {
         $actor = $this->user();
-        $categoryRule = Rule::exists('kategori_menus', 'id')->where('warung_id', $actor?->warung_id);
+        $categoryRule = Rule::exists('kategori_menus', 'id')->where('warung_id', $this->tenantReadWarungIdForValidation());
 
         if ($actor instanceof User && $actor->role === 'kasir') {
             $categoryRule->where('aktif', true);
         }
 
         return [
+            ...$this->tenantReadScopeRules(),
             'page' => ['sometimes', new PositivePageNumber],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'sort' => ['sometimes', 'string', Rule::in(['nama', '-nama'])],

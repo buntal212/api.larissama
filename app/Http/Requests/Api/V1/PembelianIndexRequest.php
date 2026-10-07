@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTenantReadScope;
 use App\Models\Pembelian;
 use App\Rules\LocalPeriodUtcMysqlRange;
 use App\Rules\PositivePageNumber;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
 #[FailOnUnknownFields]
 class PembelianIndexRequest extends FormRequest
 {
+    use ValidatesTenantReadScope;
+
     public function authorize(): bool
     {
         return $this->user()?->can('viewAny', Pembelian::class) ?? false;
@@ -19,9 +22,10 @@ class PembelianIndexRequest extends FormRequest
 
     public function rules(): array
     {
-        $timezone = $this->user()?->warung?->timezone;
+        $timezone = $this->tenantReadTimezoneForValidation();
 
         return [
+            ...$this->tenantReadScopeRules(),
             'page' => ['sometimes', new PositivePageNumber],
             'per_page' => ['sometimes', 'integer', 'between:1,100'],
             'sort' => ['sometimes', Rule::in(['-tanggal', 'tanggal'])],

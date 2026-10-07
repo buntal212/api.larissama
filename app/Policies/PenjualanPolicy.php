@@ -12,19 +12,20 @@ class PenjualanPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->warung_id !== null && in_array($user->role, ['owner', 'manager', 'kasir'], true);
+        return ($user->warung_id !== null && in_array($user->role, ['owner', 'manager', 'kasir'], true))
+            || ($user->role === 'superadmin' && $user->warung_id === null);
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Penjualan $penjualan): bool
+    public function view(User $user, Penjualan $penjualan, ?string $selectedWarungId = null): bool
     {
-        if (! $this->viewAny($user) || (int) $user->warung_id !== (int) $penjualan->warung_id) {
-            return false;
+        if ($user->role === 'superadmin' && $user->warung_id === null) {
+            return $selectedWarungId !== null && (string) $penjualan->warung_id === $selectedWarungId;
         }
 
-        return true;
+        return $this->viewAny($user) && (int) $user->warung_id === (int) $penjualan->warung_id;
     }
 
     /**

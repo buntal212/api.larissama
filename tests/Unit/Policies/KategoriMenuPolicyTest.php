@@ -24,7 +24,11 @@ class KategoriMenuPolicyTest extends TestCase
 
         $this->assertSame($canRead, $policy->viewAny($actor));
         $this->assertSame($canWrite, $policy->create($actor));
-        $this->assertSame($canRead, $policy->view($actor, $ownCategory));
+        $selectedWarungId = $role === 'superadmin' ? '10' : null;
+        $this->assertSame($canRead, $policy->view($actor, $ownCategory, $selectedWarungId));
+        if ($role === 'superadmin') {
+            $this->assertFalse($policy->view($actor, $ownCategory));
+        }
         $this->assertSame($canWrite, $policy->update($actor, $ownCategory));
         $this->assertFalse($policy->view($actor, $foreignCategory));
         $this->assertFalse($policy->update($actor, $foreignCategory));
@@ -39,7 +43,7 @@ class KategoriMenuPolicyTest extends TestCase
             'owner' => ['owner', 10, true, true],
             'manager' => ['manager', 10, true, true],
             'cashier' => ['kasir', 10, true, false],
-            'superadmin' => ['superadmin', null, false, false],
+            'superadmin' => ['superadmin', null, true, false],
             'owner without tenant' => ['owner', null, false, false],
             'manager without tenant' => ['manager', null, false, false],
             'cashier without tenant' => ['kasir', null, false, false],

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\TenantReadRequest;
 use App\Http\Requests\Api\V1\UserIndexRequest;
 use App\Http\Requests\Api\V1\UserStoreRequest;
 use App\Http\Requests\Api\V1\UserUpdateRequest;
@@ -10,14 +11,14 @@ use App\Http\Resources\Api\V1\UserResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\User;
 use App\Support\ApiPagination;
+use App\Support\TenantReadScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class UserController extends Controller
 {
-    public function index(UserIndexRequest $request): JsonResponse
+    public function index(UserIndexRequest $request, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
 
@@ -26,7 +27,8 @@ class UserController extends Controller
 
         abort_unless($actor instanceof User, 401);
 
-        $query = $this->tenantUsers($actor);
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+        $query = $this->tenantUsers($warungId);
         $search = $filters['q'] ?? null;
 
         if (is_string($search) && $search !== '') {
@@ -72,15 +74,16 @@ class UserController extends Controller
         ], 201);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function show(TenantReadRequest $request, string $id, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', User::class);
 
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $user = $this->tenantUsers($actor)->findOrFail($id);
-        Gate::authorize('view', $user);
+        $warungId = $tenantReadScope->resolve($actor, $request->validated());
+        $user = $this->tenantUsers($warungId)->findOrFail($id);
+        Gate::authorize('view', [$user, $warungId]);
 
         return response()->json([
             'data' => (new UserResource($user))->resolve($request),
@@ -103,9 +106,9 @@ class UserController extends Controller
         ]);
     }
 
-    private function tenantUsers(User $actor): Builder
+    private function tenantUsers(string $warungId): Builder
     {
-        return User::query()->where('warung_id', $actor->warung_id);
+        return User::query()->where('warung_id', $warungId);
     }
 
     /**

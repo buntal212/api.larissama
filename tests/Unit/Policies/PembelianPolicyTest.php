@@ -15,6 +15,7 @@ class PembelianPolicyTest extends TestCase
         string $role,
         ?int $warungId,
         bool $canRead,
+        bool $canManage,
     ): void {
         $policy = new PembelianPolicy;
         $actor = $this->user(1, $role, $warungId);
@@ -22,11 +23,15 @@ class PembelianPolicyTest extends TestCase
         $foreignPurchase = $this->purchase(20);
 
         $this->assertSame($canRead, $policy->viewAny($actor));
-        $this->assertSame($canRead, $policy->create($actor));
-        $this->assertSame($canRead, $policy->view($actor, $ownPurchase));
-        $this->assertFalse($policy->view($actor, $foreignPurchase));
-        $this->assertSame($canRead, $policy->update($actor, $ownPurchase));
-        $this->assertSame($canRead, $policy->cancel($actor, $ownPurchase));
+        $this->assertSame($canManage, $policy->create($actor));
+        $selectedWarungId = $role === 'superadmin' ? '10' : null;
+        $this->assertSame($canRead, $policy->view($actor, $ownPurchase, $selectedWarungId));
+        if ($role === 'superadmin') {
+            $this->assertFalse($policy->view($actor, $ownPurchase));
+        }
+        $this->assertFalse($policy->view($actor, $foreignPurchase, $selectedWarungId));
+        $this->assertSame($canManage, $policy->update($actor, $ownPurchase));
+        $this->assertSame($canManage, $policy->cancel($actor, $ownPurchase));
         $this->assertFalse($policy->update($actor, $foreignPurchase));
         $this->assertFalse($policy->cancel($actor, $foreignPurchase));
         $this->assertFalse($policy->delete($actor, $ownPurchase));
@@ -35,18 +40,18 @@ class PembelianPolicyTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string, ?int, bool}>
+     * @return array<string, array{string, ?int, bool, bool}>
      */
     public static function roleMatrix(): array
     {
         return [
-            'owner' => ['owner', 10, true],
-            'manager' => ['manager', 10, true],
-            'cashier' => ['kasir', 10, false],
-            'superadmin' => ['superadmin', null, false],
-            'owner without tenant' => ['owner', null, false],
-            'manager without tenant' => ['manager', null, false],
-            'cashier without tenant' => ['kasir', null, false],
+            'owner' => ['owner', 10, true, true],
+            'manager' => ['manager', 10, true, true],
+            'cashier' => ['kasir', 10, false, false],
+            'superadmin' => ['superadmin', null, true, false],
+            'owner without tenant' => ['owner', null, false, false],
+            'manager without tenant' => ['manager', null, false, false],
+            'cashier without tenant' => ['kasir', null, false, false],
         ];
     }
 

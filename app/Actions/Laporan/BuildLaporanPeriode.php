@@ -5,7 +5,7 @@ namespace App\Actions\Laporan;
 use App\Models\Pembelian;
 use App\Models\Penjualan;
 use App\Models\PenjualanRetur;
-use App\Models\User;
+use App\Models\Warung;
 use App\Support\PeriodBounds;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -15,12 +15,12 @@ class BuildLaporanPeriode
     public function __construct(private readonly PeriodBounds $periodBounds) {}
 
     /** @return array<string, mixed> */
-    public function penjualan(User $actor, string $dateFrom, string $dateTo): array
+    public function penjualan(string $warungId, string $dateFrom, string $dateTo): array
     {
-        $timezone = (string) ($actor->warung?->timezone ?? '');
+        $timezone = (string) (Warung::query()->whereKey($warungId)->value('timezone') ?? '');
         [$startUtc, $endExclusiveUtc] = $this->periodBounds->utcBounds($dateFrom, $dateTo, $timezone);
         $sales = Penjualan::query()
-            ->where('warung_id', $actor->warung_id)
+            ->where('warung_id', $warungId)
             ->whereIn('status', ['selesai', 'diretur_sebagian', 'diretur_penuh'])
             ->where('status_pembayaran', 'lunas')
             ->where('dibayar_pada', '>=', $startUtc)
@@ -28,7 +28,7 @@ class BuildLaporanPeriode
             ->selectRaw('COUNT(*) AS jumlah_transaksi, COALESCE(SUM(total), 0) AS total_penjualan')
             ->firstOrFail();
         $returns = PenjualanRetur::query()
-            ->where('warung_id', $actor->warung_id)
+            ->where('warung_id', $warungId)
             ->where('created_at', '>=', $startUtc)
             ->where('created_at', '<', $endExclusiveUtc)
             ->selectRaw('COUNT(*) AS jumlah_retur, COALESCE(SUM(nominal), 0) AS total_retur')
@@ -48,12 +48,12 @@ class BuildLaporanPeriode
     }
 
     /** @return array<string, mixed> */
-    public function pembelian(User $actor, string $dateFrom, string $dateTo): array
+    public function pembelian(string $warungId, string $dateFrom, string $dateTo): array
     {
-        $timezone = (string) ($actor->warung?->timezone ?? '');
+        $timezone = (string) (Warung::query()->whereKey($warungId)->value('timezone') ?? '');
         [$startUtc, $endExclusiveUtc] = $this->periodBounds->utcBounds($dateFrom, $dateTo, $timezone);
         $totals = Pembelian::query()
-            ->where('warung_id', $actor->warung_id)
+            ->where('warung_id', $warungId)
             ->where('status', 'tercatat')
             ->where('tanggal', '>=', $startUtc)
             ->where('tanggal', '<', $endExclusiveUtc)

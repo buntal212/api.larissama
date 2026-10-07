@@ -15,6 +15,7 @@ use App\Http\Requests\Api\V1\PenjualanKoreksiRequest;
 use App\Http\Requests\Api\V1\PenjualanPembayaranRequest;
 use App\Http\Requests\Api\V1\PenjualanReturRequest;
 use App\Http\Requests\Api\V1\PenjualanStoreRequest;
+use App\Http\Requests\Api\V1\TenantReadRequest;
 use App\Http\Resources\Api\V1\PenjualanKoreksiResource;
 use App\Http\Resources\Api\V1\PenjualanResource;
 use App\Http\Resources\Api\V1\PenjualanReturResource;
@@ -25,19 +26,21 @@ use App\Models\Penjualan;
 use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\PeriodBounds;
+use App\Support\TenantReadScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class PenjualanController extends Controller
 {
-    public function index(PenjualanIndexRequest $request, PeriodBounds $periodBounds): JsonResponse
+    public function index(PenjualanIndexRequest $request, PeriodBounds $periodBounds, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', Penjualan::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $filters = $request->validated();
-        $query = Penjualan::query()->where('warung_id', $actor->warung_id);
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+        $query = Penjualan::query()->where('warung_id', $warungId);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -51,7 +54,7 @@ class PenjualanController extends Controller
         }
 
         if (isset($filters['date_from'], $filters['date_to'])) {
-            $timezone = (string) ($actor->warung?->timezone ?? '');
+            $timezone = $tenantReadScope->timezone($warungId);
             [$startUtc, $endExclusiveUtc] = $periodBounds->utcBounds($filters['date_from'], $filters['date_to'], $timezone);
             $query->where('tanggal', '>=', $startUtc)->where('tanggal', '<', $endExclusiveUtc);
         }
@@ -180,15 +183,16 @@ class PenjualanController extends Controller
         return response()->json(['data' => (new PenjualanReturResource($event))->resolve($request)], 201);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function show(TenantReadRequest $request, string $id, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', Penjualan::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
-        $query = Penjualan::query()->where('warung_id', $actor->warung_id)->with('rincian', 'koreksi', 'retur');
+        $warungId = $tenantReadScope->resolve($actor, $request->validated());
+        $query = Penjualan::query()->where('warung_id', $warungId)->with('rincian', 'koreksi', 'retur');
 
         $sale = $query->findOrFail($id);
-        Gate::authorize('view', $sale);
+        Gate::authorize('view', [$sale, $warungId]);
 
         return response()->json(['data' => (new PenjualanResource($sale))->resolve($request)]);
     }

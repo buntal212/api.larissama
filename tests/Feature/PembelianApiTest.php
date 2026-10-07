@@ -856,27 +856,37 @@ class PembelianApiTest extends TestCase
         ]);
     }
 
-    public function test_superadmin_cannot_read_tenant_purchases(): void
+    public function test_superadmin_reads_purchases_only_with_an_explicit_warung_scope(): void
     {
         $warung = Warung::factory()->create();
+        $otherWarung = Warung::factory()->create();
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
         $purchase = Pembelian::factory()->create(['warung_id' => $warung->id, 'user_id' => $manager->id]);
+        PembelianRinci::factory()->create(['warung_id' => $warung->id, 'pembelian_id' => $purchase->id]);
         $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
         $token = $superadmin->createToken('feature-test')->plainTextToken;
-        $query = ['page' => '1', 'per_page' => '20', 'sort' => '-tanggal'];
+        $query = ['page' => '1', 'per_page' => '20', 'sort' => '-tanggal', 'warung_id' => (string) $warung->id];
 
         $this->assertOperationQueryMatchesOpenApi($query, '/pembelians', 'get');
         $response = $this->withToken($token)
             ->getJson('/api/v1/pembelians?'.http_build_query($query))
-            ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (string) $purchase->id);
         $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'get');
 
         $detail = $this->withToken($token)
-            ->getJson('/api/v1/pembelians/'.$purchase->id)
-            ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->getJson('/api/v1/pembelians/'.$purchase->id.'?warung_id='.$warung->id)
+            ->assertOk()
+            ->assertJsonPath('data.warung_id', (string) $warung->id);
         $this->assertOperationResponseMatchesOpenApi($detail, '/pembelians/{id}', 'get');
+
+        $missingScope = $this->withToken($token)->getJson('/api/v1/pembelians')->assertUnprocessable();
+        $missingScope->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('warung_id', $missingScope->json('errors'));
+        $this->assertOperationResponseMatchesOpenApi($missingScope, '/pembelians', 'get');
+
+        $wrongScope = $this->withToken($token)->getJson('/api/v1/pembelians/'.$purchase->id.'?warung_id='.$otherWarung->id)->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($wrongScope, '/pembelians/{id}', 'get');
         $this->assertDatabaseHas('pembelians', ['id' => $purchase->id, 'warung_id' => $warung->id]);
     }
 

@@ -299,27 +299,37 @@ class PenjualanApiTest extends TestCase
         $this->assertDatabaseHas('penjualans', ['id' => $otherSale->id, 'user_id' => $otherCashier->id]);
     }
 
-    public function test_superadmin_cannot_read_tenant_sales(): void
+    public function test_superadmin_reads_sales_only_with_an_explicit_warung_scope(): void
     {
         $warung = Warung::factory()->create();
+        $otherWarung = Warung::factory()->create();
         $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
         $sale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $cashier->id]);
+        PenjualanRinci::factory()->create(['warung_id' => $warung->id, 'penjualan_id' => $sale->id]);
         $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
         $token = $superadmin->createToken('feature-test')->plainTextToken;
-        $query = ['page' => '1', 'per_page' => '20', 'sort' => '-tanggal'];
+        $query = ['page' => '1', 'per_page' => '20', 'sort' => '-tanggal', 'warung_id' => (string) $warung->id];
 
         $this->assertOperationQueryMatchesOpenApi($query, '/penjualans', 'get');
         $response = $this->withToken($token)
             ->getJson('/api/v1/penjualans?'.http_build_query($query))
-            ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->assertOk()
+            ->assertJsonPath('data.0.id', (string) $sale->id);
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'get');
 
         $detail = $this->withToken($token)
-            ->getJson('/api/v1/penjualans/'.$sale->id)
-            ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->getJson('/api/v1/penjualans/'.$sale->id.'?warung_id='.$warung->id)
+            ->assertOk()
+            ->assertJsonPath('data.warung_id', (string) $warung->id);
         $this->assertOperationResponseMatchesOpenApi($detail, '/penjualans/{id}', 'get');
+
+        $missingScope = $this->withToken($token)->getJson('/api/v1/penjualans')->assertUnprocessable();
+        $missingScope->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('warung_id', $missingScope->json('errors'));
+        $this->assertOperationResponseMatchesOpenApi($missingScope, '/penjualans', 'get');
+
+        $wrongScope = $this->withToken($token)->getJson('/api/v1/penjualans/'.$sale->id.'?warung_id='.$otherWarung->id)->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($wrongScope, '/penjualans/{id}', 'get');
         $this->assertDatabaseHas('penjualans', ['id' => $sale->id, 'warung_id' => $warung->id]);
     }
 

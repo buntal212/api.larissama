@@ -12,14 +12,19 @@ class PembelianPolicy
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['owner', 'manager'], true) && $user->warung_id !== null;
+        return (in_array($user->role, ['owner', 'manager'], true) && $user->warung_id !== null)
+            || ($user->role === 'superadmin' && $user->warung_id === null);
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Pembelian $pembelian): bool
+    public function view(User $user, Pembelian $pembelian, ?string $selectedWarungId = null): bool
     {
+        if ($user->role === 'superadmin' && $user->warung_id === null) {
+            return $selectedWarungId !== null && (string) $pembelian->warung_id === $selectedWarungId;
+        }
+
         return $this->viewAny($user) && (int) $user->warung_id === (int) $pembelian->warung_id;
     }
 
@@ -28,7 +33,7 @@ class PembelianPolicy
      */
     public function create(User $user): bool
     {
-        return $this->viewAny($user);
+        return in_array($user->role, ['owner', 'manager'], true) && $user->warung_id !== null;
     }
 
     /**

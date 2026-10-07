@@ -11,6 +11,7 @@ use App\Http\Requests\Api\V1\PembelianCancelRequest;
 use App\Http\Requests\Api\V1\PembelianIndexRequest;
 use App\Http\Requests\Api\V1\PembelianStoreRequest;
 use App\Http\Requests\Api\V1\PembelianUpdateRequest;
+use App\Http\Requests\Api\V1\TenantReadRequest;
 use App\Http\Resources\Api\V1\PembelianKoreksiResource;
 use App\Http\Resources\Api\V1\PembelianResource;
 use App\Http\Resources\Api\V1\PembelianSummaryResource;
@@ -20,26 +21,28 @@ use App\Models\Pembelian;
 use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\PeriodBounds;
+use App\Support\TenantReadScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class PembelianController extends Controller
 {
-    public function index(PembelianIndexRequest $request, PeriodBounds $periodBounds): JsonResponse
+    public function index(PembelianIndexRequest $request, PeriodBounds $periodBounds, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', Pembelian::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $filters = $request->validated();
-        $query = Pembelian::query()->where('warung_id', $actor->warung_id);
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+        $query = Pembelian::query()->where('warung_id', $warungId);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         if (isset($filters['date_from'], $filters['date_to'])) {
-            $timezone = (string) ($actor->warung?->timezone ?? '');
+            $timezone = $tenantReadScope->timezone($warungId);
             [$startUtc, $endExclusiveUtc] = $periodBounds->utcBounds($filters['date_from'], $filters['date_to'], $timezone);
             $query->where('tanggal', '>=', $startUtc)->where('tanggal', '<', $endExclusiveUtc);
         }
@@ -78,16 +81,17 @@ class PembelianController extends Controller
         return response()->json(['data' => (new PembelianResource($purchase))->resolve($request)], 201);
     }
 
-    public function show(Request $request, string $id): JsonResponse
+    public function show(TenantReadRequest $request, string $id, TenantReadScope $tenantReadScope): JsonResponse
     {
         Gate::authorize('viewAny', Pembelian::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        $warungId = $tenantReadScope->resolve($actor, $request->validated());
         $purchase = Pembelian::query()
-            ->where('warung_id', $actor->warung_id)
+            ->where('warung_id', $warungId)
             ->with('rincian', 'koreksi')
             ->findOrFail($id);
-        Gate::authorize('view', $purchase);
+        Gate::authorize('view', [$purchase, $warungId]);
 
         return response()->json(['data' => (new PembelianResource($purchase))->resolve($request)]);
     }
