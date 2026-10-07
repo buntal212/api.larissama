@@ -1,6 +1,6 @@
 # Rancangan Test dan Kriteria Lulus
 
-Status saat ini: D17 registration/subscription focused run PASS 77 test / 21.809 assertions pada MySQL 8.0.40 Compose disposable, Pint PASS, dan OpenAPI 3.1 validator PASS. Full regression suite belum dijalankan untuk perubahan D17. Database produksi dikonfirmasi kosong/fresh install; keputusan D08, D12, D13, dan D17 sudah dicatat. Regression G3/G4, environment integrasi, dan production handoff tetap mengikuti tracker. Gunakan artefak run untuk batas tiap cakupan.
+Status saat ini: slice D18 lulus pada MySQL 8.0.40 Compose disposable dengan 78 test / 30.684 assertions pada sembilan feature test files. Cakupan mencakup pembuatan pesanan pending, edit/batal beralasan, pembayaran penuh dan replay idempotent, daftar/filter lintas pencatat, schema migration, pendapatan berdasarkan waktu pembayaran, serta batas koreksi 72 jam sejak dibayar. Laravel Pint (201 file) dan validator OpenAPI 3.1 lulus. Full regression suite G3/G4 dan production handoff tetap mengikuti tracker.
 
 Kebutuhan berasal dari K01–K09 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung keputusan terbuka tetap kandidat; perbarui hanya skenario yang terdampak sebelum dijadikan gate.
 
@@ -13,6 +13,10 @@ Kebutuhan berasal dari K01–K09 pada [DECISIONS.md](DECISIONS.md), invariant IN
 | Integration | tests/Integration/ | Migration fresh/upgrade, FK/unique/decimal, atomic rollback, transaksi dan concurrency pada engine produksi. |
 | Contract | tests/Contract/ | Request/response runtime cocok dengan OpenAPI, termasuk tipe, nullability, kode status, errors. |
 | Alur lintas fitur | tests/Feature/ atau runner HTTP | Provisioning sampai laporan dan logout melalui API yang sebenarnya. |
+
+## Hasil D18: pesanan dan pembayaran penjualan
+
+`SalesOrderPaymentApiTest`, test penjualan/laporan, migration conformance, koreksi/retur, aturan nominal, dan OpenAPI diuji pada commit `a29e2e75800a503a2564f4780eb413c97398f44e`: 78 test / 30.684 assertions lulus di MySQL 8.0.40 Compose disposable. Cakupan D18 termasuk pending order, edit dan pembatalan dengan alasan, kasir membaca transaksi dari pencatat lain, filter lunas/belum lunas, pembayaran penuh serta retry idempotent, nomor transaksi/nama pelanggan, laporan berdasarkan waktu bayar, dan batas koreksi tepat 72 jam sejak dibayar. Pint lulus untuk 201 file dan validator OpenAPI 3.1 lulus. Full suite G3/G4 tidak dijalankan pada slice ini; statusnya tetap terbuka dan ditangani bersama integrasi frontend. Rincian command dan batas bukti ada pada [D18-SALES-ORDER-PAYMENT-CONFORMANCE-001](test-runs/D18-SALES-ORDER-PAYMENT-CONFORMANCE-001.md).
 
 M0 menggunakan `openapi-spec-validator` 0.9.0 dalam image Docker khusus, dengan base image dan paket Python terkunci. Command serta hasil dicatat pada tracker dan artefak run. Validator ini terpisah dari dependency Laravel/Composer. PHPUnit sudah ada di composer.json.
 
@@ -310,6 +314,8 @@ Kolom lulus menjelaskan observable result, bukan sekadar `assertStatus(200)`. Se
 | T-SAL-06 | Cancel/koreksi penjualan | Bila masuk scope final: status/izin/alasan/audit sesuai keputusan, snapshot tetap; laporan mengeluarkan batal; pengulangan tidak menggandakan efek. Jika ditunda, keputusan defer dicatat, bukan PASS. | D06 |
 | T-SAL-07 | Batas hari lokal daftar penjualan | Untuk timezone Jakarta dan zona DST `America/New_York`, list memasukkan awal hari lokal dan mengecualikan awal hari berikutnya; hari DST 23 jam tetap mengikuti batas lokal. | D08,D13 |
 | T-SAL-08 | Aritmetika nominal decimal eksak | Harga `17.25` × qty `3.00` menghasilkan subtotal/total `51.75`; bayar `60.00` menghasilkan kembalian `8.25`, sama antara response dan MySQL. | D05,D13 |
+| T-SAL-09 | Lifecycle pesanan dan pembayaran | POST tanpa `bayar`/metode membuat pending dengan `nama_pelanggan` nullable dan `no_transaksi` untuk nota; order yang dicatat manager terlihat oleh kasir lain. Filter `status_pembayaran` memisahkan lunas/belum lunas. Pending dapat diedit/dibatalkan dengan alasan; pembayaran penuh cash menghitung kembalian, QRIS/transfer harus tepat, pembayaran menyimpan aktor/waktu dan retry idempotent; transaksi tenant lain tetap 404/tidak muncul. Transaksi lunas lama di-backfill `dibayar_pada=created_at` dan `pembayaran_user_id=user_id`. | D04,D05,D06,D09,D18 |
+| T-REP-05 | Pendapatan di periode pembayaran | Pesanan tanggal/order periode A dibayar di periode B: hanya laporan B memasukkan totalnya. Batas periode memakai timezone IANA warung dan `dibayar_pada`; retur tetap mengurangi periode retur. | D08,D18 |
 | T-BUY-01 | Input P1 hanya nama_item+subtotal | 201, 1 header+1 detail, total 150000.00, qty/satuan/harga_satuan NULL; tidak menuntut master bahan. | K05,D05 |
 | T-BUY-02 | Input P2 rinci | 201, 1 header+2 detail; subtotal `75000.00` dan `20000.00`, total `95000.00`; backend menghitung dengan decimal eksak dan round half-up per rincian. | D05,D10 |
 | T-BUY-03 | Rincian kosong/nama kosong/mismatch/pasangan sebagian | Array kosong/nama kosong ditolak 422; qty/harga_satuan tidak berpasangan dan subtotal nominal kosong ditolak 422 tanpa write; subtotal pembanding yang mismatch ditolak 422. Bentuk nominal dan hitungan masing-masing diterima serta boleh dicampur; setiap baris tersimpan dengan subtotal non-null. | D10 |
