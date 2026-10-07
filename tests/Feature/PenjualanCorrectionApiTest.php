@@ -85,12 +85,24 @@ class PenjualanCorrectionApiTest extends TestCase
         $payload = ['alasan' => 'Koreksi tepat batas waktu', 'catatan' => 'Tepat 72 jam'];
         $headers = ['Idempotency-Key' => 'sale-edit-boundary-001'];
 
-        $boundarySale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHours(72));
+        $boundarySale = $this->sale(
+            $warung,
+            $cashier,
+            $menu,
+            CarbonImmutable::now('UTC')->subDays(10),
+            CarbonImmutable::now('UTC')->subHours(72),
+        );
         $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans/{id}', 'patch');
         $boundary = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$boundarySale->id, $payload, $headers)->assertCreated();
         $this->assertOperationResponseMatchesOpenApi($boundary, '/penjualans/{id}', 'patch');
 
-        $expiredSale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHours(72)->subSecond());
+        $expiredSale = $this->sale(
+            $warung,
+            $cashier,
+            $menu,
+            CarbonImmutable::now('UTC')->subDays(10),
+            CarbonImmutable::now('UTC')->subHours(72)->subSecond(),
+        );
         $expiredHeaders = ['Idempotency-Key' => 'sale-edit-expired-001'];
         $expired = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$expiredSale->id, $payload, $expiredHeaders)->assertConflict();
         $this->assertOperationResponseMatchesOpenApi($expired, '/penjualans/{id}', 'patch');
@@ -98,7 +110,13 @@ class PenjualanCorrectionApiTest extends TestCase
         $this->assertDatabaseHas('penjualans', ['id' => $expiredSale->id, 'catatan' => null]);
         $this->assertDatabaseMissing('penjualan_koreksis', ['penjualan_id' => $expiredSale->id]);
 
-        $boundaryCancelSale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHours(72));
+        $boundaryCancelSale = $this->sale(
+            $warung,
+            $cashier,
+            $menu,
+            CarbonImmutable::now('UTC')->subDays(10),
+            CarbonImmutable::now('UTC')->subHours(72),
+        );
         $boundaryCancel = $this->withToken($token)->postJson(
             '/api/v1/penjualans/'.$boundaryCancelSale->id.'/pembatalan',
             ['alasan' => 'Dibatalkan tepat pada batas 72 jam.'],
@@ -117,6 +135,7 @@ class PenjualanCorrectionApiTest extends TestCase
             $warung,
             $cashier,
             $menu,
+            CarbonImmutable::now('UTC')->subDays(10),
             CarbonImmutable::now('UTC')->subHours(72)->subSecond(),
         );
         $expiredCancel = $this->withToken($token)->postJson(
@@ -445,12 +464,18 @@ class PenjualanCorrectionApiTest extends TestCase
         $this->assertDatabaseMissing('penjualan_returs', ['penjualan_id' => $cancelledSale->id]);
     }
 
-    private function sale(Warung $warung, User $cashier, Menu $menu, CarbonImmutable $createdAt): Penjualan
-    {
+    private function sale(
+        Warung $warung,
+        User $cashier,
+        Menu $menu,
+        CarbonImmutable $createdAt,
+        ?CarbonImmutable $paidAt = null,
+    ): Penjualan {
         $sale = Penjualan::factory()->create([
             'warung_id' => $warung->id,
             'user_id' => $cashier->id,
             'tanggal' => $createdAt,
+            'dibayar_pada' => $paidAt ?? $createdAt,
             'created_at' => $createdAt,
             'updated_at' => $createdAt,
             'subtotal' => '100.00',

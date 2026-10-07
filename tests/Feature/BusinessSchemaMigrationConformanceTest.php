@@ -49,6 +49,13 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertColumn('penjualans', 'total', 'decimal', null, 15, 2, false);
         $this->assertColumn('penjualans', 'idempotency_key', 'varchar', 255, null, null, true);
         $this->assertColumn('penjualans', 'idempotency_expires_at', 'datetime', null, null, null, true, 6);
+        $this->assertColumn('penjualans', 'nama_pelanggan', 'varchar', 150, null, null, true);
+        $this->assertColumn('penjualans', 'status_pembayaran', 'varchar', 20, null, null, false);
+        $this->assertColumn('penjualans', 'dibayar_pada', 'datetime', null, null, null, true, 0);
+        $this->assertColumn('penjualans', 'pembayaran_user_id', 'bigint', null, 20, 0, true);
+        $this->assertColumn('penjualans', 'pembayaran_idempotency_key', 'varchar', 255, null, null, true);
+        $this->assertColumn('penjualans', 'pembayaran_payload_hash', 'char', 64, null, null, true);
+        $this->assertColumn('penjualans', 'pembayaran_idempotency_expires_at', 'datetime', null, null, null, true, 6);
         $this->assertColumn('penjualan_rincis', 'menu_id', 'bigint', null, 20, 0, false);
         $this->assertColumn('penjualan_rincis', 'qty', 'decimal', null, 10, 2, false);
         $this->assertColumn('penjualan_rincis', 'subtotal', 'decimal', null, 15, 2, false);
@@ -127,6 +134,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'no_transaksi' => 'varchar(50)|NO|<NULL>|<NONE>|<NULL>',
+                'nama_pelanggan' => 'varchar(150)|YES|<NULL>|<NONE>|<NULL>',
                 'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
                 'payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
                 'idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
@@ -136,8 +144,14 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'total' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
                 'bayar' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
                 'kembalian' => 'decimal(15,2)|NO|0.00|<NONE>|<NULL>',
-                'metode_pembayaran' => 'varchar(30)|NO|<NULL>|<NONE>|<NULL>',
+                'metode_pembayaran' => 'varchar(30)|YES|<NULL>|<NONE>|<NULL>',
+                'dibayar_pada' => 'datetime|YES|<NULL>|<NONE>|0',
+                'pembayaran_user_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'pembayaran_idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
+                'pembayaran_payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
+                'pembayaran_idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
                 'status' => 'varchar(20)|NO|selesai|<NONE>|<NULL>',
+                'status_pembayaran' => 'varchar(20)|NO|lunas|<NONE>|<NULL>',
                 'catatan' => 'text|YES|<NULL>|<NONE>|<NULL>',
                 'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
                 'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
@@ -261,6 +275,9 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['penjualans', 'penjualans_idempotency_unique', ['warung_id', 'user_id', 'idempotency_key']],
             ['penjualans', 'penjualans_warung_tanggal_idx', ['warung_id', 'tanggal', 'id']],
             ['penjualans', 'penjualans_warung_status_tanggal_idx', ['warung_id', 'status', 'tanggal']],
+            ['penjualans', 'penjualans_payment_idempotency_unique', ['warung_id', 'pembayaran_user_id', 'pembayaran_idempotency_key']],
+            ['penjualans', 'penjualans_warung_payment_status_idx', ['warung_id', 'status_pembayaran', 'tanggal', 'id']],
+            ['penjualans', 'penjualans_warung_paid_at_idx', ['warung_id', 'status_pembayaran', 'dibayar_pada', 'id']],
             ['penjualan_rincis', 'penjualan_rincis_warung_header_idx', ['warung_id', 'penjualan_id']],
             ['penjualan_rincis', 'penjualan_rincis_warung_menu_idx', ['warung_id', 'menu_id']],
             ['pembelians', 'pembelians_warung_id_id_unique', ['warung_id', 'id']],
@@ -292,6 +309,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['menus', 'menus_warung_kategori_fk', ['warung_id', 'kategori_menu_id'], 'kategori_menus', ['warung_id', 'id']],
             ['penjualans', 'penjualans_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
             ['penjualans', 'penjualans_warung_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['penjualans', 'penjualans_warung_payment_user_fk', ['warung_id', 'pembayaran_user_id'], 'users', ['warung_id', 'id']],
             ['penjualan_rincis', 'penjualan_rincis_warung_header_fk', ['warung_id', 'penjualan_id'], 'penjualans', ['warung_id', 'id']],
             ['penjualan_rincis', 'penjualan_rincis_warung_menu_fk', ['warung_id', 'menu_id'], 'menus', ['warung_id', 'id']],
             ['pembelians', 'pembelians_warung_id_foreign', ['warung_id'], 'warungs', ['id']],

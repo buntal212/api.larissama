@@ -115,6 +115,9 @@ class CorrectPenjualan
         if (array_key_exists('catatan', $input)) {
             $after['catatan'] = $input['catatan'];
         }
+        if (array_key_exists('nama_pelanggan', $input)) {
+            $after['nama_pelanggan'] = $input['nama_pelanggan'];
+        }
 
         $lineData = null;
         if (array_key_exists('rincian', $input)) {
@@ -138,15 +141,25 @@ class CorrectPenjualan
         }
         $total = $subtotal->minus($discount)->toScale(2, RoundingMode::HalfUp);
         $this->assertDatabaseMoney($total, 'diskon');
-        $paymentMethod = (string) ($input['metode_pembayaran'] ?? $after['metode_pembayaran']);
-        $paid = BigDecimal::of((string) ($input['bayar'] ?? $after['bayar']));
-        $change = $this->calculateChange($paymentMethod, $paid, $total);
-
         $after['diskon'] = (string) $discount->toScale(2, RoundingMode::HalfUp);
         $after['total'] = (string) $total;
-        $after['bayar'] = (string) $paid->toScale(2, RoundingMode::HalfUp);
-        $after['kembalian'] = (string) $change;
-        $after['metode_pembayaran'] = $paymentMethod;
+
+        if ($sale->status_pembayaran === 'belum_lunas') {
+            if (array_key_exists('bayar', $input) || array_key_exists('metode_pembayaran', $input)) {
+                throw ValidationException::withMessages(['bayar' => ['Pesanan belum lunas harus dibayar lewat endpoint pembayaran.']]);
+            }
+
+            $after['bayar'] = '0.00';
+            $after['kembalian'] = '0.00';
+            $after['metode_pembayaran'] = null;
+        } else {
+            $paymentMethod = (string) ($input['metode_pembayaran'] ?? $after['metode_pembayaran']);
+            $paid = BigDecimal::of((string) ($input['bayar'] ?? $after['bayar']));
+            $change = $this->calculateChange($paymentMethod, $paid, $total);
+            $after['bayar'] = (string) $paid->toScale(2, RoundingMode::HalfUp);
+            $after['kembalian'] = (string) $change;
+            $after['metode_pembayaran'] = $paymentMethod;
+        }
 
         if ($before === $after) {
             throw ValidationException::withMessages(['alasan' => ['Tidak ada perubahan data untuk dicatat.']]);
@@ -160,6 +173,7 @@ class CorrectPenjualan
             'bayar' => $after['bayar'],
             'kembalian' => $after['kembalian'],
             'metode_pembayaran' => $after['metode_pembayaran'],
+            'nama_pelanggan' => $after['nama_pelanggan'],
             'catatan' => $after['catatan'],
         ])->save();
 
@@ -176,7 +190,7 @@ class CorrectPenjualan
      */
     private function cancelSale(Penjualan $sale, array $before): array
     {
-        if ($sale->status !== 'selesai') {
+        if (! in_array($sale->status, ['selesai', 'menunggu_pembayaran'], true)) {
             throw new PenjualanStateConflictException('PENJUALAN_TIDAK_AKTIF', 'Hanya penjualan yang belum dibatalkan atau diretur yang dapat dibatalkan.');
         }
 
@@ -187,6 +201,10 @@ class CorrectPenjualan
 
     private function assertEditable(Penjualan $sale): void
     {
+        if ($sale->status === 'menunggu_pembayaran' && $sale->status_pembayaran === 'belum_lunas') {
+            return;
+        }
+
         if ($sale->status !== 'selesai') {
             throw new PenjualanStateConflictException('PENJUALAN_TIDAK_AKTIF', 'Penjualan yang sudah dibatalkan atau diretur tidak dapat dikoreksi.');
         }
@@ -195,7 +213,8 @@ class CorrectPenjualan
             throw new PenjualanStateConflictException('PENJUALAN_SUDAH_DIRETUR', 'Penjualan yang telah memiliki retur tidak dapat dikoreksi atau dibatalkan.');
         }
 
-        if ($sale->created_at === null || CarbonImmutable::parse($sale->created_at)->utc()->addHours(72)->isPast()) {
+        $correctionStartsAt = $sale->dibayar_pada ?? $sale->created_at;
+        if ($correctionStartsAt === null || CarbonImmutable::parse($correctionStartsAt)->utc()->addHours(72)->isPast()) {
             throw new PenjualanStateConflictException('BATAS_KOREKSI_TERLEWATI', 'Batas koreksi penjualan 72 jam telah terlewati; catat retur bila diperlukan.');
         }
     }
@@ -266,13 +285,17 @@ class CorrectPenjualan
     {
         return [
             'status' => $sale->status,
+            'status_pembayaran' => $sale->status_pembayaran,
             'tanggal' => $sale->tanggal?->utc()->toISOString(),
+            'nama_pelanggan' => $sale->nama_pelanggan,
             'subtotal' => (string) $sale->subtotal,
             'diskon' => (string) $sale->diskon,
             'total' => (string) $sale->total,
             'bayar' => (string) $sale->bayar,
             'kembalian' => (string) $sale->kembalian,
             'metode_pembayaran' => $sale->metode_pembayaran,
+            'dibayar_pada' => $sale->dibayar_pada?->utc()->toISOString(),
+            'pembayaran_user_id' => $sale->pembayaran_user_id === null ? null : (string) $sale->pembayaran_user_id,
             'catatan' => $sale->catatan,
             'rincian' => $sale->rincian->map(static fn ($line): array => [
                 'menu_id' => (string) $line->menu_id,

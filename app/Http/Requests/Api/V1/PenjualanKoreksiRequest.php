@@ -15,7 +15,7 @@ class PenjualanKoreksiRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return in_array($this->user()?->role, ['owner', 'manager'], true)
+        return in_array($this->user()?->role, ['owner', 'manager', 'kasir'], true)
             && $this->user()?->warung_id !== null;
     }
 
@@ -34,6 +34,7 @@ class PenjualanKoreksiRequest extends FormRequest
                 new NotFutureTransactionTimestamp,
             ],
             'catatan' => ['sometimes', 'nullable', 'string'],
+            'nama_pelanggan' => ['sometimes', 'nullable', 'string', 'max:150'],
             'diskon' => ['sometimes', 'string', $money],
             'bayar' => ['sometimes', 'string', $money],
             'metode_pembayaran' => ['sometimes', Rule::in(['cash', 'qris', 'transfer'])],
@@ -52,7 +53,7 @@ class PenjualanKoreksiRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            if (! array_intersect(['tanggal', 'catatan', 'diskon', 'bayar', 'metode_pembayaran', 'rincian'], array_keys($this->all()))) {
+            if (! array_intersect(['tanggal', 'catatan', 'nama_pelanggan', 'diskon', 'bayar', 'metode_pembayaran', 'rincian'], array_keys($this->all()))) {
                 $validator->errors()->add('alasan', 'Sertakan setidaknya satu data yang akan diubah.');
             }
 

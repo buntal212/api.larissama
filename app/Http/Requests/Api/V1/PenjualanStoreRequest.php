@@ -9,6 +9,7 @@ use App\Rules\UtcMysqlDateTimeRange;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 #[FailOnUnknownFields]
 class PenjualanStoreRequest extends FormRequest
@@ -33,8 +34,9 @@ class PenjualanStoreRequest extends FormRequest
                 new NotFutureTransactionTimestamp,
             ],
             'diskon' => ['sometimes', 'string', $money],
-            'bayar' => ['required', 'string', $money],
-            'metode_pembayaran' => ['required', Rule::in(['cash', 'qris', 'transfer'])],
+            'bayar' => ['sometimes', 'string', $money],
+            'metode_pembayaran' => ['sometimes', Rule::in(['cash', 'qris', 'transfer'])],
+            'nama_pelanggan' => ['sometimes', 'nullable', 'string', 'max:150'],
             'catatan' => ['sometimes', 'nullable', 'string'],
             'rincian' => ['required', 'array', 'min:1'],
             'rincian.*.menu_id' => [
@@ -53,5 +55,16 @@ class PenjualanStoreRequest extends FormRequest
         return [
             'tanggal.regex' => 'Tanggal harus mengikuti format RFC3339 dengan zona waktu.',
         ];
+    }
+
+    /** @return array<int, \Closure(Validator): void> */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if (array_key_exists('bayar', $this->all()) !== array_key_exists('metode_pembayaran', $this->all())) {
+                $validator->errors()->add('bayar', 'Bayar dan metode_pembayaran harus dikirim bersama jika transaksi langsung dilunasi.');
+                $validator->errors()->add('metode_pembayaran', 'Bayar dan metode_pembayaran harus dikirim bersama jika transaksi langsung dilunasi.');
+            }
+        }];
     }
 }

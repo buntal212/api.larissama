@@ -22,8 +22,9 @@ class BuildLaporanPeriode
         $sales = Penjualan::query()
             ->where('warung_id', $actor->warung_id)
             ->whereIn('status', ['selesai', 'diretur_sebagian', 'diretur_penuh'])
-            ->where('tanggal', '>=', $startUtc)
-            ->where('tanggal', '<', $endExclusiveUtc)
+            ->where('status_pembayaran', 'lunas')
+            ->where('dibayar_pada', '>=', $startUtc)
+            ->where('dibayar_pada', '<', $endExclusiveUtc)
             ->selectRaw('COUNT(*) AS jumlah_transaksi, COALESCE(SUM(total), 0) AS total_penjualan')
             ->firstOrFail();
         $returns = PenjualanRetur::query()

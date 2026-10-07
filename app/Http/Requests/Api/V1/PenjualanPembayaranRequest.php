@@ -4,9 +4,10 @@ namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 #[FailOnUnknownFields]
-class PenjualanCancelRequest extends FormRequest
+class PenjualanPembayaranRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,6 +17,9 @@ class PenjualanCancelRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['alasan' => ['required', 'string', 'min:1', 'max:1000', 'regex:/\S/']];
+        return [
+            'bayar' => ['required', 'string', 'regex:/^(0|[1-9][0-9]{0,12})\.[0-9]{2}$/'],
+            'metode_pembayaran' => ['required', Rule::in(['cash', 'qris', 'transfer'])],
+        ];
     }
 }

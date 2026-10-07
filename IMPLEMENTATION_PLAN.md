@@ -1,6 +1,6 @@
 # Rencana Pelaksanaan Backend LarisSama
 
-Status: rencana pelaksanaan yang diperbarui 2026-10-07. D17 menambah pendaftaran owner publik, persetujuan platform, serta pengelolaan masa aktif 30 hari; kontrak kini berisi 36 handler. Alur utama siap diintegrasikan dari server development, sedangkan edge-case per operationId dan regression G3/G4 tetap tercatat untuk tindak lanjut bersama frontend. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
+Status: rencana pelaksanaan yang diperbarui 2026-10-07. D17 menambah pendaftaran/langganan warung; D18 memisahkan pesanan penjualan dari pembayaran dan menambah endpoint pembayaran, sehingga kontrak memuat 37 handler. Alur utama siap diintegrasikan dari server development, sedangkan edge-case per operationId dan regression G3/G4 tetap tercatat untuk tindak lanjut bersama frontend. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
 
 ## Dokumen yang dipakai
 
@@ -9,11 +9,11 @@ Status: rencana pelaksanaan yang diperbarui 2026-10-07. D17 menambah pendaftaran
 | [AGENTS.md](AGENTS.md), [aturan database](database/AGENTS.md) | Instruksi kerja backend dan migration. |
 | [database/README.md](database/README.md) | Rancangan logis delapan tabel; migration kelak menunjukkan schema yang benar-benar diterapkan. |
 | [DESIGN.md](docs/backend/DESIGN.md) | Modul, struktur Laravel, batas transaksi, tenant, perhitungan, dan invariant. |
-| [DECISIONS.md](docs/backend/DECISIONS.md) | Kebutuhan K01–K09 serta keputusan D01–D16, termasuk pilihan yang masih terbuka. |
+| [DECISIONS.md](docs/backend/DECISIONS.md) | Kebutuhan K01–K09 serta keputusan D01–D18, termasuk pilihan yang masih terbuka. |
 | [openapi.yaml](docs/api/openapi.yaml) | Bentuk wire API kandidat, parameter, schema, contoh, status, dan keputusan pemblokir per operasi. |
 | [panduan API](docs/api/README.md) | Petunjuk AI frontend, alur integrasi, null/decimal/errors, dan changelog kontrak. |
 | [TEST_PLAN.md](docs/backend/TEST_PLAN.md) | Skenario, fixture sintetis, expected result, gate, dan format pencatatan test. |
-| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 30 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
+| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 31 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
 | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Proses kerja per slice dan aturan commit berdasarkan kelompok perubahan terkait. |
 
 Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah catatan progres; keputusan berada di register; payload berada di OpenAPI. Jika salah satu berubah, perbarui artefak terkait secara eksplisit dan commit file yang saling terkait sebagai satu kelompok.
@@ -22,7 +22,7 @@ Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah cata
 
 - Banyak warung dengan data terisolasi; konteks tenant berasal dari user login. User/warung aktif dan masa berlaku diperiksa backend.
 - Master kategori serta menu dan harga jual.
-- Penjualan: satu header, minimal satu rincian, snapshot nama/harga, perhitungan backend, riwayat dan pendapatan periode.
+- Penjualan: buat pesanan belum lunas yang dapat diedit, cetak nomor transaksi, catat pembayaran terpisah, simpan snapshot nama/harga dan audit koreksi, lalu hitung pendapatan pada periode pembayaran.
 - Pembelian bahan: header-rincian, mendukung input lengkap maupun satu baris seperti “Belanja di pasar” dan nominal. Total pembelian periode berdiri sendiri dari penjualan.
 - API yang terdokumentasi untuk akses, administrasi, katalog, penjualan, pembelian dan laporan; test membuktikan izin, angka, integritas, serta kontrak.
 
@@ -35,7 +35,7 @@ Aplikasi tidak memerlukan workflow dapur, resep, stok, item penjualan bebas, ata
 | M0 — Kesiapan dan kontrak | BE-001–004 | Runtime dan DB test; inventaris migration; keputusan awal; konvensi/API draft ditinjau; validator dan harness tersedia. | G0: runtime/harness aman, keputusan prasyarat tersedia, lint kontrak lulus. |
 | M1 — Akses dan administrasi | BE-101–105 | Warung/users, login/me/logout, tenant/policy/status aktif, admin warung+owner, pengelolaan user tenant. 12 operasi akses/admin. | G1: auth, role, tenant, provisioning, dan kontrak lulus; operasi terkait siap frontend. |
 | M2 — Kategori dan menu | BE-201–204 | Migration/model/API katalog, filter/pagination, harga decimal, kategori satu warung. 8 operasi katalog. | G2: katalog dan arsip sesuai aturan; data tenant lain tidak terbaca/terubah; strategi D16 dipilih; kontrak lulus. |
-| M3 — Penjualan dan pendapatan | BE-301–306 | Create/list/detail, koreksi/pembatalan beralasan dalam 72 jam, retur penuh/sebagian append-only setelahnya, pembayaran, retry, audit, dan laporan bersih. | G3: nominal/snapshot/rollback/retry/concurrency/window edit/retur/laporan lulus pada engine target; kontrak siap. |
+| M3 — Penjualan dan pendapatan | BE-301–307 | Pesanan pending editable, list/detail lintas pencatat dan filter status pembayaran, pembayaran terpisah, koreksi/pembatalan beralasan, retur, retry, audit, dan pendapatan menurut waktu pembayaran. | G3: nominal/snapshot/rollback/retry/concurrency/window edit/retur/laporan lulus pada engine target; kontrak siap. |
 | M4 — Pembelian dan total periode | BE-401–406 | Action atomic ringkas/rinci, nomor/retry, riwayat/detail, koreksi dengan alasan dan snapshot, serta laporan pembelian. 5 operasi transaksi dan 1 laporan. | G4: “Belanja di pasar + nominal” diterima, total detail benar, koreksi/pembatalan menjaga audit, tenant/rollback/retry/laporan lulus. |
 | M5 — Integrasi dan rilis | BE-501–504 | Regression, runbook deploy/recovery, environment integrasi, handoff frontend dan bukti penerimaan. | G5: seluruh test wajib lulus, tidak ada endpoint diserahkan tanpa kontrak, runbook dan handoff terbukti. |
 
@@ -57,12 +57,13 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 
 1. M0/M1: D01 engine/transisi data, D02 auth, D03 tanggal nullable, D04 role/superadmin, D12 identitas/email, D13 HTTP; bagian D08 yang diperlukan untuk tanggal masa aktif.
 2. M2: baseline decimal D05 sudah dipilih; arsip active-only D06 diterapkan. FK gabungan tenant D16 telah dipilih dan diterapkan. D14 hanya bila media gambar menu masuk scope.
-3. M3: D05/D06 sekarang diputuskan; implementasikan koreksi/cancel maksimal 72 jam dari `created_at` UTC, retur nominal penuh/sebagian dengan alasan, ledger audit append-only, dan pengurangan retur pada periode retur. Gunakan timezone periode D08 serta replay durable D09. Setiap item wajib dari menu sesuai D07.
+3. M3: D05/D06/D18 diputuskan; pending order bisa diedit/dibatalkan tanpa batas sampai dibayar, pembayaran penuh tercatat terpisah, dan koreksi/cancel transaksi lunas dibatasi 72 jam dari `dibayar_pada` UTC. Retur nominal penuh/sebagian dengan alasan tersedia setelahnya. Gunakan timezone periode D08, laporan pendapatan menurut waktu bayar, serta replay durable D09. Setiap item wajib dari menu sesuai D07.
 4. M4: terapkan baseline decimal D05, timezone D08, replay D09, dan finalisasi input sebagian D10 serta koreksi pembelian D11.
 
 Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Pilihan MySQL 8.0.40, auth, baseline nominal, Idempotency-Key, dan FK tenant gabungan sudah dicatat; rincian tersisa tetap menjadi gate sebelum kontrak siap frontend. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.
 
 5. D17: pendaftaran owner publik mulai nonaktif dan menunggu persetujuan; aksi admin menyetujui dengan langganan awal 30 hari, atau menambah 30 hari pada langganan yang sudah disetujui. Status kedaluwarsa dihitung pada tanggal lokal warung saat login, request tenant, dan serialisasi resource. Frontend memakai `status_langganan` dari response, bukan menghitungnya sendiri.
+6. D18: POST penjualan tanpa pasangan metode/bayar membuat pesanan pending; kasir dapat melihat filter semua/lunas/belum lunas, mengubah pesanan pending dengan alasan, lalu melunasi dari endpoint pembayaran. Cetak `no_transaksi` pada nota pesanan dan bukti lunas. Laporan pendapatan memakai periode waktu pembayaran, retur tetap periode dicatat.
 
 ## Urutan kerja satu task
 
@@ -92,4 +93,4 @@ AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lal
 - perilaku retry/correction jika fitur itu diserahkan;
 - run test yang mendukung dan keterbatasan yang masih berlaku.
 
-Seluruh 36 operasi dapat diintegrasikan terhadap server development untuk alur utama sesuai status `READY_FOR_FRONTEND` pada OpenAPI. Gunakan mock untuk variasi edge-case yang ditandai `x-deferred-verification`. Milestone G3/G4 masih menyimpan regression dan conformance lanjutan; status handoff frontend tidak menyatakan seluruh gate backend atau deployment production selesai. Lanjutkan dependency yang masih terbuka pada tracker.
+Seluruh 37 operasi dapat diintegrasikan terhadap server development untuk alur utama sesuai status `READY_FOR_FRONTEND` pada OpenAPI. Gunakan mock untuk variasi edge-case yang ditandai `x-deferred-verification`. Milestone G3/G4 masih menyimpan regression dan conformance lanjutan; status handoff frontend tidak menyatakan seluruh gate backend atau deployment production selesai. Lanjutkan dependency yang masih terbuka pada tracker.

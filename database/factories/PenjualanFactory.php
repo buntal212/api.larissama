@@ -33,6 +33,9 @@ class PenjualanFactory extends Factory
             'kembalian' => '0.00',
             'metode_pembayaran' => 'cash',
             'status' => 'selesai',
+            'status_pembayaran' => 'lunas',
+            'dibayar_pada' => fn (array $attributes): mixed => $attributes['tanggal'] ?? now('UTC'),
+            'pembayaran_user_id' => fn (array $attributes): int => (int) $attributes['user_id'],
             'catatan' => null,
         ];
     }

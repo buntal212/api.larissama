@@ -24,8 +24,7 @@ class PenjualanPolicy
             return false;
         }
 
-        return in_array($user->role, ['owner', 'manager'], true)
-            || (int) $user->getKey() === (int) $penjualan->user_id;
+        return true;
     }
 
     /**
@@ -33,7 +32,7 @@ class PenjualanPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['owner', 'kasir'], true) && $user->warung_id !== null;
+        return in_array($user->role, ['owner', 'manager', 'kasir'], true) && $user->warung_id !== null;
     }
 
     /**
@@ -41,6 +40,13 @@ class PenjualanPolicy
      */
     public function update(User $user, Penjualan $penjualan): bool
     {
+        if ($user->warung_id !== null
+            && (int) $user->warung_id === (int) $penjualan->warung_id
+            && $penjualan->status_pembayaran === 'belum_lunas'
+            && in_array($user->role, ['owner', 'manager', 'kasir'], true)) {
+            return true;
+        }
+
         return $this->manageCorrections($user, $penjualan);
     }
 
@@ -73,5 +79,12 @@ class PenjualanPolicy
         return in_array($user->role, ['owner', 'manager'], true)
             && $user->warung_id !== null
             && (int) $user->warung_id === (int) $penjualan->warung_id;
+    }
+
+    public function pay(User $user, Penjualan $penjualan): bool
+    {
+        return $user->warung_id !== null
+            && (int) $user->warung_id === (int) $penjualan->warung_id
+            && in_array($user->role, ['owner', 'manager', 'kasir'], true);
     }
 }

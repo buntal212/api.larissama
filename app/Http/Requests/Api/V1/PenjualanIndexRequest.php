@@ -27,7 +27,8 @@ class PenjualanIndexRequest extends FormRequest
             'sort' => ['sometimes', Rule::in(['-tanggal', 'tanggal'])],
             'date_from' => ['required_with:date_to', 'date_format:Y-m-d', new LocalPeriodUtcMysqlRange($timezone, 'start')],
             'date_to' => ['required_with:date_from', 'date_format:Y-m-d', 'after_or_equal:date_from', new LocalPeriodUtcMysqlRange($timezone, 'end')],
-            'status' => ['sometimes', Rule::in(['selesai', 'batal', 'diretur_sebagian', 'diretur_penuh'])],
+            'status' => ['sometimes', Rule::in(['menunggu_pembayaran', 'selesai', 'batal', 'diretur_sebagian', 'diretur_penuh'])],
+            'status_pembayaran' => ['sometimes', Rule::in(['belum_lunas', 'lunas'])],
         ];
     }
 }

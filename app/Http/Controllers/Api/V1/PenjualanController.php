@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Penjualan\CorrectPenjualan;
 use App\Actions\Penjualan\CreatePenjualan;
+use App\Actions\Penjualan\RecordPenjualanPayment;
 use App\Actions\Penjualan\RecordPenjualanRetur;
 use App\Exceptions\IdempotencyKeyConflictException;
 use App\Exceptions\PenjualanStateConflictException;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\PenjualanCancelRequest;
 use App\Http\Requests\Api\V1\PenjualanIndexRequest;
 use App\Http\Requests\Api\V1\PenjualanKoreksiRequest;
+use App\Http\Requests\Api\V1\PenjualanPembayaranRequest;
 use App\Http\Requests\Api\V1\PenjualanReturRequest;
 use App\Http\Requests\Api\V1\PenjualanStoreRequest;
 use App\Http\Resources\Api\V1\PenjualanKoreksiResource;
@@ -37,12 +39,15 @@ class PenjualanController extends Controller
         $filters = $request->validated();
         $query = Penjualan::query()->where('warung_id', $actor->warung_id);
 
-        if ($actor->role === 'kasir') {
-            $query->where('user_id', $actor->getKey());
-        }
-
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['status_pembayaran'])) {
+            $query->where('status_pembayaran', $filters['status_pembayaran']);
+            if ($filters['status_pembayaran'] === 'belum_lunas') {
+                $query->where('status', 'menunggu_pembayaran');
+            }
         }
 
         if (isset($filters['date_from'], $filters['date_to'])) {
@@ -92,7 +97,7 @@ class PenjualanController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $sale = Penjualan::query()->where('warung_id', $actor->warung_id)->findOrFail($id);
-        Gate::authorize('manageCorrections', $sale);
+        Gate::authorize('update', $sale);
         $key = $this->validatedIdempotencyKey($request);
         if ($key instanceof JsonResponse) {
             return $key;
@@ -109,12 +114,34 @@ class PenjualanController extends Controller
         return response()->json(['data' => (new PenjualanKoreksiResource($event))->resolve($request)], 201);
     }
 
+    public function pay(PenjualanPembayaranRequest $request, string $id, RecordPenjualanPayment $recordPayment): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $sale = Penjualan::query()->where('warung_id', $actor->warung_id)->findOrFail($id);
+        Gate::authorize('pay', $sale);
+        $key = $this->validatedIdempotencyKey($request);
+        if ($key instanceof JsonResponse) {
+            return $key;
+        }
+
+        try {
+            $sale = $recordPayment->execute($actor, (int) $id, $key, $request->validated());
+        } catch (IdempotencyKeyConflictException) {
+            return $this->idempotencyConflict();
+        } catch (PenjualanStateConflictException $exception) {
+            return ApiErrorResponse::make($exception->errorCode, $exception->getMessage(), 409);
+        }
+
+        return response()->json(['data' => (new PenjualanResource($sale))->resolve($request)], 201);
+    }
+
     public function cancel(PenjualanCancelRequest $request, string $id, CorrectPenjualan $correctPenjualan): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $sale = Penjualan::query()->where('warung_id', $actor->warung_id)->findOrFail($id);
-        Gate::authorize('manageCorrections', $sale);
+        Gate::authorize('update', $sale);
         $key = $this->validatedIdempotencyKey($request);
         if ($key instanceof JsonResponse) {
             return $key;
@@ -159,10 +186,6 @@ class PenjualanController extends Controller
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
         $query = Penjualan::query()->where('warung_id', $actor->warung_id)->with('rincian', 'koreksi', 'retur');
-
-        if ($actor->role === 'kasir') {
-            $query->where('user_id', $actor->getKey());
-        }
 
         $sale = $query->findOrFail($id);
         Gate::authorize('view', $sale);

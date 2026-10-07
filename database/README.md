@@ -125,6 +125,7 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
 | `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
 | `no_transaksi` | VARCHAR(50), prefix `PJ-` + ULID; dibuat backend, unique bersama `warung_id` |
+| `nama_pelanggan` | VARCHAR(150), nullable; teks bebas tanpa tabel pelanggan |
 | `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint penjualan saat terisi |
 | `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
 | `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
@@ -135,13 +136,18 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `bayar` | DECIMAL(15,2) |
 | `kembalian` | DECIMAL(15,2), default 0 |
 | `metode_pembayaran` | VARCHAR(30); contoh: `cash`, `qris`, `transfer` |
-| `status` | VARCHAR(20); contoh: `selesai`, `batal` |
+| `dibayar_pada` | DATETIME nullable; waktu pembayaran UTC dan tanggal pendapatan |
+| `pembayaran_user_id` | BIGINT nullable; user tenant yang mencatat pembayaran |
+| `status` | VARCHAR(20); `menunggu_pembayaran`, `selesai`, `batal`, `diretur_sebagian`, atau `diretur_penuh` |
+| `status_pembayaran` | VARCHAR(20), default `lunas`; nilai `belum_lunas` atau `lunas` |
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
 Nomor teknis memakai prefix `PJ-` dan ULID. Kolom internal `idempotency_expires_at` menetapkan window 7 hari sejak request pertama. Selama window, payload kanonis yang sama me-replay response awal dan payload berbeda dengan key sama menghasilkan 409. Setelah expiry, key lama tidak lagi me-replay response dan pemakaian ulang key diproses sebagai request baru. Pengosongan metadata lama bersifat lazy dan ikut transaksi request: bila validasi bisnis menolak request lalu transaksi rollback, metadata expired boleh tetap tersimpan secara fisik, tetapi pencarian berikutnya tetap memperlakukannya sebagai expired. Tidak ada job pembersih berkala; row yang key-nya tidak dipakai ulang tetap utuh. Header transaksi, rincian, dan audit tidak dihapus. Metadata expiry diterapkan pada tabel penjualan, pembelian, dan event koreksi agar fakta historis tetap ada.
 
-Relasi: satu warung dan satu user tenant dapat terkait dengan banyak penjualan. Hanya user tenant yang berwenang membuat transaksi melalui API saat ini; superadmin tidak memiliki jalur transaksi atas nama tenant.
+Relasi: satu warung dan satu user tenant dapat terkait dengan banyak penjualan. Setiap penjualan memiliki user pencatat pada `user_id`; pembayaran dapat dicatat oleh user lain warung yang sama pada `pembayaran_user_id`. Pesanan dibuat tanpa bayar menjadi pending dan dapat diedit hingga pembayaran penuh. Owner/manager/kasir dapat membaca daftar/detail lintas pencatat, serta memfilter status pembayaran. Superadmin tidak memiliki jalur transaksi atas nama tenant.
+
+Migration `2026_10_07_134141_add_unpaid_order_fields_to_penjualans_table` menjaga transaksi lama tetap lunas, lalu mengisi `dibayar_pada` dengan `created_at` dan `pembayaran_user_id` dengan `user_id`. Pembayaran baru menyimpan waktunya sendiri. Koreksi penjualan lunas dibatasi 72 jam sejak `dibayar_pada`; pesanan belum lunas bisa diedit/dibatalkan dengan alasan tanpa batas waktu.
 
 ### `penjualan_rincis`
 
@@ -163,7 +169,7 @@ Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu`
 
 ### `penjualan_koreksis` dan `penjualan_returs`
 
-`penjualan_koreksis` menyimpan setiap koreksi atau pembatalan dalam jendela **3×24 jam (72 jam)** sejak `penjualans.created_at` UTC. Owner dan manager dalam warung yang sama wajib memberi alasan. Snapshot JSON sebelum/sesudah mencatat header dan rincian, sementara `user_id` mengidentifikasi pelaku. Pembatalan mengubah status menjadi `batal`; baris audit tetap append-only.
+`penjualan_koreksis` menyimpan setiap koreksi atau pembatalan. Pesanan belum lunas bisa dikoreksi/dibatalkan kapan saja sebelum pembayaran. Penjualan lunas dapat dikoreksi atau dibatalkan dalam **3×24 jam (72 jam)** sejak `penjualans.dibayar_pada` UTC. Owner dan manager pada transaksi lunas serta role operasional pada pesanan pending wajib memberi alasan. Snapshot JSON sebelum/sesudah mencatat header dan rincian, sementara `user_id` mengidentifikasi pelaku. Pembatalan mengubah status menjadi `batal`; baris audit tetap append-only.
 
 Setelah 72 jam, penjualan tidak dapat dikoreksi atau dibatalkan, tetapi retur nominal sebagian maupun penuh tetap dapat dibuat kapan saja selama transaksi belum dibatalkan atau diretur penuh. Alasan wajib dan total retur tidak boleh melebihi nilai penjualan. Retur tidak mengubah stok. Laporan mengurangi retur pada periode lokal warung ketika retur dicatat, sehingga periode yang hanya berisi retur dapat memiliki pendapatan bersih negatif.
 

@@ -267,7 +267,7 @@ class PenjualanApiTest extends TestCase
         $this->assertDatabaseHas('penjualans', ['id' => $saleB->id, 'user_id' => $cashierB->id]);
     }
 
-    public function test_cashier_can_only_read_own_sales_and_gets_404_for_another_cashiers_sale(): void
+    public function test_cashier_can_read_all_sales_in_their_warung_but_not_another_warung(): void
     {
         $warung = Warung::factory()->create();
         $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
@@ -283,9 +283,8 @@ class PenjualanApiTest extends TestCase
         $list = $this->withToken($token)
             ->getJson('/api/v1/penjualans?'.http_build_query($query))
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', (string) $ownSale->id)
-            ->assertJsonPath('meta.total', 1);
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2);
         $this->assertOperationResponseMatchesOpenApi($list, '/penjualans', 'get');
 
         $ownDetail = $this->withToken($token)->getJson("/api/v1/penjualans/{$ownSale->id}")
@@ -294,7 +293,8 @@ class PenjualanApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($ownDetail, '/penjualans/{id}', 'get');
 
         $otherDetail = $this->withToken($token)->getJson("/api/v1/penjualans/{$otherSale->id}")
-            ->assertNotFound();
+            ->assertOk()
+            ->assertJsonPath('data.id', (string) $otherSale->id);
         $this->assertOperationResponseMatchesOpenApi($otherDetail, '/penjualans/{id}', 'get');
         $this->assertDatabaseHas('penjualans', ['id' => $otherSale->id, 'user_id' => $otherCashier->id]);
     }
@@ -525,7 +525,7 @@ class PenjualanApiTest extends TestCase
         ]);
     }
 
-    public function test_manager_cannot_create_sales(): void
+    public function test_manager_can_create_sales(): void
     {
         $warung = Warung::factory()->create();
         $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
@@ -541,12 +541,12 @@ class PenjualanApiTest extends TestCase
 
         $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
         $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
-            ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->assertCreated()
+            ->assertJsonPath('data.status_pembayaran', 'lunas');
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
 
-        $this->assertDatabaseCount('penjualans', 0);
-        $this->assertDatabaseCount('penjualan_rincis', 0);
+        $this->assertDatabaseCount('penjualans', 1);
+        $this->assertDatabaseCount('penjualan_rincis', 1);
     }
 
     public function test_superadmin_cannot_create_a_sale_for_a_tenant(): void

@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.3-draft
+  version: 0.1.4-draft
   description: >-
-    Status handoff 2026-10-07: 36 operationId berstatus READY_FOR_FRONTEND
+    Status handoff 2026-10-07: 37 operationId tersedia untuk integrasi alur utama; payPenjualan baru melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
     langganan 30 hari, serta operasi koreksi/pembatalan/retur.
     Pengujian edge-case lanjutan dijadwalkan setelah integrasi frontend dimulai;
@@ -21,11 +21,11 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06 menetapkan menu/kategori aktif untuk sale baru, koreksi/pembatalan beralasan sampai 72 jam sejak pencatatan, dan retur nominal penuh/sebagian beralasan setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Implementasi 36 operationId tersedia dan berstatus READY_FOR_FRONTEND untuk alur utama; edge-case tertunda tercatat per operasi.
+    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Implementasi 37 operationId tersedia untuk alur utama; edge-case tertunda tercatat per operasi.
     D17 menambah pendaftaran owner publik yang menunggu persetujuan admin, aktivasi awal 30 tanggal lokal, perpanjangan 30 hari, dan status kedaluwarsa otomatis dari tanggal akhir.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
-    API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory terkini 36 operation pada 24 path dan telah dicocokkan oleh test route terkini;
+    API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory terkini 37 operation pada 25 path dan telah dicocokkan oleh test route terkini;
     pemeriksaan ini adalah inventory terkini; bukti conformance request/response dan kesiapan integrasi tetap per operationId.
     API-PATH-ID-POSITIVE-CONFORMANCE-001 membuktikan seluruh sepuluh operasi ber-parameter {id} memakai
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
@@ -1416,7 +1416,7 @@ paths:
       summary: Riwayat Penjualan
       description: >-
         READY_FOR_FRONTEND untuk alur inti; extended edge-case tercatat untuk susulan. Setiap item berasal
-        dari menu terdaftar; kasir hanya membaca penjualan miliknya, manager membaca seluruh penjualan warung.
+        dari menu terdaftar; owner, manager, dan kasir membaca seluruh penjualan pada warung sendiri.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200 dengan schema. TRANSACTION-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/status pada query sukses terpilih.
         ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response;
         ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 membuktikan per_page=101 ditolak dengan HTTP 422, schema response 422,
@@ -1431,7 +1431,8 @@ paths:
         TRANSACTION-LIST-LOCAL-PERIOD-CONFORMANCE-001 membuktikan batas hari Asia/Jakarta, dan TRANSACTION-LIST-DST-CONFORMANCE-001 membuktikan batas hari DST 23 jam di America/New_York pada kedua list.
         SUPERADMIN-TRANSACTION-LIST-RBAC-CONFORMANCE-001 membuktikan superadmin menerima 403 schema-conformant pada GET dengan transaksi tenant tersedia; `OWNER-TENANT-ACCESS-CONFORMANCE-001` juga menguji owner membaca transaksi di tenant sendiri dan menerima 404 untuk transaksi tenant lain.
         API-END-TO-END-READBACK-001 menguji manager membaca list sale sesudah kasir membuat sale lewat API.
-        CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan list kasir hanya berisi transaksi miliknya dengan meta.total tepat 1.
+        D18 menggantikan batas lama riwayat kasir sendiri: semua role operasional membaca transaksi satu warung; filter
+        status_pembayaran memisahkan antrean pending dan lunas. Alur lintas pencatat diuji pada SalesOrderPaymentApiTest.
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -1516,18 +1517,28 @@ paths:
         schema:
           type: string
           enum:
+          - menunggu_pembayaran
           - selesai
           - batal
           - diretur_sebagian
           - diretur_penuh
         description: Filter status; tanpa filter seluruh status penjualan ditampilkan.
+      - name: status_pembayaran
+        in: query
+        schema:
+          type: string
+          enum: [belum_lunas, lunas]
+        description: Filter status pembayaran. `belum_lunas` hanya menampilkan pesanan yang masih dapat dibayar; pesanan batal tidak ikut antrean pembayaran.
     post:
       operationId: createPenjualan
       tags:
       - Penjualan
       summary: Catat Penjualan
       description: >-
-        Implementasi awal menyimpan header dan rincian atomik; warung/user/nomor/total dari backend.
+        Menyimpan pesanan dan rincian atomik; warung/user/nomor/total dari backend. Jika `bayar` dan
+        `metode_pembayaran` tidak dikirim, pesanan dibuat dengan status menunggu_pembayaran dan dapat diedit
+        sampai lunas. Untuk penjualan langsung di kasir, pasangan pembayaran boleh dikirim dan transaksi langsung lunas.
+        Nama pelanggan bersifat teks bebas dan opsional. `no_transaksi` dari backend menjadi nomor pada nota cetak.
         Kirim Idempotency-Key untuk retry: payload sama me-replay hasil awal dengan HTTP 201, payload berbeda
         memakai key sama menghasilkan 409. D05 diputuskan: harga menu > 0, qty > 0 hingga dua desimal, diskon
         rincian/header tidak lebih besar dari subtotal, cash boleh lebih dari total, QRIS/transfer harus tepat, dan
@@ -1538,7 +1549,7 @@ paths:
         TRANSACTION-REQUEST-CONFORMANCE-001 mencocokkan body/header pada request create/replay/conflict terpilih dan
         tenant-crossing 422 schema-valid (menu_id berupa string). SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 menguji
         payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
-        ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi manager tanpa write.
+        ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 mencatat aturan lama; D18 sekarang memberi hak create kepada manager.
         TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
         schema request melarang field tambahan. SALE-DECIMAL-EXACT-CONFORMANCE-001 membuktikan harga 17.25 × qty 3.00
         menghasilkan subtotal/total 51.75 dan kembalian 8.25 sebagai decimal eksak di response dan MySQL.
@@ -1548,6 +1559,7 @@ paths:
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
+      - manager
       - kasir
       x-blocked-by:
       - D02
@@ -1637,7 +1649,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PenjualanCreate'
             examples:
-              menu:
+              penjualan_langsung_lunas:
                 value:
                   tanggal: '2026-10-04T03:00:00Z'
                   diskon: '2000.00'
@@ -1648,6 +1660,55 @@ paths:
                     qty: '2.00'
                   - menu_id: '1002'
                     qty: '1.00'
+              pesanan_belum_lunas:
+                value:
+                  tanggal: '2026-10-07T10:00:00+07:00'
+                  nama_pelanggan: 'Andi'
+                  rincian:
+                  - menu_id: '1001'
+                    qty: '2.00'
+  /penjualans/{id}/pembayaran:
+    post:
+      operationId: payPenjualan
+      tags: [Penjualan]
+      summary: Lunasi pesanan
+      description: >-
+        Owner, manager, atau kasir di warung yang sama dapat melunasi pesanan menunggu_pembayaran. Pembayaran
+        dilakukan penuh satu kali; cash boleh melebihi total dan menghasilkan kembalian, QRIS/transfer harus tepat.
+        Header menjadi lunas dan menyimpan waktu serta user penerima pembayaran. Retry menggunakan
+        Idempotency-Key selama 7 hari; payload sama me-replay response pembayaran, payload berbeda mendapat 409.
+      x-contract-status: READY_FOR_FRONTEND
+      x-implementation-status: DONE
+      x-candidate-roles: [owner, manager, kasir]
+      x-blocked-by: [D02, D05, D09, D13, D18]
+      x-deferred-verification: "Lanjutkan concurrency pembayaran dan edge-case lebih luas setelah integrasi; alur utama dicakup SalesOrderPaymentApiTest."
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PenjualanPayment'
+            example:
+              bayar: '35000.00'
+              metode_pembayaran: cash
+      responses:
+        '201':
+          description: Pesanan berhasil dilunasi; gunakan response untuk nota lunas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PenjualanResponse'
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
   /penjualans/{id}:
     get:
       operationId: getPenjualan
@@ -1655,7 +1716,7 @@ paths:
       - Penjualan
       summary: Detail Penjualan dan rincian
       description: 'READY_FOR_FRONTEND untuk alur detail inti; detail dibatasi ke warung pengguna dan untuk
-        kasir hanya transaksi miliknya. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; API-END-TO-END-READBACK-001 menguji manager membaca detail sale yang dibuat kasir. CASHIER-SALE-HISTORY-RBAC-CONFORMANCE-001 membuktikan kasir mendapat 200 untuk detail miliknya dan 404 untuk detail kasir lain pada tenant yang sama. Request schema, status lain, dan gate penuh masih terbuka.'
+        semua kasir dalam warung dapat membaca detail lintas pencatat. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; SalesOrderPaymentApiTest membuktikan cashier lain membaca pesanan dan transaksi tenant lain tetap terscope. Request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -1738,14 +1799,15 @@ paths:
       tags: [Penjualan]
       summary: Koreksi penjualan dalam window 72 jam
       description: >-
-        Owner/manager tenant dapat mengoreksi tanggal, catatan, seluruh rincian, diskon, dan pasangan pembayaran
-        dalam 72 jam sejak `created_at` UTC. Alasan wajib, rincian yang dikirim mengganti semua rincian, harga
+        Pesanan belum lunas dapat diedit owner/manager/kasir tanpa batas waktu sampai dibayar. Setelah lunas,
+        owner/manager tenant dapat mengoreksi tanggal, catatan, nama pelanggan, seluruh rincian, dan diskon
+        dalam 72 jam sejak `dibayar_pada` UTC. Alasan wajib, rincian yang dikirim mengganti semua rincian, harga
         menu dibaca server dari menu aktif, aturan D05 tetap berlaku, dan event append-only menyimpan snapshot
         sebelum/sesudah. Setelah window atau setelah retur, koreksi ditolak 409. Idempotency-Key berlaku 7 hari.
         Alur utama koreksi dan tenant boundary siap untuk integrasi frontend.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager]
+      x-candidate-roles: [owner, manager, kasir]
       x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
@@ -1777,13 +1839,13 @@ paths:
       tags: [Penjualan]
       summary: Batalkan penjualan dalam window koreksi
       description: >-
-        Owner/manager tenant dapat membatalkan penjualan tanpa retur dalam 72 jam sejak `created_at` UTC.
-        Alasan wajib; header dan rincian dipertahankan, status menjadi `batal`, dan event append-only menyimpan
+        Pesanan belum lunas dapat dibatalkan owner/manager/kasir kapan saja. Penjualan lunas tanpa retur dapat
+        dibatalkan owner/manager dalam 72 jam sejak `dibayar_pada` UTC. Alasan wajib; header dan rincian dipertahankan, status menjadi `batal`, dan event append-only menyimpan
         snapshot sebelum/sesudah. Penjualan batal dikeluarkan dari laporan dan tidak dapat diretur.
         Idempotency-Key berlaku 7 hari. Alur utama pembatalan dan tenant boundary siap untuk integrasi frontend.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager]
+      x-candidate-roles: [owner, manager, kasir]
       x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
@@ -3206,6 +3268,9 @@ components:
           $ref: '#/components/schemas/Timestamp'
         diskon:
           $ref: '#/components/schemas/Money'
+        nama_pelanggan:
+          type: [string, 'null']
+          maxLength: 150
         bayar:
           $ref: '#/components/schemas/Money'
         metode_pembayaran:
@@ -3224,11 +3289,22 @@ components:
           minItems: 1
       required:
       - tanggal
-      - bayar
-      - metode_pembayaran
       - rincian
-      description: Diskon yang tidak dikirim dianggap 0.00. Diskon nominal tidak boleh melebihi subtotal, termasuk diskon tiap rincian. Setiap rincian penjualan wajib memilih menu terdaftar.
-        total/subtotal/kembalian/user_id/warung_id/no_transaksi/status ditetapkan backend.
+      description: >-
+        Tanpa bayar dan metode_pembayaran, buat pesanan belum lunas. Sertakan keduanya hanya untuk penjualan
+        langsung lunas. Nama pelanggan adalah teks bebas opsional. Diskon yang tidak dikirim dianggap 0.00;
+        subtotal/total/kembalian/user_id/warung_id/no_transaksi/status ditetapkan backend.
+    PenjualanPayment:
+      type: object
+      additionalProperties: false
+      properties:
+        bayar:
+          $ref: '#/components/schemas/Money'
+        metode_pembayaran:
+          type: string
+          enum: [cash, qris, transfer]
+      required: [bayar, metode_pembayaran]
+      description: Pembayaran wajib melunasi seluruh total; cash boleh lebih untuk kembalian, QRIS/transfer harus tepat.
     PenjualanUpdate:
       type: object
       additionalProperties: false
@@ -3243,6 +3319,9 @@ components:
           $ref: '#/components/schemas/Timestamp'
         catatan:
           $ref: '#/components/schemas/Note'
+        nama_pelanggan:
+          type: [string, 'null']
+          maxLength: 150
         diskon:
           $ref: '#/components/schemas/Money'
         bayar:
@@ -3287,7 +3366,13 @@ components:
       properties:
         status:
           type: string
-          enum: [selesai, batal, diretur_sebagian, diretur_penuh]
+          enum: [menunggu_pembayaran, selesai, batal, diretur_sebagian, diretur_penuh]
+        status_pembayaran:
+          type: string
+          enum: [belum_lunas, lunas]
+        nama_pelanggan:
+          type: [string, 'null']
+          maxLength: 150
         tanggal:
           $ref: '#/components/schemas/Timestamp'
         subtotal:
@@ -3301,8 +3386,16 @@ components:
         kembalian:
           $ref: '#/components/schemas/Money'
         metode_pembayaran:
-          type: string
+          type: [string, 'null']
           enum: [cash, qris, transfer]
+        dibayar_pada:
+          anyOf:
+          - $ref: '#/components/schemas/Timestamp'
+          - type: 'null'
+        pembayaran_user_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         catatan:
           $ref: '#/components/schemas/Note'
         rincian:
@@ -3388,6 +3481,9 @@ components:
           type: string
           minLength: 1
           maxLength: 50
+        nama_pelanggan:
+          type: [string, 'null']
+          maxLength: 150
         tanggal:
           $ref: '#/components/schemas/Timestamp'
         subtotal:
@@ -3401,7 +3497,7 @@ components:
         kembalian:
           $ref: '#/components/schemas/Money'
         metode_pembayaran:
-          type: string
+          type: [string, 'null']
           enum:
           - cash
           - qris
@@ -3410,10 +3506,22 @@ components:
         status:
           type: string
           enum:
+          - menunggu_pembayaran
           - selesai
           - batal
           - diretur_sebagian
           - diretur_penuh
+        status_pembayaran:
+          type: string
+          enum: [belum_lunas, lunas]
+        dibayar_pada:
+          anyOf:
+          - $ref: '#/components/schemas/Timestamp'
+          - type: 'null'
+        pembayaran_user_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         catatan:
           $ref: '#/components/schemas/Note'
         created_at:
@@ -3491,6 +3599,9 @@ components:
           type: string
           minLength: 1
           maxLength: 50
+        nama_pelanggan:
+          type: [string, 'null']
+          maxLength: 150
         tanggal:
           $ref: '#/components/schemas/Timestamp'
         subtotal:
@@ -3504,7 +3615,7 @@ components:
         kembalian:
           $ref: '#/components/schemas/Money'
         metode_pembayaran:
-          type: string
+          type: [string, 'null']
           enum:
           - cash
           - qris
@@ -3513,10 +3624,22 @@ components:
         status:
           type: string
           enum:
+          - menunggu_pembayaran
           - selesai
           - batal
           - diretur_sebagian
           - diretur_penuh
+        status_pembayaran:
+          type: string
+          enum: [belum_lunas, lunas]
+        dibayar_pada:
+          anyOf:
+          - $ref: '#/components/schemas/Timestamp'
+          - type: 'null'
+        pembayaran_user_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         catatan:
           $ref: '#/components/schemas/Note'
         created_at:

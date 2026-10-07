@@ -42,6 +42,9 @@ class RecordPenjualanRetur
                     return $this->replayOrFail($existing, $hash);
                 }
 
+                if ($sale->status_pembayaran !== 'lunas') {
+                    throw new PenjualanStateConflictException('PENJUALAN_BELUM_LUNAS', 'Pesanan yang belum lunas tidak dapat diretur.');
+                }
                 if ($sale->status === 'batal') {
                     throw new PenjualanStateConflictException('PENJUALAN_DIBATALKAN', 'Penjualan yang dibatalkan tidak dapat diretur.');
                 }

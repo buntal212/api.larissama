@@ -106,10 +106,12 @@ class CreatePenjualan
 
                 $total = $subtotal->minus($headerDiscount)->toScale(2, RoundingMode::HalfUp);
                 $this->assertDatabaseMoney($total, 'diskon');
-                $paid = BigDecimal::of((string) $input['bayar']);
-                $paymentMethod = (string) $input['metode_pembayaran'];
+                $paidAtCreation = array_key_exists('bayar', $input) && array_key_exists('metode_pembayaran', $input);
+                $paid = BigDecimal::of((string) ($input['bayar'] ?? '0.00'));
+                $paymentMethod = $input['metode_pembayaran'] ?? null;
+                $change = BigDecimal::zero()->toScale(2);
 
-                if ($paymentMethod === 'cash') {
+                if ($paidAtCreation && $paymentMethod === 'cash') {
                     if ($paid->compareTo($total) < 0) {
                         throw ValidationException::withMessages([
                             'bayar' => ['Pembayaran tunai harus sama dengan atau lebih besar dari total.'],
@@ -117,20 +119,17 @@ class CreatePenjualan
                     }
 
                     $change = $paid->minus($total)->toScale(2, RoundingMode::HalfUp);
-                } else {
-                    if ($paid->compareTo($total) !== 0) {
-                        throw ValidationException::withMessages([
-                            'bayar' => ['Pembayaran QRIS/transfer harus sama dengan total.'],
-                        ]);
-                    }
-
-                    $change = BigDecimal::zero()->toScale(2);
+                } elseif ($paidAtCreation && $paid->compareTo($total) !== 0) {
+                    throw ValidationException::withMessages([
+                        'bayar' => ['Pembayaran QRIS/transfer harus sama dengan total.'],
+                    ]);
                 }
 
                 $sale = Penjualan::query()->create([
                     'warung_id' => $actor->warung_id,
                     'user_id' => $actor->getKey(),
                     'no_transaksi' => 'PJ-'.Str::ulid(),
+                    'nama_pelanggan' => $input['nama_pelanggan'] ?? null,
                     'idempotency_key' => $idempotencyKey,
                     'payload_hash' => $payloadHash,
                     'idempotency_expires_at' => $this->idempotencyKeyWindow->expiresAt(),
@@ -138,10 +137,13 @@ class CreatePenjualan
                     'subtotal' => (string) $subtotal->toScale(2, RoundingMode::HalfUp),
                     'diskon' => (string) $headerDiscount->toScale(2),
                     'total' => (string) $total,
-                    'bayar' => (string) $paid->toScale(2),
+                    'bayar' => $paidAtCreation ? (string) $paid->toScale(2) : '0.00',
                     'kembalian' => (string) $change,
                     'metode_pembayaran' => $paymentMethod,
-                    'status' => 'selesai',
+                    'dibayar_pada' => $paidAtCreation ? CarbonImmutable::now('UTC')->toDateTimeString() : null,
+                    'pembayaran_user_id' => $paidAtCreation ? $actor->getKey() : null,
+                    'status' => $paidAtCreation ? 'selesai' : 'menunggu_pembayaran',
+                    'status_pembayaran' => $paidAtCreation ? 'lunas' : 'belum_lunas',
                     'catatan' => $input['catatan'] ?? null,
                 ]);
 
