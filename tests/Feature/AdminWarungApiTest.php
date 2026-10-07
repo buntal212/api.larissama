@@ -30,7 +30,7 @@ class AdminWarungApiTest extends TestCase
         $this->assertEqualsCanonicalizing(['data'], array_keys($body));
         $this->assertEqualsCanonicalizing(['warung', 'owner'], array_keys($body['data']));
         $this->assertEqualsCanonicalizing(
-            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'created_at', 'updated_at'],
+            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'status_langganan', 'created_at', 'updated_at'],
             array_keys($body['data']['warung']),
         );
         $this->assertEqualsCanonicalizing(
@@ -40,7 +40,8 @@ class AdminWarungApiTest extends TestCase
         $this->assertMatchesRegularExpression('/^WRG-[0-9A-HJKMNP-TV-Z]{26}$/', $body['data']['warung']['kode']);
         $this->assertSame($payload['nama'], $body['data']['warung']['nama']);
         $this->assertSame($payload['timezone'], $body['data']['warung']['timezone']);
-        $this->assertTrue($body['data']['warung']['aktif']);
+        $this->assertFalse($body['data']['warung']['aktif']);
+        $this->assertSame('menunggu_persetujuan', $body['data']['warung']['status_langganan']);
         $this->assertIsString($body['data']['warung']['id']);
         $this->assertSame('owner', $body['data']['owner']['role']);
         $this->assertSame($payload['owner']['username'], $body['data']['owner']['username']);
@@ -163,8 +164,6 @@ class AdminWarungApiTest extends TestCase
             'timezone' => 'Asia/Jakarta',
             'alamat' => null,
             'telepon' => null,
-            'tanggal_mulai' => null,
-            'tanggal_berakhir' => null,
             'owner' => [
                 'nama' => 'Owner Uji',
                 'username' => $ownerUsername,

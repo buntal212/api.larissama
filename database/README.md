@@ -67,6 +67,7 @@ Tipe berikut menjelaskan maksud desain. Migration harus memakai tipe Laravel yan
 | `tanggal_mulai` | DATE, nullable pada rancangan |
 | `tanggal_berakhir` | DATE, nullable pada rancangan |
 | `aktif` | BOOLEAN, default true |
+| `pendaftaran_disetujui` | BOOLEAN, default true untuk menjaga data lama; pendaftaran publik dimulai false dan hanya admin platform dapat menyetujuinya |
 | `created_at`, `updated_at` | timestamp |
 
 ### `users`
@@ -251,16 +252,19 @@ Rincian pembelian adalah catatan bebas, bukan master bahan atau catatan stok. `p
 
 ## Batas akses warung
 
-User tenant dapat login dan memakai API hanya jika seluruh kondisi ini terpenuhi:
+User tenant dapat login dan memakai API hanya jika pendaftaran sudah disetujui serta seluruh kondisi ini terpenuhi:
 
 ```text
 user.aktif = TRUE
 warung.aktif = TRUE
+warung.pendaftaran_disetujui = TRUE
 (tanggal_mulai IS NULL OR tanggal_mulai <= tanggal hari ini)
 (tanggal_berakhir IS NULL OR tanggal_berakhir >= tanggal hari ini)
 ```
 
 Pemeriksaan dilakukan saat login dan pada setiap request API terautentikasi agar token lama tidak melewati masa aktif. Batas tanggal terisi bersifat inklusif. User telah menetapkan bahwa `NULL` pada `tanggal_mulai` berarti tidak ada batas mulai dan `NULL` pada `tanggal_berakhir` berarti tidak ada batas akhir (2026-10-04). Status aktif user dan warung tetap wajib.
+
+Pendaftaran publik membuat owner dan warung secara atomik dengan `pendaftaran_disetujui = false`, `aktif = false`, dan tanggal langganan `NULL`. Persetujuan admin mengubah status persetujuan, mengaktifkan warung, dan memberi 30 tanggal lokal inklusif. Perpanjangan admin menambah 30 tanggal setelah tanggal akhir yang masih berlaku; jika sudah kedaluwarsa, masa baru dimulai pada tanggal lokal saat perpanjangan.
 
 ## Keputusan yang harus ditetapkan sebelum kontrak siap frontend
 

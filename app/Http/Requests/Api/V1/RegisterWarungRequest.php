@@ -2,17 +2,16 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Models\Warung;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 #[FailOnUnknownFields]
-class WarungStoreRequest extends FormRequest
+class RegisterWarungRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Warung::class) ?? false;
+        return true;
     }
 
     public function rules(): array

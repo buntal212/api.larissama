@@ -65,12 +65,13 @@ class AdminWarungManagementApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($detail, '/admin/warungs/{id}', 'get');
         $warungResource = $detail->json('data');
         $this->assertEqualsCanonicalizing(
-            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'created_at', 'updated_at'],
+            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'status_langganan', 'created_at', 'updated_at'],
             array_keys($warungResource),
         );
         $this->assertSame((string) $alpha->id, $warungResource['id']);
         $this->assertSame('WRG-ADM-A', $warungResource['kode']);
         $this->assertTrue($warungResource['aktif']);
+        $this->assertSame('aktif', $warungResource['status_langganan']);
 
         $updatePayload = [
             'nama' => 'Alpha Updated',
@@ -88,6 +89,7 @@ class AdminWarungManagementApiTest extends TestCase
         $this->assertSame('Jalan Baru 1', $updated->json('data.alamat'));
         $this->assertSame('America/New_York', $updated->json('data.timezone'));
         $this->assertFalse($updated->json('data.aktif'));
+        $this->assertSame('dinonaktifkan', $updated->json('data.status_langganan'));
         $this->assertDatabaseHas('warungs', [
             'id' => $alpha->id,
             'kode' => 'WRG-ADM-A',
@@ -137,7 +139,7 @@ class AdminWarungManagementApiTest extends TestCase
             ])
             ->assertUnprocessable();
         $this->assertOperationResponseMatchesOpenApi($invalidDates, '/admin/warungs/{id}', 'patch');
-        $this->assertD13ErrorEnvelope($invalidDates, 'VALIDATION_ERROR', 'tanggal_berakhir');
+        $this->assertD13ErrorEnvelope($invalidDates, 'VALIDATION_ERROR');
         $this->assertDatabaseHas('warungs', [
             'id' => $alpha->id,
             'nama' => 'Alpha Updated',
@@ -185,6 +187,30 @@ class AdminWarungManagementApiTest extends TestCase
 
         $this->assertNotEmpty($errors);
         $this->assertStringContainsString('minProperties', implode("\n", $errors));
+    }
+
+    public function test_superadmin_can_filter_registration_queue_without_listing_disabled_approved_warungs(): void
+    {
+        $pending = Warung::factory()->create([
+            'nama' => 'Pendaftaran Menunggu',
+            'aktif' => false,
+            'pendaftaran_disetujui' => false,
+        ]);
+        Warung::factory()->create([
+            'nama' => 'Warung Dinonaktifkan',
+            'aktif' => false,
+            'pendaftaran_disetujui' => true,
+        ]);
+        $token = User::factory()->superadmin()->create()->createToken('pending-warung-list-test')->plainTextToken;
+        $query = ['status_langganan' => 'menunggu_persetujuan'];
+
+        $this->assertOperationQueryMatchesOpenApi($query, '/admin/warungs', 'get');
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/admin/warungs?'.http_build_query($query))
+            ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($response, '/admin/warungs', 'get');
+        $this->assertSame([(string) $pending->id], array_column($response->json('data'), 'id'));
+        $this->assertSame('menunggu_persetujuan', $response->json('data.0.status_langganan'));
     }
 
     /**

@@ -35,8 +35,6 @@ class WarungUpdateRequest extends FormRequest
             'timezone' => ['sometimes', 'required', 'string', 'timezone'],
             'alamat' => ['sometimes', 'nullable', 'string'],
             'telepon' => ['sometimes', 'nullable', 'string', 'min:1', 'max:30'],
-            'tanggal_mulai' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
-            'tanggal_berakhir' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'aktif' => ['sometimes', 'boolean'],
         ];
     }
@@ -53,15 +51,8 @@ class WarungUpdateRequest extends FormRequest
                 return;
             }
 
-            if ($validator->errors()->has('tanggal_mulai') || $validator->errors()->has('tanggal_berakhir')) {
-                return;
-            }
-
-            $startDate = $this->input('tanggal_mulai', $this->targetWarung?->tanggal_mulai?->toDateString());
-            $endDate = $this->input('tanggal_berakhir', $this->targetWarung?->tanggal_berakhir?->toDateString());
-
-            if (is_string($startDate) && is_string($endDate) && $endDate < $startDate) {
-                $validator->errors()->add('tanggal_berakhir', 'Tanggal akhir harus sama atau sesudah tanggal mulai.');
+            if ($this->boolean('aktif')) {
+                $validator->errors()->add('aktif', 'Aktivasi menggunakan endpoint persetujuan atau perpanjangan langganan.');
             }
         }];
     }

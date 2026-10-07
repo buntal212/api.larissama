@@ -24,6 +24,7 @@ class AdminWarungIndexRequest extends FormRequest
             'sort' => ['sometimes', 'string', Rule::in(['nama', '-nama'])],
             'q' => ['sometimes', 'nullable', 'string', 'max:150'],
             'aktif' => ['sometimes', 'nullable', 'string', Rule::in(['true', 'false', '1', '0'])],
+            'status_langganan' => ['sometimes', 'string', Rule::in(['menunggu_persetujuan'])],
         ];
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\LaporanController;
 use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\PembelianController;
 use App\Http\Controllers\Api\V1\PenjualanController;
+use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureValidJsonApiBody;
@@ -18,6 +19,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware([EnsureValidJsonApiBody::class, 'throttle:login'])
         ->name('auth.login');
 
+    Route::post('auth/register', [RegistrationController::class, 'store'])
+        ->middleware([EnsureValidJsonApiBody::class, 'throttle:register'])
+        ->name('auth.register');
+
     Route::middleware(['auth:sanctum', EnsureActiveAccount::class, EnsureValidJsonApiBody::class])->group(function (): void {
         Route::get('auth/me', [AuthController::class, 'me'])->name('auth.me');
         Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
@@ -27,6 +32,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('/', [AdminWarungController::class, 'store'])->name('store');
             Route::get('{id}', [AdminWarungController::class, 'show'])->where('id', '[1-9][0-9]*')->name('show');
             Route::patch('{id}', [AdminWarungController::class, 'update'])->where('id', '[1-9][0-9]*')->name('update');
+            Route::post('{id}/persetujuan', [AdminWarungController::class, 'approve'])->where('id', '[1-9][0-9]*')->name('approve');
+            Route::post('{id}/langganan/perpanjangan', [AdminWarungController::class, 'extendSubscription'])->where('id', '[1-9][0-9]*')->name('subscription.extend');
         });
 
         Route::get('warung', [CurrentWarungController::class, 'show'])->name('warung.current');

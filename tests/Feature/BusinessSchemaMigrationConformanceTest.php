@@ -39,6 +39,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertColumn('warungs', 'timezone', 'varchar', 64, null, null, true);
         $this->assertColumn('warungs', 'tanggal_mulai', 'date', null, null, null, true);
         $this->assertColumn('warungs', 'tanggal_berakhir', 'date', null, null, null, true);
+        $this->assertColumn('warungs', 'pendaftaran_disetujui', 'tinyint', null, 3, 0, false);
         $this->assertColumn('users', 'username', 'varchar', 100, null, null, false);
         $this->assertColumn('users', 'email', 'varchar', 150, null, null, true);
         $this->assertColumn('users', 'warung_id', 'bigint', null, 20, 0, true);
@@ -82,6 +83,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'created_at' => 'timestamp|YES|<NULL>|<NONE>|0',
                 'updated_at' => 'timestamp|YES|<NULL>|<NONE>|0',
                 'timezone' => 'varchar(64)|YES|<NULL>|<NONE>|<NULL>',
+                'pendaftaran_disetujui' => 'tinyint(1)|NO|1|<NONE>|<NULL>',
             ],
             'users' => [
                 'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',

@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'tanggal_mulai',
     'tanggal_berakhir',
     'aktif',
+    'pendaftaran_disetujui',
 ])]
 class Warung extends Model
 {
@@ -42,7 +43,7 @@ class Warung extends Model
 
     public function allowsAccessAt(CarbonImmutable $instantUtc): bool
     {
-        if (! $this->aktif || ! is_string($this->timezone) || $this->timezone === '') {
+        if (! $this->aktif || ! $this->pendaftaran_disetujui || ! is_string($this->timezone) || $this->timezone === '') {
             return false;
         }
 
@@ -56,6 +57,34 @@ class Warung extends Model
             && ($this->tanggal_berakhir === null || $this->tanggal_berakhir->toDateString() >= $date);
     }
 
+    public function subscriptionStatusAt(CarbonImmutable $instantUtc): string
+    {
+        if (! is_string($this->timezone)
+            || ! in_array($this->timezone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
+            return 'konfigurasi_tidak_valid';
+        }
+
+        if (! $this->pendaftaran_disetujui) {
+            return 'menunggu_persetujuan';
+        }
+
+        if (! $this->aktif) {
+            return 'dinonaktifkan';
+        }
+
+        $date = $instantUtc->setTimezone($this->timezone)->toDateString();
+
+        if ($this->tanggal_mulai !== null && $this->tanggal_mulai->toDateString() > $date) {
+            return 'terjadwal';
+        }
+
+        if ($this->tanggal_berakhir !== null && $this->tanggal_berakhir->toDateString() < $date) {
+            return 'kedaluwarsa';
+        }
+
+        return 'aktif';
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -67,6 +96,7 @@ class Warung extends Model
             'tanggal_mulai' => 'date',
             'tanggal_berakhir' => 'date',
             'aktif' => 'boolean',
+            'pendaftaran_disetujui' => 'boolean',
         ];
     }
 }

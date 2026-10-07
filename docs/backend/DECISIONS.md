@@ -38,6 +38,7 @@ Rancangan delapan tabel dan skema migration yang sudah diterapkan ada di [databa
 | D14 | Upload dan perubahan gambar menu | Field `gambar` boleh null sesuai skema; tentukan apakah gambar sekadar reference atau perlu upload/delete API, storage dan validasi. | Endpoint upload/ubah gambar saja |
 | D15 | Vendor dan versi database deployment | User memilih MySQL 8.0.40 sebagai target produksi. Validasi collation, FK, decimal, locking, dan migration integrasi terhadap versi ini sebelum klaim kompatibilitas. | Test integrasi final dan klaim kompatibilitas |
 | D16 | FK gabungan untuk mencegah relasi lintas warung pada tingkat database | User menyetujui FK gabungan berkolom `warung_id` pada seluruh relasi tenant-owned. Migration ini menambah unique key induk `(warung_id, id)` dan mengganti relasi menu-kategori dengan FK gabungan; migration transaksi mengikuti pola yang sama pada header, pencatat, serta rincian. | T-DB-03, G2–G4 |
+| D17 | Pendaftaran owner dan langganan warung | User menetapkan owner mendaftar melalui formulir pendaftaran warung; pendaftaran menunggu persetujuan admin. Admin mengelola seluruh warung di dashboard, menyetujui/mengaktifkan warung, serta menambahkan masa aktif 30 hari. Status kedaluwarsa dihitung otomatis dari tanggal akhir menurut timezone lokal warung dan membatasi login serta request tenant. Untuk kompatibilitas tanggal inklusif yang ada, persetujuan awal memberi 30 tanggal lokal (`hari ini` sampai `hari ini + 29`); perpanjangan yang masih berlaku menambahkan 30 tanggal setelah tanggal akhir, sementara yang sudah kedaluwarsa mulai lagi dari hari lokal saat perpanjangan. | Arahan user, 2026-10-07; implementasi dan contract conformance di BE-106 |
 
 ## Proses penetapan
 
@@ -64,6 +65,7 @@ Rancangan delapan tabel dan skema migration yang sudah diterapkan ada di [databa
 | D14 | OPEN | Belum ditetapkan | Belum ada persetujuan |
 | D15 | DECIDED | MySQL 8.0.40 sebagai target produksi | Jawaban user, 2026-10-04 |
 | D16 | DECIDED | Terapkan FK gabungan dengan `warung_id` untuk relasi tenant-owned | Persetujuan user, 2026-10-04 |
+| D17 | DECIDED | Owner dapat mendaftar warung; status awal menunggu persetujuan admin; admin dapat menyetujui/mengaktifkan dan memberi tambahan masa aktif 30 hari; status kedaluwarsa dihitung otomatis dari tanggal lokal warung dan akses tenant ditolak | Arahan user, 2026-10-07; tanggal inklusif 30 hari dan perpanjangan berkelanjutan dicatat sebagai aturan kontrak BE-106 |
 
 Catatan D13 2026-10-05: keenam GET list menerima `page=9223372036854775807` dengan HTTP 200, `data=[]`, dan metadata total/last_page tetap benar setelah pagination bersama menghindari offset untuk page di luar jangkauan (`ACCESS-PAGINATION-LARGE-PAGE-CONFORMANCE-001`). Page tanpa batas maksimum tercatat pada OpenAPI; `9223372036854775808` juga diterima dan token integer JSON dipertahankan pada keenam list tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`). Keputusan D13 final; runtime conformance yang belum lengkap menjaga status semua operasi tetap DRAFT.
 
@@ -75,7 +77,7 @@ Catatan D16 2026-10-05: test MySQL langsung membuktikan enam composite FK menola
 
 Catatan test bertanggal berikut merekam keadaan pada saat run dilakukan. Status lama di catatan tersebut bersifat historis; paragraf ini dan nilai `x-contract-status` OpenAPI menunjukkan status terkini.
 
-[OpenAPI](../api/openapi.yaml) menjadi kontrak implementasi dan mock terlabel. Status handoff terkini per 2026-10-06: seluruh 33 operationId `READY_FOR_FRONTEND` untuk alur utama pada server development, termasuk lima operasi koreksi/pembatalan/retur D06/D11. Lihat `x-contract-status` dan `x-deferred-verification`; uji edge-case lanjutan dikerjakan setelah frontend mulai integrasi atau melaporkan mismatch. Production/TLS belum disiapkan. Keputusan identitas fresh install sudah final; guard data lama tetap berlaku di luar target produksi kosong. AI frontend menggunakan base URL `http://localhost:8010/api/v1` untuk endpoint READY dan memeriksa [tracker](../../IMPLEMENTATION_PROGRESS.md).
+[OpenAPI](../api/openapi.yaml) menjadi kontrak implementasi. Per 2026-10-07, 36 operationId tersedia untuk integrasi alur utama pada server development; tiga operasi pendaftaran/persetujuan/langganan ditambahkan pada D17. Lihat `x-contract-status` dan `x-deferred-verification`; uji edge-case tetap dicatat per operasi. Production/TLS belum disiapkan. AI frontend menggunakan base URL `http://localhost:8010/api/v1` dan memeriksa [tracker](../../IMPLEMENTATION_PROGRESS.md).
 
 Catatan D04 2026-10-05: `CURRENT-WARUNG-API-ACCEPTANCE-001` membuktikan manager/kasir dapat membaca profil tenant sendiri, superadmin menerima 403, dan anonim 401; response terpilih cocok schema. Keputusan user berikutnya mengizinkan owner membaca profil tenant dan semua operasi tenant lain; bukti role owner masih perlu dijalankan sehingga operasi tetap DRAFT.
 

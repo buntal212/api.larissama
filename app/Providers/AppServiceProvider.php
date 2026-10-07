@@ -49,5 +49,9 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by(hash('sha256', $username.'|'.$ipAddress));
         });
+
+        RateLimiter::for('register', static function (Request $request): Limit {
+            return Limit::perMinute(5)->by((string) $request->ip());
+        });
     }
 }

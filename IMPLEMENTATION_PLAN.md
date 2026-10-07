@@ -1,6 +1,6 @@
 # Rencana Pelaksanaan Backend LarisSama
 
-Status: rencana pelaksanaan yang diperbarui 2026-10-06. D06 menambah tiga operationId penjualan (koreksi, pembatalan, retur); kontrak kini berisi 33 handler. Seluruh 33 operationId sudah `READY_FOR_FRONTEND` untuk alur utama pada server development, termasuk perubahan/retur transaksi. Edge-case conformance lanjutan dan regression G3/G4 tetap dicatat pada tracker dan OpenAPI, untuk dilanjutkan bersama laporan integrasi frontend. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
+Status: rencana pelaksanaan yang diperbarui 2026-10-07. D17 menambah pendaftaran owner publik, persetujuan platform, serta pengelolaan masa aktif 30 hari; kontrak kini berisi 36 handler. Alur utama siap diintegrasikan dari server development, sedangkan edge-case per operationId dan regression G3/G4 tetap tercatat untuk tindak lanjut bersama frontend. Backend Laravel menjadi tanggung jawab repo ini; AI/pengembang frontend menerima kontrak dan contoh integrasi yang jelas.
 
 ## Dokumen yang dipakai
 
@@ -13,7 +13,7 @@ Status: rencana pelaksanaan yang diperbarui 2026-10-06. D06 menambah tiga operat
 | [openapi.yaml](docs/api/openapi.yaml) | Bentuk wire API kandidat, parameter, schema, contoh, status, dan keputusan pemblokir per operasi. |
 | [panduan API](docs/api/README.md) | Petunjuk AI frontend, alur integrasi, null/decimal/errors, dan changelog kontrak. |
 | [TEST_PLAN.md](docs/backend/TEST_PLAN.md) | Skenario, fixture sintetis, expected result, gate, dan format pencatatan test. |
-| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 29 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
+| [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md) | 30 task, dependency, acceptance, status aktual, commit, run test, dan handoff. |
 | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Proses kerja per slice dan aturan commit berdasarkan kelompok perubahan terkait. |
 
 Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah catatan progres; keputusan berada di register; payload berada di OpenAPI. Jika salah satu berubah, perbarui artefak terkait secara eksplisit dan commit file yang saling terkait sebagai satu kelompok.
@@ -62,6 +62,8 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 
 Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Pilihan MySQL 8.0.40, auth, baseline nominal, Idempotency-Key, dan FK tenant gabungan sudah dicatat; rincian tersisa tetap menjadi gate sebelum kontrak siap frontend. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.
 
+5. D17: pendaftaran owner publik mulai nonaktif dan menunggu persetujuan; aksi admin menyetujui dengan langganan awal 30 hari, atau menambah 30 hari pada langganan yang sudah disetujui. Status kedaluwarsa dihitung pada tanggal lokal warung saat login, request tenant, dan serialisasi resource. Frontend memakai `status_langganan` dari response, bukan menghitungnya sendiri.
+
 ## Urutan kerja satu task
 
 1. Baca aturan, task/dependency, keputusan, status Git, dan contract operationId yang terkait.
@@ -90,4 +92,4 @@ AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lal
 - perilaku retry/correction jika fitur itu diserahkan;
 - run test yang mendukung dan keterbatasan yang masih berlaku.
 
-Seluruh 33 operasi dapat diintegrasikan langsung terhadap server development untuk alur utama sesuai status `READY_FOR_FRONTEND` pada OpenAPI. Gunakan mock untuk variasi edge-case yang ditandai `x-deferred-verification`. Milestone G3/G4 masih menyimpan regression dan conformance lanjutan; status handoff frontend tidak menyatakan seluruh gate backend atau deployment production selesai. Lanjutkan dependency yang masih terbuka pada tracker.
+Seluruh 36 operasi dapat diintegrasikan terhadap server development untuk alur utama sesuai status `READY_FOR_FRONTEND` pada OpenAPI. Gunakan mock untuk variasi edge-case yang ditandai `x-deferred-verification`. Milestone G3/G4 masih menyimpan regression dan conformance lanjutan; status handoff frontend tidak menyatakan seluruh gate backend atau deployment production selesai. Lanjutkan dependency yang masih terbuka pada tracker.

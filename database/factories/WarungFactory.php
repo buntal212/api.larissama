@@ -27,6 +27,7 @@ class WarungFactory extends Factory
             'tanggal_mulai' => null,
             'tanggal_berakhir' => null,
             'aktif' => true,
+            'pendaftaran_disetujui' => true,
         ];
     }
 }

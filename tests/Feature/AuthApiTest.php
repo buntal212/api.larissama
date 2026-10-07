@@ -432,7 +432,7 @@ class AuthApiTest extends TestCase
     private function assertWarungResource(array $warungResource, Warung $warung): void
     {
         $this->assertEqualsCanonicalizing(
-            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'created_at', 'updated_at'],
+            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'status_langganan', 'created_at', 'updated_at'],
             array_keys($warungResource),
         );
         $this->assertSame((string) $warung->id, $warungResource['id']);

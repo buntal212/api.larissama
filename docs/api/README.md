@@ -1,25 +1,25 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.2-draft**, 2026-10-06. [openapi.yaml](openapi.yaml) berisi 33 operasi pada 21 path, termasuk koreksi/pembatalan pembelian dan koreksi/pembatalan/retur penjualan. Baseline wire D13 yang disetujui: `/api/v1`, ID dan decimal berupa string, response `data/meta`, `page` integer minimum 1 tanpa batas maksimum, `per_page` 1–100, sort allowlist, dan error `code/message/errors/request_id`. Suite backend terakhir lulus 534 test / 81.620 assertions dalam 49,45 detik pada MySQL 8.0.40; OpenAPI 3.1 validator lulus. Handoff: **33/33 operasi `READY_FOR_FRONTEND`** untuk integrasi bertahap pada server lokal. Pengujian edge-case tambahan tetap dicatat per operationId dan dapat dilanjutkan bersama frontend. Base URL lokal `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.3-draft**, 2026-10-07. [openapi.yaml](openapi.yaml) berisi 36 operasi pada 24 path. Perubahan terbaru menambahkan pendaftaran owner publik, persetujuan warung, dan perpanjangan langganan 30 hari; ketiganya sudah punya handler dan test fokus, sedangkan pengujian edge-case lanjutan tetap terbuka per operationId. 33 operasi transaksi, katalog, akses, dan laporan yang sudah ada tetap tersedia. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
 
-`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa bahwa inventaris operasi memiliki `operationId` unik dan response map, serta semua `$ref` JSON Pointer lokal dapat di-resolve ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal berisi 28 operasi; D11 menambah dua operasi pembelian dan D06 menambah tiga operasi penjualan, sehingga OpenAPI kini berisi 33 operasi pada 21 path. Pemeriksaan ini bersifat struktural dan tidak menggantikan test runtime; status integrasi ditandai per operationId. Semua operasi telah dibuka untuk alur utama; edge-case tertunda ditulis pada `x-deferred-verification`.
+`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal 28 operasi ditambah dua koreksi pembelian, tiga operasi penjualan, dan tiga operasi pendaftaran/langganan menjadi 36 operasi pada 24 path.
 
 ## Implementasi backend dan status kontrak
 
-Frontend dapat mulai live integration untuk seluruh 33 operasi: auth/admin, katalog, transaksi dan laporan, termasuk koreksi/pembatalan/retur penjualan serta koreksi/pembatalan pembelian. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
+Frontend dapat mulai integrasi alur utama melalui 36 operasi: termasuk pendaftaran owner dan pengelolaan langganan admin. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
 
 `x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. Semua operasi saat ini `READY_FOR_FRONTEND`; `x-deferred-verification` menandai pemeriksaan edge-case yang masih dapat dilanjutkan.
 
-Implementasi handler tersedia untuk seluruh 33 operationId:
+Implementasi handler tersedia untuk seluruh 36 operationId:
 
-- Auth: `login`, `getCurrentUser`, `logout`.
-- Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `getCurrentWarung`.
+- Auth: `registerWarungOwner`, `login`, `getCurrentUser`, `logout`.
+- Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `approveWarungRegistration`, `extendWarungSubscription`, `getCurrentWarung`.
 - User: `listUsers`, `createUser`, `getUser`, `updateUser`.
 - Katalog: `listKategoriMenus`, `createKategoriMenu`, `getKategoriMenu`, `updateKategoriMenu`, `listMenus`, `createMenu`, `getMenu`, `updateMenu`.
 - Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `updatePenjualan`, `cancelPenjualan`, `createPenjualanRetur`, `getLaporanPenjualan`.
 - Pembelian/laporan: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
 
-Semua 33 `x-implementation-status` bernilai `DONE`. Seluruh 33 operasi berstatus `READY_FOR_FRONTEND` untuk alur utama pada server dev; pemeriksaan edge-case lanjutan tetap terbuka. Status task/gate lanjutan ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md); urutan milestone dan dependency backend ada di [IMPLEMENTATION_PLAN.md](../../IMPLEMENTATION_PLAN.md).
+Semua 36 handler tersedia. Status kontrak per operationId pada OpenAPI menjadi acuan handoff; operasi baru pendaftaran/langganan telah diuji pada alur utama. Status task/gate serta bukti test ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md).
 
 ## Validasi spesifikasi
 
@@ -29,7 +29,16 @@ Seluruh contoh inline request/response diuji terhadap schema OpenAPI tiap operas
 
 ## Kode Warung dan Menu
 
-`POST /api/v1/admin/warungs` hanya menerima data profil warung dan owner awal. Jangan kirim `kode`: properti itu bukan bagian dari request create, dan server akan menolak field tambahan dengan `422 VALIDATION_ERROR`. Backend membuat kode format `WRG-` diikuti ULID 26 karakter, menyimpannya sebagai unik global, lalu mengembalikannya sebagai `data.warung.kode` pada response `201`. Gunakan nilai response tersebut untuk menampilkan atau mencari warung. Superadmin masih dapat mengubah kode melalui `PATCH /api/v1/admin/warungs/{id}`; pemeriksaan unik global tetap dilakukan backend.
+`POST /api/v1/admin/warungs` (superadmin) dan `POST /api/v1/auth/register` (owner publik) sama-sama membuat warung serta akun owner secara atomik dalam status menunggu persetujuan. Jangan kirim `kode`, tanggal langganan, atau flag aktif; backend membuat kode `WRG-<ULID>`. Owner yang mendaftar belum dapat login sampai admin menyetujui. Kode warung dikembalikan pada `data.warung.kode` dan unik global.
+
+## Pendaftaran owner dan langganan warung
+
+1. Form pendaftaran frontend mengirim `POST /api/v1/auth/register` dengan profil warung (`nama`, `timezone`, opsional `alamat`/`telepon`) serta data owner (`nama`, `username`, opsional `email`, `password`). Username/email lowercase dan unik global; password minimal 8 karakter.
+2. Response `201` memuat `data.warung`, `data.owner`, dan `data.status_pendaftaran: menunggu_persetujuan`. Jangan mengirim user otomatis ke dashboard tenant; tampilkan bahwa pendaftaran menunggu admin. Login owner menghasilkan `403 FORBIDDEN` selama persetujuan belum diberikan.
+3. Dashboard admin memuat `GET /api/v1/admin/warungs?status_langganan=menunggu_persetujuan`. Setiap item menyediakan `status_langganan` dan tanggal masa aktif.
+4. Tombol setujui memanggil `POST /api/v1/admin/warungs/{id}/persetujuan`. Masa pertama adalah 30 tanggal lokal secara inklusif: mulai hari persetujuan, berakhir pada hari ke-30. Status menjadi `aktif`; owner dapat login.
+5. Tombol tambah 30 hari memanggil `POST /api/v1/admin/warungs/{id}/langganan/perpanjangan`. Jika belum kedaluwarsa, tanggal akhir bertambah 30 hari setelah tanggal akhir lama. Jika sudah lewat, langganan mulai hari lokal saat aksi dan berlaku 30 tanggal inklusif.
+6. Backend menghitung `status_langganan` otomatis saat response dibentuk. Lewat tanggal akhir lokal, status menjadi `kedaluwarsa`; login dan request tenant ditolak tanpa job terjadwal. `PATCH /admin/warungs/{id}` tetap boleh mengatur `aktif: false` untuk menonaktifkan manual, tetapi aktivasi dan tanggal langganan harus melalui endpoint khusus.
 
 Contoh minimum body create:
 
@@ -37,8 +46,6 @@ Contoh minimum body create:
 {
   "nama": "Warung A",
   "timezone": "Asia/Jakarta",
-  "tanggal_mulai": null,
-  "tanggal_berakhir": null,
   "owner": {
     "nama": "Pemilik A",
     "username": "owner_a",
@@ -72,7 +79,7 @@ Qty tanpa harga satuan, harga satuan tanpa qty, atau baris ringkas tanpa subtota
 
 ## Status implementasi backend dan lingkungan lokal
 
-Semua 33 handler dan operasi berstatus `READY_FOR_FRONTEND` untuk integrasi bertahap dari server dev, termasuk koreksi/pembatalan/retur. Field `x-deferred-verification` mencatat pengujian lanjutan yang ditunda. Integrasi berjalan dengan [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md).
+Semua 36 handler dan operasi berstatus `READY_FOR_FRONTEND` untuk integrasi bertahap dari server dev, termasuk pendaftaran/persetujuan/langganan serta koreksi/pembatalan/retur. Field `x-deferred-verification` mencatat pengujian lanjutan yang ditunda. Integrasi berjalan dengan [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md).
 
 API dev Docker yang sedang tersedia memakai base URL `http://localhost:8010/api/v1`; status app: `http://localhost:8010/up`; MySQL development: `localhost:33309`. Ketiga migration yang tertunda sudah diterapkan pada database dev dan seluruh 17 migration berstatus `Ran`. Ini environment development lokal, bukan environment integrasi atau production.
 
@@ -85,7 +92,7 @@ Baseline backend terakhir terverifikasi dengan suite 534/81.620 pada MySQL 8.0.4
 1. Baca panduan ini untuk istilah, bentuk data, alur, dan batas integrasi.
 2. Cari operationId pada OpenAPI. Periksa `x-contract-status`, `x-implementation-status`, `x-candidate-roles`, dan `x-blocked-by`.
 3. Periksa status handoff, environment, versi kontrak, dan bukti test pada [IMPLEMENTATION_PROGRESS.md](../../IMPLEMENTATION_PROGRESS.md).
-4. Seluruh 33 operationId berstatus READY_FOR_FRONTEND untuk alur utama; gunakan API dev lokal dan ikuti `x-deferred-verification` saat memprioritaskan pengujian tambahan.
+4. Gunakan status terkini per operationId pada OpenAPI dan ikuti `x-deferred-verification` saat memprioritaskan pengujian tambahan.
 5. Jika field/perilaku belum jelas, lihat keputusan Dxx pada [DECISIONS.md](../backend/DECISIONS.md); laporkan gap kontrak pada task backend terkait.
 
 ### Koordinasi agar pekerjaan tidak tumpang tindih
@@ -96,7 +103,7 @@ Kolom database bukan payload API otomatis. Semua contoh ID, warung, bahan, token
 
 ## UI frontend yang aman dikerjakan sekarang
 
-Status kontrak: seluruh 33 operasi READY_FOR_FRONTEND untuk integrasi bertahap di server development. Frontend dapat menghubungkan semua slice, termasuk koreksi/pembatalan/retur. Gunakan mock untuk variasi edge-case yang belum tercakup, sesuai catatan OpenAPI.
+Status kontrak dan handoff tiap operasi mengikuti `x-contract-status` di OpenAPI. Pendaftaran publik dan layar persetujuan/perpanjangan admin kini memiliki endpoint backend dan dapat diintegrasikan; gunakan `x-deferred-verification` untuk memilih edge-case yang masih perlu dilengkapi.
 
 | Slice UI | Bisa dimulai | Batas yang perlu diikuti |
 | --- | --- | --- |
@@ -149,17 +156,20 @@ Keputusan D04: superadmin mengelola warung pada jalur platform dan tidak otomati
 
 ## Daftar operasi
 
-Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI: seluruh 33 operasi READY_FOR_FRONTEND.
+Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI; 36 operasi telah dibuka untuk alur utama.
 
 | Area / operasi | Method dan path | operationId | Akses kandidat | Status handoff |
 | --- | --- | --- | --- | --- |
 | Login | POST /auth/login | login | Publik, rate limited | READY_FOR_FRONTEND |
+| Daftar owner/warung | POST /auth/register | registerWarungOwner | Publik, rate limited | READY_FOR_FRONTEND |
 | Profil dan warung aktif | GET /auth/me | getCurrentUser | User aktif | READY_FOR_FRONTEND |
 | Logout | POST /auth/logout | logout | Bearer token user aktif; mencabut token aktif saja | READY_FOR_FRONTEND |
 | Daftar warung | GET /admin/warungs | listWarungs | superadmin | READY_FOR_FRONTEND |
 | Warung + owner awal | POST /admin/warungs | createWarung | superadmin | READY_FOR_FRONTEND |
 | Detail warung | GET /admin/warungs/{id} | getWarung | superadmin | READY_FOR_FRONTEND |
 | Ubah warung | PATCH /admin/warungs/{id} | updateWarung | superadmin | READY_FOR_FRONTEND |
+| Setujui pendaftaran dan mulai 30 hari | POST /admin/warungs/{id}/persetujuan | approveWarungRegistration | superadmin | READY_FOR_FRONTEND |
+| Tambah masa aktif 30 hari | POST /admin/warungs/{id}/langganan/perpanjangan | extendWarungSubscription | superadmin | READY_FOR_FRONTEND |
 | Profil warung sendiri | GET /warung | getCurrentWarung | owner/manager/kasir dalam tenant token, superadmin 403. Run historis menguji manager/kasir/superadmin/anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` juga menguji profil owner | READY_FOR_FRONTEND |
 | Daftar user | GET /users | listUsers | owner | READY_FOR_FRONTEND |
 | Tambah user | POST /users | createUser | owner | READY_FOR_FRONTEND |
@@ -197,7 +207,7 @@ Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier sete
 
 Nomor transaksi implementasi sementara adalah `PJ-<ULID>` dan `PB-<ULID>`; jangan mengasumsikan format permanen sebelum bukti concurrency D09 lengkap.
 
-Tidak ada kontrak endpoint delete transaksi, koreksi pembelian, upload gambar, atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06. Semua 33 operasi tersedia untuk integrasi bertahap ke server development. Penjualan hanya memilih menu terdaftar; tidak ada input item bebas.
+Tidak ada kontrak endpoint delete transaksi, upload gambar, atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Semua 36 operasi tersedia untuk integrasi bertahap ke server development. Penjualan hanya memilih menu terdaftar; tidak ada input item bebas.
 
 ## Alur layar dan contoh
 
@@ -296,7 +306,7 @@ Sukses create adalah 201, read/update/login 200, logout 204 tanpa JSON body. Jan
 
 Untuk prioritas kerja saat ini, operasi dapat berstatus `READY_FOR_FRONTEND` setelah keputusan inti final, endpoint dan alur utama diuji secara fungsional/tenant, serta contoh utama cocok dengan schema. Pengujian kombinasi error dan edge-case yang kompleks dapat menyusul setelah frontend mulai integrasi. Tracker tetap mencatat status, versi spec, base URL dev, auth, bukti yang tersedia, dan test yang ditunda.
 
-Checklist penerima: login/me/logout, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, koreksi/pembatalan/retur, pembelian ringkas, laporan kosong, dan kegagalan jaringan. Seluruh 33 operasi sudah READY_FOR_FRONTEND untuk alur utama; uji edge-case dapat menyusul.
+Checklist penerima: pendaftaran owner dan pesan menunggu persetujuan, approval/perpanjangan admin, login/me/logout, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, koreksi/pembatalan/retur, pembelian ringkas, laporan kosong, dan kegagalan jaringan. Seluruh 36 operasi tersedia untuk alur utama; uji edge-case dapat menyusul.
 
 Batas periode lokal pada empat GET daftar/laporan dikonversi ke UTC lalu divalidasi terhadap MySQL `DATETIME` tahun 1000–9999. Batas yang meluap ditolak 422 sebelum query bisnis; batas aman tetap diterima ([TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001.md)).
 
@@ -306,6 +316,7 @@ Penjualan baru dan rincian koreksi hanya menerima menu aktif di kategori aktif. 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
+| 0.1.3-draft | DRAFT | Menambahkan pendaftaran owner publik, filter antrean persetujuan, aktivasi 30 hari, status langganan turunan, dan endpoint perpanjangan 30 hari. Tanggal langganan hanya dapat diubah lewat aksi admin. |
 | 0.1.2-draft | DRAFT | `POST /menus` tidak menerima `kode`; backend menghasilkan `MNL-<ULID>` dan mengembalikannya pada response. |
 | 0.1.1-draft | DRAFT | `POST /admin/warungs` tidak menerima `kode`; backend menghasilkan `WRG-<ULID>` dan mengembalikannya pada response. PATCH warung tetap mengizinkan superadmin mengubah kode. |
 | 0.1.0-draft | DRAFT | Seluruh 33 operasi READY_FOR_FRONTEND untuk integrasi bertahap pada server development. Edge-case lanjutan dicatat per operasi dan dilanjutkan setelah integrasi frontend dimulai. |

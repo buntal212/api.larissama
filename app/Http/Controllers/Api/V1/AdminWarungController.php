@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Admin\ApproveWarung;
+use App\Actions\Admin\ExtendWarungSubscription;
 use App\Actions\Admin\ProvisionWarung;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\AdminWarungIndexRequest;
@@ -38,6 +40,13 @@ class AdminWarungController extends Controller
 
         if ($active !== null) {
             $query->where('aktif', $active);
+        }
+
+        if (($filters['status_langganan'] ?? null) === 'menunggu_persetujuan') {
+            $query->where('aktif', false)
+                ->where('pendaftaran_disetujui', false)
+                ->whereNull('tanggal_mulai')
+                ->whereNull('tanggal_berakhir');
         }
 
         $sort = $filters['sort'] ?? 'nama';
@@ -83,6 +92,28 @@ class AdminWarungController extends Controller
 
         $warung->fill($request->validated());
         $warung->save();
+
+        return response()->json([
+            'data' => (new WarungResource($warung))->resolve($request),
+        ]);
+    }
+
+    public function approve(Request $request, string $id, ApproveWarung $approveWarung): JsonResponse
+    {
+        Gate::authorize('viewAny', Warung::class);
+        $warung = Warung::query()->findOrFail($id);
+        $warung = $approveWarung->execute($warung);
+
+        return response()->json([
+            'data' => (new WarungResource($warung))->resolve($request),
+        ]);
+    }
+
+    public function extendSubscription(Request $request, string $id, ExtendWarungSubscription $extendWarungSubscription): JsonResponse
+    {
+        Gate::authorize('viewAny', Warung::class);
+        $warung = Warung::query()->findOrFail($id);
+        $warung = $extendWarungSubscription->execute($warung);
 
         return response()->json([
             'data' => (new WarungResource($warung))->resolve($request),

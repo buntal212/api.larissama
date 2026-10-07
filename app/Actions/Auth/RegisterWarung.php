@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Actions\Admin;
+namespace App\Actions\Auth;
 
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class ProvisionWarung
+class RegisterWarung
 {
     /**
      * @param  array{
@@ -25,16 +25,20 @@ class ProvisionWarung
             $ownerAttributes = $attributes['owner'];
             unset($attributes['owner']);
 
-            $attributes['kode'] = 'WRG-'.Str::ulid();
-            $attributes['tanggal_mulai'] = null;
-            $attributes['tanggal_berakhir'] = null;
-            $attributes['aktif'] = false;
-            $attributes['pendaftaran_disetujui'] = false;
-            $warung = Warung::query()->create($attributes);
+            $warung = Warung::query()->create([
+                ...$attributes,
+                'kode' => 'WRG-'.Str::ulid(),
+                'tanggal_mulai' => null,
+                'tanggal_berakhir' => null,
+                'aktif' => false,
+                'pendaftaran_disetujui' => false,
+            ]);
 
-            $ownerAttributes['role'] = 'owner';
-            $ownerAttributes['aktif'] = true;
-            $owner = $warung->users()->create($ownerAttributes);
+            $owner = $warung->users()->create([
+                ...$ownerAttributes,
+                'role' => 'owner',
+                'aktif' => true,
+            ]);
 
             return [
                 'warung' => $warung,
