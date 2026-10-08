@@ -26,20 +26,22 @@ class CorrectPembelian
     ) {}
 
     /** @param array<string, mixed> $input */
-    public function update(User $actor, int $purchaseId, string $idempotencyKey, array $input): PembelianKoreksi
+    public function update(User $actor, int $purchaseId, string $idempotencyKey, array $input, ?int $targetWarungId = null): PembelianKoreksi
     {
-        return $this->change($actor, $purchaseId, 'ubah', $idempotencyKey, $input);
+        return $this->change($actor, $purchaseId, 'ubah', $idempotencyKey, $input, $targetWarungId);
     }
 
     /** @param array<string, mixed> $input */
-    public function cancel(User $actor, int $purchaseId, string $idempotencyKey, array $input): PembelianKoreksi
+    public function cancel(User $actor, int $purchaseId, string $idempotencyKey, array $input, ?int $targetWarungId = null): PembelianKoreksi
     {
-        return $this->change($actor, $purchaseId, 'batalkan', $idempotencyKey, $input);
+        return $this->change($actor, $purchaseId, 'batalkan', $idempotencyKey, $input, $targetWarungId);
     }
 
     /** @param array<string, mixed> $input */
-    private function change(User $actor, int $purchaseId, string $kind, string $idempotencyKey, array $input): PembelianKoreksi
+    private function change(User $actor, int $purchaseId, string $kind, string $idempotencyKey, array $input, ?int $targetWarungId): PembelianKoreksi
     {
+        $warungId = $targetWarungId ?? (int) ($input['warung_id'] ?? $actor->warung_id);
+        $superadminActor = $actor->role === 'superadmin';
         $payloadHash = $this->payloadHasher->hash([
             'pembelian_id' => (string) $purchaseId,
             'jenis' => $kind,
@@ -47,20 +49,20 @@ class CorrectPembelian
         ]);
 
         try {
-            return DB::transaction(function () use ($actor, $purchaseId, $kind, $idempotencyKey, $input, $payloadHash): PembelianKoreksi {
-                $existing = $this->findByKey($actor, $kind, $idempotencyKey);
+            return DB::transaction(function () use ($actor, $warungId, $superadminActor, $purchaseId, $kind, $idempotencyKey, $input, $payloadHash): PembelianKoreksi {
+                $existing = $this->findByKey($actor, $warungId, $kind, $idempotencyKey);
 
                 if ($existing instanceof PembelianKoreksi) {
                     return $this->replayOrFail($existing, $payloadHash);
                 }
 
                 $purchase = Pembelian::query()
-                    ->where('warung_id', $actor->warung_id)
+                    ->where('warung_id', $warungId)
                     ->lockForUpdate()
                     ->with('rincian')
                     ->findOrFail($purchaseId);
 
-                $existing = $this->findByKey($actor, $kind, $idempotencyKey);
+                $existing = $this->findByKey($actor, $warungId, $kind, $idempotencyKey);
 
                 if ($existing instanceof PembelianKoreksi) {
                     return $this->replayOrFail($existing, $payloadHash);
@@ -79,9 +81,10 @@ class CorrectPembelian
                     : $this->updatePurchase($purchase, $before, $input);
 
                 return PembelianKoreksi::query()->create([
-                    'warung_id' => $actor->warung_id,
+                    'warung_id' => $warungId,
                     'pembelian_id' => $purchase->getKey(),
-                    'user_id' => $actor->getKey(),
+                    'user_id' => $superadminActor ? null : $actor->getKey(),
+                    'superadmin_id' => $superadminActor ? $actor->getKey() : null,
                     'jenis' => $kind,
                     'alasan' => $input['alasan'],
                     'sebelum' => $before,
@@ -96,7 +99,7 @@ class CorrectPembelian
                 throw $exception;
             }
 
-            $existing = $this->findByKey($actor, $kind, $idempotencyKey);
+            $existing = $this->findByKey($actor, $warungId, $kind, $idempotencyKey);
 
             if (! $existing instanceof PembelianKoreksi) {
                 throw $exception;
@@ -243,11 +246,11 @@ class CorrectPembelian
         ];
     }
 
-    private function findByKey(User $actor, string $kind, string $idempotencyKey): ?PembelianKoreksi
+    private function findByKey(User $actor, int $warungId, string $kind, string $idempotencyKey): ?PembelianKoreksi
     {
         $correction = PembelianKoreksi::query()
-            ->where('warung_id', $actor->warung_id)
-            ->where('user_id', $actor->getKey())
+            ->where('warung_id', $warungId)
+            ->where($actor->role === 'superadmin' ? 'superadmin_id' : 'user_id', $actor->getKey())
             ->where('jenis', $kind)
             ->where('idempotency_key', $idempotencyKey)
             ->lockForUpdate()

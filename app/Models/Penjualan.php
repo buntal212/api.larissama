@@ -10,9 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'warung_id', 'user_id', 'no_transaksi', 'nama_pelanggan', 'idempotency_key', 'payload_hash', 'idempotency_expires_at', 'tanggal',
+    'warung_id', 'user_id', 'created_by_superadmin_id', 'no_transaksi', 'nama_pelanggan', 'idempotency_key', 'payload_hash', 'idempotency_expires_at', 'tanggal',
     'subtotal', 'diskon', 'total', 'bayar', 'kembalian', 'metode_pembayaran', 'dibayar_pada', 'pembayaran_user_id',
-    'pembayaran_idempotency_key', 'pembayaran_payload_hash', 'pembayaran_idempotency_expires_at', 'status', 'status_pembayaran', 'catatan',
+    'pembayaran_superadmin_id', 'pembayaran_idempotency_key', 'pembayaran_payload_hash', 'pembayaran_idempotency_expires_at', 'status', 'status_pembayaran', 'catatan',
 ])]
 class Penjualan extends Model
 {

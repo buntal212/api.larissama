@@ -2,20 +2,22 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTransactionWriteScope;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
 
 #[FailOnUnknownFields]
 class PenjualanCancelRequest extends FormRequest
 {
+    use ValidatesTransactionWriteScope;
+
     public function authorize(): bool
     {
-        return in_array($this->user()?->role, ['owner', 'manager', 'kasir'], true)
-            && $this->user()?->warung_id !== null;
+        return $this->canWriteTransactions();
     }
 
     public function rules(): array
     {
-        return ['alasan' => ['required', 'string', 'min:1', 'max:1000', 'regex:/\S/']];
+        return ['warung_id' => $this->transactionWriteScopeRules(), 'alasan' => ['required', 'string', 'min:1', 'max:1000', 'regex:/\S/']];
     }
 }

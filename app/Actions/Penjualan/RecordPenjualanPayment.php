@@ -25,23 +25,25 @@ class RecordPenjualanPayment
     ) {}
 
     /** @param array<string, mixed> $input */
-    public function execute(User $actor, int $saleId, string $key, array $input): Penjualan
+    public function execute(User $actor, int $saleId, string $key, array $input, ?int $targetWarungId = null): Penjualan
     {
+        $warungId = $targetWarungId ?? (int) ($input['warung_id'] ?? $actor->warung_id);
+        $superadminActor = $actor->role === 'superadmin';
         $hash = $this->payloadHasher->hash([
             'penjualan_id' => (string) $saleId,
             'request' => $input,
         ]);
 
         try {
-            return DB::transaction(function () use ($actor, $saleId, $key, $input, $hash): Penjualan {
+            return DB::transaction(function () use ($actor, $warungId, $superadminActor, $saleId, $key, $input, $hash): Penjualan {
                 $sale = Penjualan::query()
-                    ->where('warung_id', $actor->warung_id)
+                    ->where('warung_id', $warungId)
                     ->lockForUpdate()
                     ->findOrFail($saleId);
 
                 $existing = Penjualan::query()
-                    ->where('warung_id', $actor->warung_id)
-                    ->where('pembayaran_user_id', $actor->getKey())
+                    ->where('warung_id', $warungId)
+                    ->where($superadminActor ? 'pembayaran_superadmin_id' : 'pembayaran_user_id', $actor->getKey())
                     ->where('pembayaran_idempotency_key', $key)
                     ->lockForUpdate()
                     ->first();
@@ -93,7 +95,8 @@ class RecordPenjualanPayment
                     'kembalian' => (string) $change,
                     'metode_pembayaran' => $method,
                     'dibayar_pada' => CarbonImmutable::now('UTC')->toDateTimeString(),
-                    'pembayaran_user_id' => $actor->getKey(),
+                    'pembayaran_user_id' => $superadminActor ? null : $actor->getKey(),
+                    'pembayaran_superadmin_id' => $superadminActor ? $actor->getKey() : null,
                     'pembayaran_idempotency_key' => $key,
                     'pembayaran_payload_hash' => $hash,
                     'pembayaran_idempotency_expires_at' => $this->idempotencyKeyWindow->expiresAt(),
@@ -109,8 +112,8 @@ class RecordPenjualanPayment
             }
 
             $existing = Penjualan::query()
-                ->where('warung_id', $actor->warung_id)
-                ->where('pembayaran_user_id', $actor->getKey())
+                ->where('warung_id', $warungId)
+                ->where($superadminActor ? 'pembayaran_superadmin_id' : 'pembayaran_user_id', $actor->getKey())
                 ->where('pembayaran_idempotency_key', $key)
                 ->first();
 

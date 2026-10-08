@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'warung_id', 'penjualan_id', 'user_id', 'nominal', 'alasan',
+    'warung_id', 'penjualan_id', 'user_id', 'superadmin_id', 'nominal', 'alasan',
     'idempotency_key', 'payload_hash', 'idempotency_expires_at',
 ])]
 class PenjualanRetur extends Model

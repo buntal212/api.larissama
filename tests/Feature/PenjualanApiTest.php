@@ -559,7 +559,7 @@ class PenjualanApiTest extends TestCase
         $this->assertDatabaseCount('penjualan_rincis', 1);
     }
 
-    public function test_superadmin_cannot_create_a_sale_for_a_tenant(): void
+    public function test_superadmin_create_requires_explicit_target_warung(): void
     {
         $warung = Warung::factory()->create();
         $menu = Menu::factory()->create(['warung_id' => $warung->id]);
@@ -575,8 +575,9 @@ class PenjualanApiTest extends TestCase
 
         $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
         $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
-            ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('warung_id', $response->json('errors'));
         $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
 
         $this->assertDatabaseCount('penjualans', 0);

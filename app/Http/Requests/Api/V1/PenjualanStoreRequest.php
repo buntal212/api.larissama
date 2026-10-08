@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTransactionWriteScope;
 use App\Models\Penjualan;
 use App\Models\User;
 use App\Rules\NotFutureTransactionTimestamp;
@@ -14,9 +15,11 @@ use Illuminate\Validation\Validator;
 #[FailOnUnknownFields]
 class PenjualanStoreRequest extends FormRequest
 {
+    use ValidatesTransactionWriteScope;
+
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Penjualan::class) ?? false;
+        return $this->canWriteTransactions() && ($this->user()?->can('create', Penjualan::class) ?? false);
     }
 
     public function rules(): array
@@ -26,6 +29,7 @@ class PenjualanStoreRequest extends FormRequest
         $quantity = 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$/';
 
         return [
+            'warung_id' => $this->transactionWriteScopeRules(),
             'tanggal' => [
                 'required',
                 'date',
@@ -41,7 +45,7 @@ class PenjualanStoreRequest extends FormRequest
             'rincian' => ['required', 'array', 'min:1'],
             'rincian.*.menu_id' => [
                 'required', 'integer', 'min:1',
-                Rule::exists('menus', 'id')->where('warung_id', $actor instanceof User ? $actor->warung_id : null),
+                Rule::exists('menus', 'id')->where('warung_id', $actor instanceof User && $actor->role === 'superadmin' ? $this->input('warung_id') : ($actor instanceof User ? $actor->warung_id : null)),
             ],
             'rincian.*.qty' => ['required', 'string', $quantity],
             'rincian.*.diskon' => ['sometimes', 'string', $money],

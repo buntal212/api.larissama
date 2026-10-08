@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTransactionWriteScope;
 use App\Models\User;
 use App\Rules\NotFutureTransactionTimestamp;
 use App\Rules\UtcMysqlDateTimeRange;
@@ -13,10 +14,11 @@ use Illuminate\Validation\Validator;
 #[FailOnUnknownFields]
 class PenjualanKoreksiRequest extends FormRequest
 {
+    use ValidatesTransactionWriteScope;
+
     public function authorize(): bool
     {
-        return in_array($this->user()?->role, ['owner', 'manager', 'kasir'], true)
-            && $this->user()?->warung_id !== null;
+        return $this->canWriteTransactions();
     }
 
     public function rules(): array
@@ -26,6 +28,7 @@ class PenjualanKoreksiRequest extends FormRequest
         $quantity = 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$/';
 
         return [
+            'warung_id' => $this->transactionWriteScopeRules(),
             'alasan' => ['required', 'string', 'min:1', 'max:1000', 'regex:/\S/'],
             'tanggal' => [
                 'sometimes', 'date',
@@ -41,7 +44,7 @@ class PenjualanKoreksiRequest extends FormRequest
             'rincian' => ['sometimes', 'array', 'min:1'],
             'rincian.*.menu_id' => [
                 'required_with:rincian', 'integer', 'min:1',
-                Rule::exists('menus', 'id')->where('warung_id', $actor instanceof User ? $actor->warung_id : null),
+                Rule::exists('menus', 'id')->where('warung_id', $actor instanceof User && $actor->role === 'superadmin' ? $this->input('warung_id') : ($actor instanceof User ? $actor->warung_id : null)),
             ],
             'rincian.*.qty' => ['required_with:rincian', 'string', $quantity],
             'rincian.*.diskon' => ['sometimes', 'string', $money],

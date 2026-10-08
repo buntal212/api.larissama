@@ -123,7 +123,8 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | --- | --- |
 | `id` | BIGINT primary key |
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
-| `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
+| `user_id` | BIGINT nullable; FK gabungan untuk user pencatat tenant; NULL saat dibuat superadmin |
+| `created_by_superadmin_id` | BIGINT nullable; FK global ke `users.id`, terisi hanya bila pembuat adalah superadmin |
 | `no_transaksi` | VARCHAR(50), prefix `PJ-` + ULID; dibuat backend, unique bersama `warung_id` |
 | `nama_pelanggan` | VARCHAR(150), nullable; teks bebas tanpa tabel pelanggan |
 | `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint penjualan saat terisi |
@@ -138,6 +139,7 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 | `metode_pembayaran` | VARCHAR(30); contoh: `cash`, `qris`, `transfer` |
 | `dibayar_pada` | DATETIME nullable; waktu pembayaran UTC dan tanggal pendapatan |
 | `pembayaran_user_id` | BIGINT nullable; user tenant yang mencatat pembayaran |
+| `pembayaran_superadmin_id` | BIGINT nullable; superadmin yang mencatat pembayaran |
 | `status` | VARCHAR(20); `menunggu_pembayaran`, `selesai`, `batal`, `diretur_sebagian`, atau `diretur_penuh` |
 | `status_pembayaran` | VARCHAR(20), default `lunas`; nilai `belum_lunas` atau `lunas` |
 | `catatan` | TEXT, nullable |
@@ -145,7 +147,7 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 
 Nomor teknis memakai prefix `PJ-` dan ULID. Kolom internal `idempotency_expires_at` menetapkan window 7 hari sejak request pertama. Selama window, payload kanonis yang sama me-replay response awal dan payload berbeda dengan key sama menghasilkan 409. Setelah expiry, key lama tidak lagi me-replay response dan pemakaian ulang key diproses sebagai request baru. Pengosongan metadata lama bersifat lazy dan ikut transaksi request: bila validasi bisnis menolak request lalu transaksi rollback, metadata expired boleh tetap tersimpan secara fisik, tetapi pencarian berikutnya tetap memperlakukannya sebagai expired. Tidak ada job pembersih berkala; row yang key-nya tidak dipakai ulang tetap utuh. Header transaksi, rincian, dan audit tidak dihapus. Metadata expiry diterapkan pada tabel penjualan, pembelian, dan event koreksi agar fakta historis tetap ada.
 
-Relasi: satu warung dan satu user tenant dapat terkait dengan banyak penjualan. Setiap penjualan memiliki user pencatat pada `user_id`; pembayaran dapat dicatat oleh user lain warung yang sama pada `pembayaran_user_id`. Pesanan dibuat tanpa bayar menjadi pending dan dapat diedit hingga pembayaran penuh. Owner/manager/kasir dapat membaca daftar/detail lintas pencatat, serta memfilter status pembayaran. Superadmin tidak memiliki jalur transaksi atas nama tenant.
+Relasi: tenant user terhubung melalui FK gabungan pada `user_id`; transaksi yang dibuat superadmin memakai `created_by_superadmin_id` sehingga FK user tenant dan batas tenant tetap utuh. Pembayaran dapat dicatat oleh user tenant pada `pembayaran_user_id` atau superadmin pada `pembayaran_superadmin_id`. Pesanan dibuat tanpa bayar menjadi pending dan dapat diedit hingga pembayaran penuh. Owner/manager/kasir dapat membaca daftar/detail lintas pencatat, serta memfilter status pembayaran. Superadmin dapat menjalankan seluruh aksi transaksi dengan selector `warung_id` eksplisit di body.
 
 Migration `2026_10_07_134141_add_unpaid_order_fields_to_penjualans_table` menjaga transaksi lama tetap lunas, lalu mengisi `dibayar_pada` dengan `created_at` dan `pembayaran_user_id` dengan `user_id`. Pembayaran baru menyimpan waktunya sendiri. Koreksi penjualan lunas dibatasi 72 jam sejak `dibayar_pada`; pesanan belum lunas bisa diedit/dibatalkan dengan alasan tanpa batas waktu.
 
@@ -169,7 +171,7 @@ Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu`
 
 ### `penjualan_koreksis` dan `penjualan_returs`
 
-`penjualan_koreksis` menyimpan setiap koreksi atau pembatalan. Pesanan belum lunas bisa dikoreksi/dibatalkan kapan saja sebelum pembayaran. Penjualan lunas dapat dikoreksi atau dibatalkan dalam **3×24 jam (72 jam)** sejak `penjualans.dibayar_pada` UTC. Owner dan manager pada transaksi lunas serta role operasional pada pesanan pending wajib memberi alasan. Snapshot JSON sebelum/sesudah mencatat header dan rincian, sementara `user_id` mengidentifikasi pelaku. Pembatalan mengubah status menjadi `batal`; baris audit tetap append-only.
+`penjualan_koreksis` menyimpan setiap koreksi atau pembatalan. Pesanan belum lunas bisa dikoreksi/dibatalkan kapan saja sebelum pembayaran. Penjualan lunas dapat dikoreksi atau dibatalkan dalam **3×24 jam (72 jam)** sejak `penjualans.dibayar_pada` UTC. Owner dan manager pada transaksi lunas serta role operasional pada pesanan pending wajib memberi alasan; superadmin dapat melakukan seluruh aksi dalam scope warung terpilih. Snapshot JSON sebelum/sesudah mencatat header dan rincian. Pelaku tenant berada pada `user_id`; pelaku superadmin berada pada `superadmin_id`. Pembatalan mengubah status menjadi `batal`; baris audit tetap append-only.
 
 Setelah 72 jam, penjualan tidak dapat dikoreksi atau dibatalkan, tetapi retur nominal sebagian maupun penuh tetap dapat dibuat kapan saja selama transaksi belum dibatalkan atau diretur penuh. Alasan wajib dan total retur tidak boleh melebihi nilai penjualan. Retur tidak mengubah stok. Laporan mengurangi retur pada periode lokal warung ketika retur dicatat, sehingga periode yang hanya berisi retur dapat memiliki pendapatan bersih negatif.
 
@@ -181,7 +183,8 @@ Kedua tabel audit memakai FK tenant gabungan ke penjualan dan user pencatat. Eve
 | --- | --- |
 | `id` | BIGINT primary key |
 | `warung_id`, `penjualan_id` | BIGINT; FK gabungan ke header penjualan |
-| `user_id` | BIGINT; FK gabungan ke user tenant yang melakukan koreksi |
+| `user_id` | BIGINT nullable; FK gabungan ke user tenant yang melakukan koreksi |
+| `superadmin_id` | BIGINT nullable; FK global ke user superadmin pelaku koreksi |
 | `jenis` | VARCHAR(20), `ubah` atau `batalkan` |
 | `alasan` | VARCHAR(1000), wajib |
 | `sebelum`, `sesudah` | JSON snapshot penjualan termasuk detail |
@@ -194,7 +197,8 @@ Kedua tabel audit memakai FK tenant gabungan ke penjualan dan user pencatat. Eve
 | --- | --- |
 | `id` | BIGINT primary key |
 | `warung_id`, `penjualan_id` | BIGINT; FK gabungan ke header penjualan |
-| `user_id` | BIGINT; FK gabungan ke user tenant yang mencatat retur |
+| `user_id` | BIGINT nullable; FK gabungan ke user tenant yang mencatat retur |
+| `superadmin_id` | BIGINT nullable; FK global ke user superadmin pelaku retur |
 | `nominal` | DECIMAL(15,2), lebih dari nol dan dibatasi sisa nilai yang belum diretur |
 | `alasan` | VARCHAR(1000), wajib |
 | `idempotency_key`, `payload_hash`, `idempotency_expires_at` | metadata retry 7 hari; nullable untuk melepas key expired |
@@ -206,7 +210,8 @@ Kedua tabel audit memakai FK tenant gabungan ke penjualan dan user pencatat. Eve
 | --- | --- |
 | `id` | BIGINT primary key |
 | `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
-| `user_id` | BIGINT; FK gabungan ke `users.(warung_id, id)` |
+| `user_id` | BIGINT nullable; FK gabungan user pencatat tenant |
+| `created_by_superadmin_id` | BIGINT nullable; FK global ke `users.id` bila dibuat superadmin |
 | `no_transaksi` | VARCHAR(50), prefix `PB-` + ULID; dibuat backend, unique bersama `warung_id` |
 | `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint pembelian saat terisi |
 | `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
@@ -219,7 +224,9 @@ Kedua tabel audit memakai FK tenant gabungan ke penjualan dan user pencatat. Eve
 
 Nomor teknis memakai prefix `PB-` dan ULID. Pembatalan mengubah status ke `dibatalkan` tanpa menghapus header/rincian. Koreksi mengubah tanggal/catatan dan/atau mengganti seluruh rincian; event audit append-only menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan metadata idempotensi 7 hari pada `pembelian_koreksis` dalam transaksi yang sama. Jika key dipakai lagi setelah expiry, metadata retry event lama dilepas saat transaksi baru commit tanpa mengubah snapshot audit. Bila request baru ditolak aturan status lalu rollback, metadata lama dapat tetap tersimpan namun sudah tidak berlaku untuk replay.
 
-Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. Owner dan manager dapat membuat, membaca, mengoreksi, serta membatalkan pembelian di warung sendiri; kasir dan superadmin tidak memiliki akses transaksi pembelian.
+Relasi: tenant user terhubung melalui FK gabungan pada `user_id`; pembelian superadmin memakai `created_by_superadmin_id`. Owner dan manager dapat membuat, membaca, mengoreksi, serta membatalkan pembelian di warung sendiri; superadmin dapat melakukan seluruh aksi dengan selector target di body. Kasir tetap tidak memiliki akses pembelian.
+
+Migration `2026_10_08_090000_allow_superadmin_transaction_writes` menambah FK actor superadmin terpisah, unique retry keys yang terikat pada warung/actor, serta CHECK yang mewajibkan tepat satu identitas pelaku per transaksi/audit dan identitas pembayaran untuk sale lunas. Rollback dihentikan jika masih ada transaksi yang beratribusi superadmin.
 
 ### `pembelian_koreksis`
 
@@ -227,7 +234,8 @@ Relasi: satu warung dan satu user tenant dapat terkait dengan banyak pembelian. 
 | --- | --- |
 | `id` | BIGINT primary key |
 | `warung_id`, `pembelian_id` | BIGINT; FK gabungan ke header pembelian |
-| `user_id` | BIGINT; FK gabungan ke user tenant yang melakukan koreksi |
+| `user_id` | BIGINT nullable; FK gabungan ke user tenant yang melakukan koreksi |
+| `superadmin_id` | BIGINT nullable; FK global ke user superadmin pelaku koreksi |
 | `jenis` | VARCHAR(20), `ubah` atau `batalkan` |
 | `alasan` | VARCHAR(1000), wajib |
 | `sebelum`, `sesudah` | JSON snapshot status, tanggal, total, catatan, dan rincian |

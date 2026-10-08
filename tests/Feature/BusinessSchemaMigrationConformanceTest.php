@@ -53,6 +53,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertColumn('penjualans', 'status_pembayaran', 'varchar', 20, null, null, false);
         $this->assertColumn('penjualans', 'dibayar_pada', 'datetime', null, null, null, true, 0);
         $this->assertColumn('penjualans', 'pembayaran_user_id', 'bigint', null, 20, 0, true);
+        $this->assertColumn('penjualans', 'created_by_superadmin_id', 'bigint', null, 20, 0, true);
+        $this->assertColumn('penjualans', 'pembayaran_superadmin_id', 'bigint', null, 20, 0, true);
         $this->assertColumn('penjualans', 'pembayaran_idempotency_key', 'varchar', 255, null, null, true);
         $this->assertColumn('penjualans', 'pembayaran_payload_hash', 'char', 64, null, null, true);
         $this->assertColumn('penjualans', 'pembayaran_idempotency_expires_at', 'datetime', null, null, null, true, 6);
@@ -132,7 +134,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             'penjualans' => [
                 'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
-                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'created_by_superadmin_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
                 'no_transaksi' => 'varchar(50)|NO|<NULL>|<NONE>|<NULL>',
                 'nama_pelanggan' => 'varchar(150)|YES|<NULL>|<NONE>|<NULL>',
                 'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
@@ -147,6 +150,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'metode_pembayaran' => 'varchar(30)|YES|<NULL>|<NONE>|<NULL>',
                 'dibayar_pada' => 'datetime|YES|<NULL>|<NONE>|0',
                 'pembayaran_user_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'pembayaran_superadmin_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
                 'pembayaran_idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
                 'pembayaran_payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
                 'pembayaran_idempotency_expires_at' => 'datetime(6)|YES|<NULL>|<NONE>|6',
@@ -173,7 +177,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             'pembelians' => [
                 'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
-                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'created_by_superadmin_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
                 'no_transaksi' => 'varchar(50)|NO|<NULL>|<NONE>|<NULL>',
                 'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
                 'payload_hash' => 'char(64)|YES|<NULL>|<NONE>|<NULL>',
@@ -201,7 +206,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'pembelian_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
-                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'superadmin_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
                 'jenis' => 'varchar(20)|NO|<NULL>|<NONE>|<NULL>',
                 'alasan' => 'varchar(1000)|NO|<NULL>|<NONE>|<NULL>',
                 'sebelum' => 'json|NO|<NULL>|<NONE>|<NULL>',
@@ -216,7 +222,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'penjualan_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
-                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'superadmin_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
                 'jenis' => 'varchar(20)|NO|<NULL>|<NONE>|<NULL>',
                 'alasan' => 'varchar(1000)|NO|<NULL>|<NONE>|<NULL>',
                 'sebelum' => 'json|NO|<NULL>|<NONE>|<NULL>',
@@ -231,7 +238,8 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'penjualan_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
-                'user_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'user_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
+                'superadmin_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
                 'nominal' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
                 'alasan' => 'varchar(1000)|NO|<NULL>|<NONE>|<NULL>',
                 'idempotency_key' => 'varchar(255)|YES|<NULL>|<NONE>|<NULL>',
@@ -273,9 +281,11 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['penjualans', 'penjualans_warung_id_id_unique', ['warung_id', 'id']],
             ['penjualans', 'penjualans_warung_nomor_unique', ['warung_id', 'no_transaksi']],
             ['penjualans', 'penjualans_idempotency_unique', ['warung_id', 'user_id', 'idempotency_key']],
+            ['penjualans', 'penjualans_superadmin_idempotency_unique', ['warung_id', 'created_by_superadmin_id', 'idempotency_key']],
             ['penjualans', 'penjualans_warung_tanggal_idx', ['warung_id', 'tanggal', 'id']],
             ['penjualans', 'penjualans_warung_status_tanggal_idx', ['warung_id', 'status', 'tanggal']],
             ['penjualans', 'penjualans_payment_idempotency_unique', ['warung_id', 'pembayaran_user_id', 'pembayaran_idempotency_key']],
+            ['penjualans', 'penjualans_superadmin_payment_idempotency_unique', ['warung_id', 'pembayaran_superadmin_id', 'pembayaran_idempotency_key']],
             ['penjualans', 'penjualans_warung_payment_status_idx', ['warung_id', 'status_pembayaran', 'tanggal', 'id']],
             ['penjualans', 'penjualans_warung_paid_at_idx', ['warung_id', 'status_pembayaran', 'dibayar_pada', 'id']],
             ['penjualan_rincis', 'penjualan_rincis_warung_header_idx', ['warung_id', 'penjualan_id']],
@@ -283,14 +293,18 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['pembelians', 'pembelians_warung_id_id_unique', ['warung_id', 'id']],
             ['pembelians', 'pembelians_warung_nomor_unique', ['warung_id', 'no_transaksi']],
             ['pembelians', 'pembelians_idempotency_unique', ['warung_id', 'user_id', 'idempotency_key']],
+            ['pembelians', 'pembelians_superadmin_idempotency_unique', ['warung_id', 'created_by_superadmin_id', 'idempotency_key']],
             ['pembelians', 'pembelians_warung_tanggal_idx', ['warung_id', 'tanggal', 'id']],
             ['pembelians', 'pembelians_warung_status_tanggal_idx', ['warung_id', 'status', 'tanggal', 'id']],
             ['pembelian_rincis', 'pembelian_rincis_warung_header_idx', ['warung_id', 'pembelian_id']],
             ['pembelian_koreksis', 'pembelian_koreksi_idempotency_unique', ['warung_id', 'user_id', 'jenis', 'idempotency_key']],
+            ['pembelian_koreksis', 'pembelian_koreksi_superadmin_idempotency_unique', ['warung_id', 'superadmin_id', 'jenis', 'idempotency_key']],
             ['pembelian_koreksis', 'pembelian_koreksi_riwayat_idx', ['warung_id', 'pembelian_id', 'id']],
             ['penjualan_koreksis', 'penjualan_koreksi_idempotency_unique', ['warung_id', 'user_id', 'jenis', 'idempotency_key']],
+            ['penjualan_koreksis', 'penjualan_koreksi_superadmin_idempotency_unique', ['warung_id', 'superadmin_id', 'jenis', 'idempotency_key']],
             ['penjualan_koreksis', 'penjualan_koreksi_riwayat_idx', ['warung_id', 'penjualan_id', 'id']],
             ['penjualan_returs', 'penjualan_retur_idempotency_unique', ['warung_id', 'user_id', 'idempotency_key']],
+            ['penjualan_returs', 'penjualan_retur_superadmin_idempotency_unique', ['warung_id', 'superadmin_id', 'idempotency_key']],
             ['penjualan_returs', 'penjualan_retur_warung_created_idx', ['warung_id', 'created_at', 'id']],
             ['penjualan_returs', 'penjualan_retur_sale_idx', ['warung_id', 'penjualan_id', 'id']],
         ];
@@ -309,18 +323,24 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
             ['menus', 'menus_warung_kategori_fk', ['warung_id', 'kategori_menu_id'], 'kategori_menus', ['warung_id', 'id']],
             ['penjualans', 'penjualans_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
             ['penjualans', 'penjualans_warung_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['penjualans', 'penjualans_creator_superadmin_fk', ['created_by_superadmin_id'], 'users', ['id']],
             ['penjualans', 'penjualans_warung_payment_user_fk', ['warung_id', 'pembayaran_user_id'], 'users', ['warung_id', 'id']],
+            ['penjualans', 'penjualans_payment_superadmin_fk', ['pembayaran_superadmin_id'], 'users', ['id']],
             ['penjualan_rincis', 'penjualan_rincis_warung_header_fk', ['warung_id', 'penjualan_id'], 'penjualans', ['warung_id', 'id']],
             ['penjualan_rincis', 'penjualan_rincis_warung_menu_fk', ['warung_id', 'menu_id'], 'menus', ['warung_id', 'id']],
             ['pembelians', 'pembelians_warung_id_foreign', ['warung_id'], 'warungs', ['id']],
             ['pembelians', 'pembelians_warung_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['pembelians', 'pembelians_creator_superadmin_fk', ['created_by_superadmin_id'], 'users', ['id']],
             ['pembelian_rincis', 'pembelian_rincis_warung_header_fk', ['warung_id', 'pembelian_id'], 'pembelians', ['warung_id', 'id']],
             ['pembelian_koreksis', 'pembelian_koreksi_header_fk', ['warung_id', 'pembelian_id'], 'pembelians', ['warung_id', 'id']],
             ['pembelian_koreksis', 'pembelian_koreksi_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['pembelian_koreksis', 'pembelian_koreksis_superadmin_fk', ['superadmin_id'], 'users', ['id']],
             ['penjualan_koreksis', 'penjualan_koreksi_header_fk', ['warung_id', 'penjualan_id'], 'penjualans', ['warung_id', 'id']],
             ['penjualan_koreksis', 'penjualan_koreksi_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['penjualan_koreksis', 'penjualan_koreksis_superadmin_fk', ['superadmin_id'], 'users', ['id']],
             ['penjualan_returs', 'penjualan_retur_header_fk', ['warung_id', 'penjualan_id'], 'penjualans', ['warung_id', 'id']],
             ['penjualan_returs', 'penjualan_retur_user_fk', ['warung_id', 'user_id'], 'users', ['warung_id', 'id']],
+            ['penjualan_returs', 'penjualan_returs_superadmin_fk', ['superadmin_id'], 'users', ['id']],
         ];
         $expectedNames = [];
 

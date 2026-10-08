@@ -33,14 +33,18 @@ class PenjualanPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['owner', 'manager', 'kasir'], true) && $user->warung_id !== null;
+        return ($user->role === 'superadmin' && $user->warung_id === null)
+            || (in_array($user->role, ['owner', 'manager', 'kasir'], true) && $user->warung_id !== null);
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Penjualan $penjualan): bool
+    public function update(User $user, Penjualan $penjualan, ?string $selectedWarungId = null): bool
     {
+        if ($user->role === 'superadmin' && $user->warung_id === null) {
+            return $selectedWarungId !== null && (string) $penjualan->warung_id === $selectedWarungId;
+        }
         if ($user->warung_id !== null
             && (int) $user->warung_id === (int) $penjualan->warung_id
             && $penjualan->status_pembayaran === 'belum_lunas'
@@ -75,15 +79,23 @@ class PenjualanPolicy
         return false;
     }
 
-    public function manageCorrections(User $user, Penjualan $penjualan): bool
+    public function manageCorrections(User $user, Penjualan $penjualan, ?string $selectedWarungId = null): bool
     {
+        if ($user->role === 'superadmin' && $user->warung_id === null) {
+            return $selectedWarungId !== null && (string) $penjualan->warung_id === $selectedWarungId;
+        }
+
         return in_array($user->role, ['owner', 'manager'], true)
             && $user->warung_id !== null
             && (int) $user->warung_id === (int) $penjualan->warung_id;
     }
 
-    public function pay(User $user, Penjualan $penjualan): bool
+    public function pay(User $user, Penjualan $penjualan, ?string $selectedWarungId = null): bool
     {
+        if ($user->role === 'superadmin' && $user->warung_id === null) {
+            return $selectedWarungId !== null && (string) $penjualan->warung_id === $selectedWarungId;
+        }
+
         return $user->warung_id !== null
             && (int) $user->warung_id === (int) $penjualan->warung_id
             && in_array($user->role, ['owner', 'manager', 'kasir'], true);

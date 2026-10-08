@@ -1,6 +1,6 @@
 # Rancangan Backend LarisSama
 
-Status per 2026-10-07: seluruh 37 operationId memiliki handler dan status `READY_FOR_FRONTEND` untuk alur utama. D18 pesanan/pembayaran lulus 78 test / 30.684 assertions; BE-107 menambah akses baca superadmin dengan pilihan `warung_id` eksplisit dan lulus focused 101 test / 15.315 assertions pada MySQL 8.0.40 Compose disposable. Pint dan validator OpenAPI 3.1 lulus. Full regression G3/G4, conformance edge-case, dan production deployment tetap terbuka; status task serta bukti terkini ada di [tracker](../../IMPLEMENTATION_PROGRESS.md), [keputusan](DECISIONS.md), dan [rencana test](TEST_PLAN.md).
+Status per 2026-10-08: seluruh 37 operationId memiliki handler dan status `READY_FOR_FRONTEND` untuk alur utama. D18 pesanan/pembayaran lulus 78 test / 30.684 assertions; BE-107 menambah akses baca superadmin dengan pilihan `warung_id` eksplisit dan BE-108 menambah seluruh aksi transaksi superadmin dengan scope body eksplisit. BE-108 lulus focused 73 test / 35.449 assertions pada MySQL 8.0.40 Compose disposable; Pint dan validator OpenAPI 3.1 lulus. Full regression G3/G4, conformance edge-case, dan production deployment tetap terbuka; status task serta bukti terkini ada di [tracker](../../IMPLEMENTATION_PROGRESS.md), [keputusan](DECISIONS.md), dan [rencana test](TEST_PLAN.md).
 
 ## Kondisi awal yang diamati
 
@@ -64,16 +64,17 @@ Nama class adalah usulan organisasi; tidak perlu membuat semua folder atau menam
 | Membaca katalog | Tenant terpilih, hanya-baca | Ya | Ya | Ya, hanya yang aktif |
 | Membuat dan mengubah kategori/menu | Tidak melalui jalur tenant | Ya | Ya | Tidak |
 | Membaca seluruh penjualan warung dan antrean lunas/belum lunas | Tenant terpilih, hanya-baca | Ya | Ya | Ya |
-| Membuat pesanan penjualan | Tidak melalui jalur tenant | Ya | Ya | Ya |
-| Mengedit/membatalkan pesanan belum lunas | Tidak melalui jalur tenant | Ya | Ya | Ya |
-| Mencatat pembayaran pesanan | Tidak melalui jalur tenant | Ya | Ya | Ya |
-| Koreksi penjualan lunas dalam 72 jam dari pembayaran | Tidak melalui jalur tenant | Ya | Ya | Tidak |
+| Membuat pesanan penjualan | Ya, `warung_id` di body | Ya | Ya | Ya |
+| Mengedit/membatalkan pesanan belum lunas | Ya, `warung_id` di body | Ya | Ya | Ya |
+| Mencatat pembayaran pesanan | Ya, `warung_id` di body | Ya | Ya | Ya |
+| Koreksi/batal penjualan lunas dalam 72 jam dari pembayaran | Ya, `warung_id` di body | Ya | Ya | Tidak |
+| Mencatat retur penjualan | Ya, `warung_id` di body | Ya | Ya | Tidak |
 | Membaca pembelian | Tenant terpilih, hanya-baca | Ya | Ya | Tidak |
-| Membuat pembelian | Tidak | Ya | Ya | Tidak |
+| Membuat/mengoreksi/membatalkan pembelian | Ya, `warung_id` di body | Ya | Ya | Tidak |
 | Membaca laporan penjualan dan pembelian | Tenant terpilih, hanya-baca | Ya | Ya | Tidak |
-| Menulis sebagai tenant pilihan | Tidak | Tenant dari token | Tenant dari token | Tenant dari token |
+| Menyamar sebagai user tenant saat menulis | Tidak; transaksi tetap beratribusi superadmin | Tenant dari token | Tenant dari token | Tenant dari token |
 
-Matriks ini mengikuti revisi D04 user pada 2026-10-07. Setiap GET data tenant oleh superadmin wajib menyertakan `warung_id`; detail hanya dapat dibaca jika record berada di warung pilihan. Parameter itu dilarang bagi role tenant, yang memakai `warung_id` dari token. Akses superadmin hanya-baca dan tidak dapat dipakai untuk menulis atas nama tenant. Owner dapat menetapkan role owner/manager/kasir di warungnya; manager/kasir mengikuti alur pesanan dan pembayaran D18. Koreksi penjualan lunas tetap hanya untuk owner/manager sampai 72 jam sejak pembayaran.
+Matriks ini mengikuti revisi D04 user pada 2026-10-08. Setiap GET data tenant oleh superadmin wajib menyertakan `warung_id` pada query. Setiap aksi tulis transaksi oleh superadmin wajib menyertakan `warung_id` pada body; scope harus cocok dengan resource pada operasi detail. Tenant memakai warung dari token dan dilarang mengirim field tersebut. Superadmin dapat membuat, mengubah, membayar, membatalkan, mengoreksi, dan mencatat retur penjualan serta pembelian dalam warung pilihan. Identitas superadmin disimpan terpisah sebagai pelaku; `user_id` tenant bernilai NULL. Hak ini tidak memberi akses tulis katalog atau user tenant. Owner dapat menetapkan role owner/manager/kasir di warungnya; manager/kasir mengikuti alur pesanan dan pembayaran D18. Koreksi penjualan lunas tetap tunduk pada batas 72 jam sejak pembayaran.
 
 ## Integritas data dan migration
 

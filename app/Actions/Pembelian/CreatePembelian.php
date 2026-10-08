@@ -25,13 +25,15 @@ class CreatePembelian
     ) {}
 
     /** @param array<string, mixed> $input */
-    public function execute(User $actor, string $idempotencyKey, array $input): Pembelian
+    public function execute(User $actor, string $idempotencyKey, array $input, ?int $targetWarungId = null): Pembelian
     {
+        $warungId = $targetWarungId ?? (int) ($input['warung_id'] ?? $actor->warung_id);
+        $superadminActor = $actor->role === 'superadmin';
         $payloadHash = $this->payloadHasher->hash($input);
 
         try {
-            return DB::transaction(function () use ($actor, $idempotencyKey, $input, $payloadHash): Pembelian {
-                $existing = $this->findByKey($actor, $idempotencyKey);
+            return DB::transaction(function () use ($actor, $warungId, $superadminActor, $idempotencyKey, $input, $payloadHash): Pembelian {
+                $existing = $this->findByKey($actor, $warungId, $idempotencyKey);
 
                 if ($existing !== null) {
                     return $this->replayOrFail($existing, $payloadHash);
@@ -75,7 +77,7 @@ class CreatePembelian
                     $total = $total->plus($lineSubtotal);
                     $this->assertDatabaseMoney($total, 'rincian');
                     $lineData[] = [
-                        'warung_id' => $actor->warung_id,
+                        'warung_id' => $warungId,
                         'nama_item' => $line['nama_item'],
                         'qty' => $quantity,
                         'satuan' => $line['satuan'] ?? null,
@@ -85,8 +87,9 @@ class CreatePembelian
                 }
 
                 $purchase = Pembelian::query()->create([
-                    'warung_id' => $actor->warung_id,
-                    'user_id' => $actor->getKey(),
+                    'warung_id' => $warungId,
+                    'user_id' => $superadminActor ? null : $actor->getKey(),
+                    'created_by_superadmin_id' => $superadminActor ? $actor->getKey() : null,
                     'no_transaksi' => 'PB-'.Str::ulid(),
                     'idempotency_key' => $idempotencyKey,
                     'payload_hash' => $payloadHash,
@@ -106,7 +109,7 @@ class CreatePembelian
                 throw $exception;
             }
 
-            $existing = $this->findByKey($actor, $idempotencyKey);
+            $existing = $this->findByKey($actor, $warungId, $idempotencyKey);
 
             if ($existing === null) {
                 throw $exception;
@@ -116,11 +119,11 @@ class CreatePembelian
         }
     }
 
-    private function findByKey(User $actor, string $idempotencyKey): ?Pembelian
+    private function findByKey(User $actor, int $warungId, string $idempotencyKey): ?Pembelian
     {
         $purchase = Pembelian::query()
-            ->where('warung_id', $actor->warung_id)
-            ->where('user_id', $actor->getKey())
+            ->where('warung_id', $warungId)
+            ->where($actor->role === 'superadmin' ? 'created_by_superadmin_id' : 'user_id', $actor->getKey())
             ->where('idempotency_key', $idempotencyKey)
             ->lockForUpdate()
             ->first();

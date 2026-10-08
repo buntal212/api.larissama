@@ -327,7 +327,7 @@ class PenjualanCorrectionApiTest extends TestCase
         $deniedActors = [
             ['token' => $cashierToken, 'status' => 403, 'label' => 'cashier'],
             ['token' => $foreignToken, 'status' => 404, 'label' => 'foreign-manager'],
-            ['token' => $superadminToken, 'status' => 403, 'label' => 'superadmin'],
+            ['token' => $superadminToken, 'status' => 422, 'label' => 'superadmin'],
         ];
         $deniedOperations = [
             [

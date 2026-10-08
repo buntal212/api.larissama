@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.5-draft
+  version: 0.1.6-draft
   description: >-
-    Status handoff 2026-10-07: 37 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih.
-    Pemilih ini hanya untuk baca; operasi tulis tetap memakai tenant dari identitas dan superadmin tidak dapat bertransaksi.
+    Status handoff 2026-10-08: 37 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih.
+    Seluruh aksi transaksi juga tersedia bagi superadmin dengan `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
     langganan 30 hari, serta operasi koreksi/pembatalan/retur.
@@ -38,7 +38,7 @@ info:
     TRANSACTION-LIST-QUERY-PAIR-REQUIRED-001 membuktikan date_from/date_to harus dikirim bersama; satu parameter saja menghasilkan Error422.
     API-END-TO-END-READBACK-001 menguji manager membaca list/detail transaksi yang dibuat pada workflow API dan mencocokkan response terpilih.
     SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 mencocokkan request/response OpenAPI untuk create sale dan purchase;
-    superadmin tanpa tenant tetap tidak dapat menulis header/rincian; keputusan D04 terbaru mengizinkan baca tenant secara eksplisit melalui warung_id.
+    Test sebelumnya menyatakan superadmin tanpa tenant tidak dapat menulis; keputusan D04 terbaru mengizinkan seluruh aksi transaksi dengan selector warung eksplisit.
     ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid: manager ditolak saat create sale dan kasir
     ditolak saat create purchase, tanpa write header/rincian. Owner diizinkan membuat keduanya; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji create sale/purchase dan response terhadap schema.
     Sanctum bearer 30 hari, timezone tenant,
@@ -1564,10 +1564,9 @@ paths:
         TRANSACTION-CONFORMANCE-001 mencocokkan response 201/403/409/422;
         TRANSACTION-REQUEST-CONFORMANCE-001 mencocokkan body/header pada request create/replay/conflict terpilih dan
         tenant-crossing 422 schema-valid (menu_id berupa string). SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 menguji
-        payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
+        Superadmin wajib mengirim warung_id pada body; tanpa selector request mendapat 422 dan scope silang mendapat 404.
         ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 mencatat aturan lama; D18 sekarang memberi hak create kepada manager.
-        TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
-        schema request melarang field tambahan. SALE-DECIMAL-EXACT-CONFORMANCE-001 membuktikan harga 17.25 × qty 3.00
+        Superadmin mengirim warung_id target pada body; field ini dilarang untuk user tenant. SALE-DECIMAL-EXACT-CONFORMANCE-001 membuktikan harga 17.25 × qty 3.00
         menghasilkan subtotal/total 51.75 dan kembalian 8.25 sebagai decimal eksak di response dan MySQL.
         Query, body/status lain, serta gate penuh masih terbuka.
       x-contract-status: READY_FOR_FRONTEND
@@ -1577,6 +1576,7 @@ paths:
       - owner
       - manager
       - kasir
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -1689,13 +1689,13 @@ paths:
       tags: [Penjualan]
       summary: Lunasi pesanan
       description: >-
-        Owner, manager, atau kasir di warung yang sama dapat melunasi pesanan menunggu_pembayaran. Pembayaran
+        Owner, manager, kasir, atau superadmin dapat melunasi pesanan menunggu_pembayaran. Superadmin wajib memilih warung_id pada body; user tenant memakai warung token dan dilarang mengirim field itu. Pembayaran
         dilakukan penuh satu kali; cash boleh melebihi total dan menghasilkan kembalian, QRIS/transfer harus tepat.
         Header menjadi lunas dan menyimpan waktu serta user penerima pembayaran. Retry menggunakan
         Idempotency-Key selama 7 hari; payload sama me-replay response pembayaran, payload berbeda mendapat 409.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager, kasir]
+      x-candidate-roles: [owner, manager, kasir, superadmin]
       x-blocked-by: [D02, D05, D09, D13, D18]
       x-deferred-verification: "Lanjutkan concurrency pembayaran dan edge-case lebih luas setelah integrasi; alur utama dicakup SalesOrderPaymentApiTest."
       parameters:
@@ -1818,14 +1818,14 @@ paths:
       summary: Koreksi penjualan dalam window 72 jam
       description: >-
         Pesanan belum lunas dapat diedit owner/manager/kasir tanpa batas waktu sampai dibayar. Setelah lunas,
-        owner/manager tenant dapat mengoreksi tanggal, catatan, nama pelanggan, seluruh rincian, dan diskon
+        owner/manager tenant atau superadmin dengan warung_id pilihan dapat mengoreksi tanggal, catatan, nama pelanggan, seluruh rincian, dan diskon
         dalam 72 jam sejak `dibayar_pada` UTC. Alasan wajib, rincian yang dikirim mengganti semua rincian, harga
         menu dibaca server dari menu aktif, aturan D05 tetap berlaku, dan event append-only menyimpan snapshot
         sebelum/sesudah. Setelah window atau setelah retur, koreksi ditolak 409. Idempotency-Key berlaku 7 hari.
         Alur utama koreksi dan tenant boundary siap untuk integrasi frontend.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager, kasir]
+      x-candidate-roles: [owner, manager, kasir, superadmin]
       x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
@@ -1857,13 +1857,12 @@ paths:
       tags: [Penjualan]
       summary: Batalkan penjualan dalam window koreksi
       description: >-
-        Pesanan belum lunas dapat dibatalkan owner/manager/kasir kapan saja. Penjualan lunas tanpa retur dapat
-        dibatalkan owner/manager dalam 72 jam sejak `dibayar_pada` UTC. Alasan wajib; header dan rincian dipertahankan, status menjadi `batal`, dan event append-only menyimpan
+        Pesanan belum lunas dapat dibatalkan owner/manager/kasir kapan saja. Superadmin dengan warung_id pilihan dapat membatalkan penjualan pending atau lunas. Penjualan lunas tanpa retur dapat dibatalkan owner/manager dalam 72 jam sejak `dibayar_pada` UTC. Alasan wajib; header dan rincian dipertahankan, status menjadi `batal`, dan event append-only menyimpan
         snapshot sebelum/sesudah. Penjualan batal dikeluarkan dari laporan dan tidak dapat diretur.
         Idempotency-Key berlaku 7 hari. Alur utama pembatalan dan tenant boundary siap untuk integrasi frontend.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager, kasir]
+      x-candidate-roles: [owner, manager, kasir, superadmin]
       x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
@@ -1895,13 +1894,13 @@ paths:
       tags: [Penjualan]
       summary: Catat retur penjualan
       description: >-
-        Owner/manager tenant dapat mencatat retur nominal penuh atau sebagian kapan saja selama masih ada saldo.
+        Owner/manager tenant atau superadmin dengan warung_id pilihan dapat mencatat retur nominal penuh atau sebagian kapan saja selama masih ada saldo.
         Nominal retur tidak boleh melebihi sisa nilai penjualan. Alasan, aktor, dan waktu UTC tercatat append-only;
         stok/menu tidak berubah. Status menjadi `diretur_sebagian` atau `diretur_penuh`. Laporan mengurangi
         nominal pada periode retur. Idempotency-Key berlaku 7 hari. Alur utama retur dan tenant boundary siap untuk integrasi frontend.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager]
+      x-candidate-roles: [owner, manager, superadmin]
       x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md dan artefak D06 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
@@ -2045,17 +2044,17 @@ paths:
         mencocokkan body/header bentuk ringkas/rinci serta replay/conflict schema-valid. PURCHASE-REQUEST-SHAPE-CONFORMANCE-001
         membuktikan oneOf menolak qty/harga satuan parsial dan rincian nominal tanpa subtotal; body berbentuk benar dengan
         subtotal hasil hitung yang tidak cocok tetap ditolak runtime 422. Pasangan qty/harga satuan tanpa subtotal dihitung backend.
-        SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001
-        menguji payload schema-valid dan response 403 untuk superadmin tanpa warung; header/rincian tidak berubah.
+        SUPERADMIN-TRANSACTION-RBAC-CONFORMANCE-001 adalah bukti historis sebelum revisi D04; BE-108 menguji
+        scope body superadmin dan pencatatan actor pada create, koreksi, pembayaran, pembatalan, dan retur.
         ROLE-TRANSACTION-CREATE-RBAC-CONFORMANCE-001 menguji payload valid dan response 403 bagi kasir tanpa write.
-        TRANSACTION-TENANT-INJECTION-REJECTION-001 membuktikan `warung_id` tambahan mendapat 422 tanpa write;
-        schema request melarang field tambahan. Query, body/status lain, dan gate penuh masih terbuka.
+        Superadmin mengirim warung_id target pada body; field ini dilarang untuk user tenant. Query, body/status lain, dan gate penuh masih terbuka.
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -2248,7 +2247,7 @@ paths:
       - Pembelian
       summary: Koreksi Pembelian
       description: >-
-        Owner dan manager dapat mengubah tanggal, catatan, dan/atau seluruh rincian pada pembelian tercatat di warung sendiri.
+        Owner dan manager dapat mengubah tanggal, catatan, dan/atau seluruh rincian pada pembelian tercatat di warung sendiri; superadmin dapat melakukannya dengan warung_id eksplisit di body.
         `alasan` wajib; sertakan sedikitnya satu field yang diubah. Jika `rincian` dikirim, nilainya mengganti seluruh rincian;
         backend menghitung subtotal dan total. Snapshot sebelum/sesudah, aktor, alasan, dan waktu disimpan sebagai audit append-only.
         Pembelian yang sudah dibatalkan tidak dapat diedit. Idempotency-Key wajib; retry identik me-replay peristiwa audit 201,
@@ -2260,7 +2259,7 @@ paths:
         dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state tercakup pada run terkait. Alur utama koreksi dan tenant boundary siap untuk integrasi frontend.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager]
+      x-candidate-roles: [owner, manager, superadmin]
       x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/D11-PURCHASE-CORRECTION-001.md dan artefak D11 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
@@ -2317,7 +2316,7 @@ paths:
       - Pembelian
       summary: Batalkan Pembelian
       description: >-
-        Owner dan manager dapat membatalkan pembelian tercatat di warung sendiri. `alasan` wajib; status berubah menjadi
+        Owner dan manager dapat membatalkan pembelian tercatat di warung sendiri; superadmin dapat membatalkan dengan warung_id eksplisit di body. `alasan` wajib; status berubah menjadi
         `dibatalkan`, detail dan fakta header tidak dihapus. Snapshot, aktor, alasan, dan waktu tercatat sebagai audit append-only.
         Pembatalan ulang dengan key baru menghasilkan 409; retry dengan key/payload sama me-replay peristiwa audit 201.
         Laporan pembelian tidak menghitung transaksi dibatalkan. PURCHASE-CORRECTION-REQUEST-CONFORMANCE-001 menguji body sah dan
@@ -2328,7 +2327,7 @@ paths:
         dan no-write. Window expiry D09 tujuh hari, request body/header, role/tenant, replay, serta batas state tercakup pada run terkait. Alur utama pembatalan dan tenant boundary siap untuk integrasi frontend.
       x-contract-status: READY_FOR_FRONTEND
       x-implementation-status: DONE
-      x-candidate-roles: [owner, manager]
+      x-candidate-roles: [owner, manager, superadmin]
       x-deferred-verification: "Lanjutkan kombinasi edge-case request/status dan conformance penuh setelah frontend mulai integrasi; lihat docs/backend/test-runs/D11-PURCHASE-CORRECTION-001.md dan artefak D11 terkait."
       parameters:
       - $ref: '#/components/parameters/Id'
@@ -2528,7 +2527,7 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/Id'
-      description: Wajib untuk superadmin pada seluruh GET data tenant dan harus menunjuk ID warung yang ada (ID tidak ada menghasilkan 422). Untuk detail, resource di luar warung pilihan menghasilkan 404. Pengguna tenant dilarang mengirim parameter ini; scope mereka selalu berasal dari bearer token. Pilihan ini hanya memberi akses baca dan tidak memberi wewenang mutasi.
+      description: Wajib untuk superadmin pada seluruh GET data tenant dan harus menunjuk ID warung yang ada (ID tidak ada menghasilkan 422). Untuk detail, resource di luar warung pilihan menghasilkan 404. Pengguna tenant dilarang mengirim parameter ini; scope mereka selalu berasal dari bearer token. Selector baca tidak memberi wewenang mutasi katalog atau user tenant. Aksi tulis transaksi memakai warung_id di body.
     Id:
       name: id
       in: path
@@ -3297,6 +3296,8 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         tanggal:
           $ref: '#/components/schemas/Timestamp'
         diskon:
@@ -3326,23 +3327,27 @@ components:
       description: >-
         Tanpa bayar dan metode_pembayaran, buat pesanan belum lunas. Sertakan keduanya hanya untuk penjualan
         langsung lunas. Nama pelanggan adalah teks bebas opsional. Diskon yang tidak dikirim dianggap 0.00;
-        subtotal/total/kembalian/user_id/warung_id/no_transaksi/status ditetapkan backend.
+        Untuk superadmin, warung_id wajib menunjuk warung target; user tenant dilarang mengirimnya. Subtotal/total/kembalian/identitas pelaku/no_transaksi/status ditetapkan backend.
     PenjualanPayment:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         bayar:
           $ref: '#/components/schemas/Money'
         metode_pembayaran:
           type: string
           enum: [cash, qris, transfer]
       required: [bayar, metode_pembayaran]
-      description: Pembayaran wajib melunasi seluruh total; cash boleh lebih untuk kembalian, QRIS/transfer harus tepat.
+      description: Pembayaran wajib melunasi seluruh total; cash boleh lebih untuk kembalian, QRIS/transfer harus tepat. Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya.
     PenjualanUpdate:
       type: object
       additionalProperties: false
       minProperties: 2
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         alasan:
           type: string
           minLength: 1
@@ -3368,21 +3373,26 @@ components:
             $ref: '#/components/schemas/SaleMenuLineInput'
           minItems: 1
       required: [alasan]
-      description: Sertakan alasan dan minimal satu field koreksi. Jika pembayaran diubah, bayar dan metode_pembayaran wajib dikirim bersama. Rincian mengganti seluruh rincian.
+      description: Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya. Sertakan alasan dan minimal satu field koreksi. Jika pembayaran diubah, bayar dan metode_pembayaran wajib dikirim bersama. Rincian mengganti seluruh rincian.
     PenjualanCancel:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         alasan:
           type: string
           minLength: 1
           maxLength: 1000
           pattern: '\S'
       required: [alasan]
+      description: Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya.
     PenjualanReturCreate:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         alasan:
           type: string
           minLength: 1
@@ -3392,7 +3402,7 @@ components:
           type: string
           pattern: '^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,12}\.[0-9]{2})$'
       required: [alasan, nominal]
-      description: Retur boleh parsial atau penuh; nominal wajib positif dan backend menolak jumlah kumulatif di atas saldo penjualan.
+      description: Retur boleh parsial atau penuh; nominal wajib positif dan backend menolak jumlah kumulatif di atas saldo penjualan. Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya.
     PenjualanSnapshot:
       type: object
       additionalProperties: false
@@ -3426,6 +3436,10 @@ components:
           - $ref: '#/components/schemas/Timestamp'
           - type: 'null'
         pembayaran_user_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        pembayaran_superadmin_id:
           anyOf:
           - $ref: '#/components/schemas/Id'
           - type: 'null'
@@ -3466,7 +3480,13 @@ components:
         penjualan_id:
           $ref: '#/components/schemas/Id'
         user_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        superadmin_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         jenis:
           type: string
           enum: [ubah, batalkan]
@@ -3490,7 +3510,13 @@ components:
         penjualan_id:
           $ref: '#/components/schemas/Id'
         user_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        superadmin_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         nominal:
           $ref: '#/components/schemas/Money'
         alasan:
@@ -3509,7 +3535,13 @@ components:
         warung_id:
           $ref: '#/components/schemas/Id'
         user_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        created_by_superadmin_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         no_transaksi:
           type: string
           minLength: 1
@@ -3552,6 +3584,10 @@ components:
           - $ref: '#/components/schemas/Timestamp'
           - type: 'null'
         pembayaran_user_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        pembayaran_superadmin_id:
           anyOf:
           - $ref: '#/components/schemas/Id'
           - type: 'null'
@@ -3627,7 +3663,13 @@ components:
         warung_id:
           $ref: '#/components/schemas/Id'
         user_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        created_by_superadmin_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         no_transaksi:
           type: string
           minLength: 1
@@ -3670,6 +3712,10 @@ components:
           - $ref: '#/components/schemas/Timestamp'
           - type: 'null'
         pembayaran_user_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        pembayaran_superadmin_id:
           anyOf:
           - $ref: '#/components/schemas/Id'
           - type: 'null'
@@ -3765,6 +3811,8 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         tanggal:
           $ref: '#/components/schemas/Timestamp'
         catatan:
@@ -3779,7 +3827,7 @@ components:
       required:
       - tanggal
       - rincian
-      description: Header.total/user_id/warung_id/no_transaksi berasal dari backend. Tidak ada menu_id atau master
+      description: Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya. Header.total/identitas pelaku/no_transaksi berasal dari backend. Tidak ada menu_id atau master
         bahan.
     PembelianSummary:
       type: object
@@ -3790,7 +3838,13 @@ components:
         warung_id:
           $ref: '#/components/schemas/Id'
         user_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        created_by_superadmin_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         no_transaksi:
           type: string
           minLength: 1
@@ -3870,7 +3924,13 @@ components:
         warung_id:
           $ref: '#/components/schemas/Id'
         user_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        created_by_superadmin_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         no_transaksi:
           type: string
           minLength: 1
@@ -3915,6 +3975,8 @@ components:
       additionalProperties: false
       minProperties: 2
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         alasan:
           type: string
           minLength: 1
@@ -3932,17 +3994,20 @@ components:
             - $ref: '#/components/schemas/PurchaseCalculatedLineInput'
           minItems: 1
       required: [alasan]
-      description: Sertakan alasan dan minimal satu dari tanggal, catatan, atau rincian. Rincian yang dikirim mengganti semua rincian.
+      description: Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya. Sertakan alasan dan minimal satu dari tanggal, catatan, atau rincian. Rincian yang dikirim mengganti semua rincian.
     PembelianCancel:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
         alasan:
           type: string
           minLength: 1
           maxLength: 1000
           pattern: '\S'
       required: [alasan]
+      description: Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya.
     PembelianStateSnapshot:
       type: object
       additionalProperties: false
@@ -3995,7 +4060,13 @@ components:
         pembelian_id:
           $ref: '#/components/schemas/Id'
         user_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
+        superadmin_id:
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         jenis:
           type: string
           enum: [ubah, batalkan]

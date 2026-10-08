@@ -232,7 +232,7 @@ class PembelianApiTest extends TestCase
 
         foreach ([
             ['actor' => $cashier, 'status' => 403, 'role' => 'kasir'],
-            ['actor' => $superadmin, 'status' => 403, 'role' => 'superadmin'],
+            ['actor' => $superadmin, 'status' => 422, 'role' => 'superadmin'],
             ['actor' => $otherManager, 'status' => 404, 'role' => 'manager'],
         ] as $case) {
             Sanctum::actingAs($case['actor']);
@@ -271,7 +271,7 @@ class PembelianApiTest extends TestCase
 
         foreach ([
             ['actor' => $cashier, 'status' => 403, 'role' => 'kasir'],
-            ['actor' => $superadmin, 'status' => 403, 'role' => 'superadmin'],
+            ['actor' => $superadmin, 'status' => 422, 'role' => 'superadmin'],
             ['actor' => $otherManager, 'status' => 404, 'role' => 'manager'],
         ] as $case) {
             Sanctum::actingAs($case['actor']);
@@ -890,7 +890,7 @@ class PembelianApiTest extends TestCase
         $this->assertDatabaseHas('pembelians', ['id' => $purchase->id, 'warung_id' => $warung->id]);
     }
 
-    public function test_superadmin_cannot_create_a_purchase_for_a_tenant(): void
+    public function test_superadmin_create_requires_explicit_target_warung(): void
     {
         $superadmin = User::factory()->create(['warung_id' => null, 'role' => 'superadmin']);
         $token = $superadmin->createToken('feature-test')->plainTextToken;
@@ -902,8 +902,9 @@ class PembelianApiTest extends TestCase
 
         $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/pembelians', 'post');
         $response = $this->withToken($token)->postJson('/api/v1/pembelians', $payload, $headers)
-            ->assertForbidden()
-            ->assertJsonPath('code', 'FORBIDDEN');
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+        $this->assertArrayHasKey('warung_id', $response->json('errors'));
         $this->assertOperationResponseMatchesOpenApi($response, '/pembelians', 'post');
 
         $this->assertDatabaseCount('pembelians', 0);

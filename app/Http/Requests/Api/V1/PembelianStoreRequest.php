@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTransactionWriteScope;
 use App\Models\Pembelian;
 use App\Rules\NotFutureTransactionTimestamp;
 use App\Rules\UtcMysqlDateTimeRange;
@@ -12,9 +13,11 @@ use Illuminate\Validation\Validator;
 #[FailOnUnknownFields]
 class PembelianStoreRequest extends FormRequest
 {
+    use ValidatesTransactionWriteScope;
+
     public function authorize(): bool
     {
-        return $this->user()?->can('create', Pembelian::class) ?? false;
+        return $this->canWriteTransactions() && ($this->user()?->can('create', Pembelian::class) ?? false);
     }
 
     public function rules(): array
@@ -23,6 +26,7 @@ class PembelianStoreRequest extends FormRequest
         $quantity = 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$/';
 
         return [
+            'warung_id' => $this->transactionWriteScopeRules(),
             'tanggal' => [
                 'required',
                 'date',

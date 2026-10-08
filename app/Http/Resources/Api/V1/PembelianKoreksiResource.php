@@ -17,7 +17,8 @@ class PembelianKoreksiResource extends JsonResource
         return [
             'id' => (string) $this->getKey(),
             'pembelian_id' => (string) $this->pembelian_id,
-            'user_id' => (string) $this->user_id,
+            'user_id' => $this->user_id === null ? null : (string) $this->user_id,
+            'superadmin_id' => $this->superadmin_id === null ? null : (string) $this->superadmin_id,
             'jenis' => $this->jenis,
             'alasan' => $this->alasan,
             'sebelum' => $this->sebelum,

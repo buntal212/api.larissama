@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.5-draft**, 2026-10-07. [openapi.yaml](openapi.yaml) berisi 37 operasi pada 25 path. Perubahan terbaru mencakup pendaftaran/langganan warung, pesanan dan pembayaran terpisah, serta akses baca superadmin dengan pilihan warung eksplisit. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.6-draft**, 2026-10-08. [openapi.yaml](openapi.yaml) berisi 37 operasi pada 25 path. Perubahan terbaru mencakup pendaftaran/langganan warung, pesanan dan pembayaran terpisah, akses baca superadmin dengan pilihan warung eksplisit, serta hak aksi transaksi superadmin dengan `warung_id` pada body. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
 
 `OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal 28 operasi ditambah dua koreksi pembelian, empat operasi siklus penjualan, dan tiga operasi pendaftaran/langganan menjadi 37 operasi pada 25 path.
 
@@ -152,7 +152,7 @@ Authorization: Bearer <token>
 
 Untuk timezone warung `Asia/Jakarta`, contoh itu meminta seluruh tanggal lokal 4 Oktober 2026. Rentang database UTC-nya mulai `2026-10-03T17:00:00Z` (inklusif) dan berakhir sebelum `2026-10-04T17:00:00Z`. Kirim `date_from` dan `date_to` sebagai tanggal `YYYY-MM-DD` lokal, tanpa mengonversinya di browser ke UTC. Kedua parameter boleh sama-sama tidak dikirim untuk daftar tanpa filter periode; jika hanya satu dikirim, server memberi 422. Aturan yang sama berlaku untuk `/api/v1/pembelians`.
 
-Keputusan D04/D18: untuk setiap GET data tenant, superadmin wajib mengirim query `warung_id`, misalnya `GET /api/v1/penjualans?warung_id=123` atau `GET /api/v1/menus/45?warung_id=123`. Ambil ID dari daftar warung admin. Backend mengembalikan 404 jika detail tidak berada di warung pilihan. Selector dilarang untuk user tenant biasa. Hak baca superadmin tidak memberi akses tulis atau transaksi. Owner memakai akses seluruhnya dalam warung token; manager/kasir dapat mencatat pesanan pending, mengedit dengan alasan, lalu melunasi. Filter penjualan `status_pembayaran=belum_lunas|lunas` tersedia. Koreksi penjualan lunas hanya untuk owner/manager sampai 72 jam sejak pembayaran.
+Keputusan D04/D18: untuk setiap GET data tenant, superadmin wajib mengirim query `warung_id`, misalnya `GET /api/v1/penjualans?warung_id=123` atau `GET /api/v1/menus/45?warung_id=123`. Ambil ID dari daftar warung admin. Backend mengembalikan 404 jika detail tidak berada di warung pilihan. Pada seluruh aksi transaksi penjualan/pembelian, superadmin juga boleh bertindak dengan mengirim `warung_id` target dalam JSON body. Selector dilarang untuk user tenant biasa; tenant memakai warung pada bearer token. Backend mengembalikan 404 jika ID transaksi berada di luar warung pilihan. Kolom `created_by_superadmin_id`/`pembayaran_superadmin_id` atau `superadmin_id` menunjukkan pelaku superadmin; `user_id` bernilai null untuk aksi itu. Hak ini tidak memberi superadmin akses tulis katalog atau user tenant. Owner memakai akses seluruhnya dalam warung token; manager/kasir dapat mencatat pesanan pending, mengedit dengan alasan, lalu melunasi. Filter penjualan `status_pembayaran=belum_lunas|lunas` tersedia. Koreksi penjualan lunas tunduk batas 72 jam sejak pembayaran.
 
 ## Daftar operasi
 
@@ -184,25 +184,25 @@ Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status in
 | Detail menu | GET /menus/{id} | getMenu | owner/manager semua; kasir hanya menu aktif dari kategori aktif; superadmin dengan `warung_id`, baca saja | READY_FOR_FRONTEND |
 | Ubah menu | PATCH /menus/{id} | updateMenu | owner/manager dalam tenant | READY_FOR_FRONTEND |
 | Daftar penjualan | GET /penjualans | listPenjualans | owner/manager/kasir seluruh transaksi tenant; filter `status_pembayaran=belum_lunas|lunas`; superadmin dengan `warung_id`, baca saja | READY_FOR_FRONTEND |
-| Catat pesanan | POST /penjualans | createPenjualan | owner/manager/kasir; tanpa `bayar` dan metode membuat pesanan belum lunas | READY_FOR_FRONTEND |
+| Catat pesanan | POST /penjualans | createPenjualan | owner/manager/kasir; superadmin dengan `warung_id` body; tanpa `bayar` dan metode membuat pesanan belum lunas | READY_FOR_FRONTEND |
 | Detail penjualan | GET /penjualans/{id} | getPenjualan | owner/manager/kasir seluruh transaksi tenant; superadmin dengan `warung_id`, baca saja | READY_FOR_FRONTEND |
-| Koreksi/pesan ulang pesanan | PATCH /penjualans/{id} | updatePenjualan | owner/manager/kasir untuk pending; owner/manager untuk lunas sampai 72 jam sejak pembayaran | READY_FOR_FRONTEND |
-| Catat pembayaran | POST /penjualans/{id}/pembayaran | payPenjualan | owner/manager/kasir; pembayaran penuh, tunai boleh lebih untuk kembalian | READY_FOR_FRONTEND |
-| Batalkan penjualan | POST /penjualans/{id}/pembatalan | cancelPenjualan | owner/manager/kasir untuk pending kapan saja; lunas sampai 72 jam sejak pembayaran | READY_FOR_FRONTEND |
-| Catat retur | POST /penjualans/{id}/retur | createPenjualanRetur | owner/manager dalam tenant selama masih ada saldo | READY_FOR_FRONTEND |
+| Koreksi/pesan ulang pesanan | PATCH /penjualans/{id} | updatePenjualan | owner/manager/kasir untuk pending; owner/manager untuk lunas sampai 72 jam sejak pembayaran; superadmin dengan `warung_id` body | READY_FOR_FRONTEND |
+| Catat pembayaran | POST /penjualans/{id}/pembayaran | payPenjualan | owner/manager/kasir; superadmin dengan `warung_id` body; pembayaran penuh, tunai boleh lebih untuk kembalian | READY_FOR_FRONTEND |
+| Batalkan penjualan | POST /penjualans/{id}/pembatalan | cancelPenjualan | role tenant mengikuti batas state D06; superadmin dengan `warung_id` body | READY_FOR_FRONTEND |
+| Catat retur | POST /penjualans/{id}/retur | createPenjualanRetur | owner/manager dalam tenant; superadmin dengan `warung_id` body selama masih ada saldo | READY_FOR_FRONTEND |
 | Daftar pembelian | GET /pembelians | listPembelians | owner/manager dalam tenant; superadmin dengan `warung_id`, baca saja | READY_FOR_FRONTEND |
-| Catat pembelian | POST /pembelians | createPembelian | owner/manager dalam tenant | READY_FOR_FRONTEND |
+| Catat pembelian | POST /pembelians | createPembelian | owner/manager dalam tenant; superadmin dengan `warung_id` di body | READY_FOR_FRONTEND |
 | Detail pembelian | GET /pembelians/{id} | getPembelian | owner/manager dalam tenant; superadmin dengan `warung_id`, baca saja | READY_FOR_FRONTEND |
-| Koreksi pembelian | PATCH /pembelians/{id} | updatePembelian | owner/manager dalam tenant, dengan alasan | READY_FOR_FRONTEND |
-| Batalkan pembelian | POST /pembelians/{id}/pembatalan | cancelPembelian | owner/manager dalam tenant, dengan alasan | READY_FOR_FRONTEND |
+| Koreksi pembelian | PATCH /pembelians/{id} | updatePembelian | owner/manager dalam tenant; superadmin dengan `warung_id` di body, dengan alasan | READY_FOR_FRONTEND |
+| Batalkan pembelian | POST /pembelians/{id}/pembatalan | cancelPembelian | owner/manager dalam tenant; superadmin dengan `warung_id` di body, dengan alasan | READY_FOR_FRONTEND |
 | Pendapatan periode | GET /laporan/penjualan | getLaporanPenjualan | owner/manager dalam tenant; superadmin wajib `warung_id`, baca saja | READY_FOR_FRONTEND |
 | Total pembelian periode | GET /laporan/pembelian | getLaporanPembelian | owner/manager dalam tenant; superadmin wajib `warung_id`, baca saja | READY_FOR_FRONTEND |
 
-Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi: hasilnya satu ringkasan periode. Untuk user tenant, data terscope ke warung bearer; untuk superadmin, GET tenant terscope ke `warung_id` yang diminta dan hanya-baca. FK gabungan juga mencegah relasi lintas warung di database. Status per endpoint tertera pada kolom terakhir.
+Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi: hasilnya satu ringkasan periode. Untuk user tenant, data terscope ke warung bearer; untuk superadmin, GET tenant terscope ke query `warung_id`, sedangkan transaksi ditulis dalam body dengan `warung_id` terpilih. FK gabungan juga mencegah relasi lintas warung di database. Status per endpoint tertera pada kolom terakhir.
 
 ### Retry create transaksi
 
-`POST /penjualans`, `/penjualans/{id}/pembayaran`, dan `POST /pembelians` mewajibkan `Idempotency-Key` 1–255 karakter. Scope penjualan create/pembayaran terpisah: key dibuat per warung, user, dan operasi. Key pembayaran disimpan selama tujuh hari pada header penjualan; payload sama me-replay pembayaran awal dengan HTTP 201, payload berbeda mendapat HTTP 409. Payload pembayaran terikat pada ID penjualan.
+`POST /penjualans`, `/penjualans/{id}/pembayaran`, dan `POST /pembelians` mewajibkan `Idempotency-Key` 1–255 karakter. Scope penjualan create/pembayaran terpisah: key dibuat per warung, actor (user tenant atau superadmin), dan operasi. Key pembayaran disimpan selama tujuh hari pada header penjualan; payload sama me-replay pembayaran awal dengan HTTP 201, payload berbeda mendapat HTTP 409. Payload pembayaran terikat pada ID penjualan.
 
 Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier setelah Kernel siap dan membuktikan interval request beririsan. Key+payload sama menghasilkan dua transaksi mandiri untuk dua actor pada satu tenant/satu endpoint, actor tenant berbeda, dan kedua endpoint dengan actor berizin; dua key berbeda pada actor/tenant/endpoint yang sama menghasilkan dua ID serta nomor berbeda untuk sale maupun purchase. Setiap response dicocokkan ke row/detail yang tepat. Tenant tidak diuji secara independen dari actor karena user tenant terikat pada satu `warung_id`; endpoint diuji memakai actor sesuai role dan tabel/action terpisah. `IDEMPOTENCY-CRASH-RESTART-001` membuktikan rollback header/detail saat worker mati sebelum commit dan replay ID/no_transaksi sesudah response hilang pada PID baru di kedua endpoint. Window key/hash idempotency tujuh hari telah diputuskan dan dibuktikan; metadata retry dilepas saat expiry sementara fakta transaksi dan audit tetap dipertahankan (`IDEMPOTENCY-7-DAY-EXPIRY-CONFORMANCE-001`). Semua endpoint transaksi dan laporan dapat diintegrasikan; mutation membawa aturan alasan/audit dan status yang tertera di OpenAPI.
 
@@ -330,7 +330,8 @@ Penjualan baru dan rincian koreksi hanya menerima menu aktif di kategori aktif. 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
-| 0.1.5-draft | DRAFT | D04: superadmin membaca GET data tenant dengan query `warung_id` wajib; detail dan laporan terscope ke pilihan. User tenant dilarang memakai selector. Hak baca tidak membuka operasi mutasi. |
+| 0.1.6-draft | DRAFT | D04: superadmin memakai query `warung_id` untuk GET tenant dan body `warung_id` untuk seluruh aksi transaksi. Tenant dilarang mengirim selector; identitas pelaku superadmin dicatat tersendiri. Hak transaksi tidak memberi akses tulis katalog/user. |
+| 0.1.5-draft | DRAFT | D04: superadmin membaca GET data tenant dengan query `warung_id` wajib; aturan mutasi transaksi pada versi ini superseded oleh persetujuan 2026-10-08. |
 | 0.1.4-draft | DRAFT | D18: POST penjualan membuat pesanan pending tanpa pembayaran; tambah POST pembayaran, filter status pembayaran, nama pelanggan opsional, akses kasir lintas pencatat, nomor `no_transaksi` untuk nota, dan laporan menurut `dibayar_pada`. Koreksi lunas 72 jam dari pembayaran. |
 | 0.1.3-draft | DRAFT | Menambahkan pendaftaran owner publik, filter antrean persetujuan, aktivasi 30 hari, status langganan turunan, dan endpoint perpanjangan 30 hari. Tanggal langganan hanya dapat diubah lewat aksi admin. |
 | 0.1.2-draft | DRAFT | `POST /menus` tidak menerima `kode`; backend menghasilkan `MNL-<ULID>` dan mengembalikannya pada response. |

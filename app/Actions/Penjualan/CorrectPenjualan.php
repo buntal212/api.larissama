@@ -28,20 +28,22 @@ class CorrectPenjualan
     ) {}
 
     /** @param array<string, mixed> $input */
-    public function update(User $actor, int $saleId, string $key, array $input): PenjualanKoreksi
+    public function update(User $actor, int $saleId, string $key, array $input, ?int $targetWarungId = null): PenjualanKoreksi
     {
-        return $this->change($actor, $saleId, 'ubah', $key, $input);
+        return $this->change($actor, $saleId, 'ubah', $key, $input, $targetWarungId);
     }
 
     /** @param array<string, mixed> $input */
-    public function cancel(User $actor, int $saleId, string $key, array $input): PenjualanKoreksi
+    public function cancel(User $actor, int $saleId, string $key, array $input, ?int $targetWarungId = null): PenjualanKoreksi
     {
-        return $this->change($actor, $saleId, 'batalkan', $key, $input);
+        return $this->change($actor, $saleId, 'batalkan', $key, $input, $targetWarungId);
     }
 
     /** @param array<string, mixed> $input */
-    private function change(User $actor, int $saleId, string $kind, string $key, array $input): PenjualanKoreksi
+    private function change(User $actor, int $saleId, string $kind, string $key, array $input, ?int $targetWarungId): PenjualanKoreksi
     {
+        $warungId = $targetWarungId ?? (int) ($input['warung_id'] ?? $actor->warung_id);
+        $superadminActor = $actor->role === 'superadmin';
         $hash = $this->payloadHasher->hash([
             'penjualan_id' => (string) $saleId,
             'jenis' => $kind,
@@ -49,19 +51,19 @@ class CorrectPenjualan
         ]);
 
         try {
-            return DB::transaction(function () use ($actor, $saleId, $kind, $key, $input, $hash): PenjualanKoreksi {
-                $existing = $this->findByKey($actor, $kind, $key);
+            return DB::transaction(function () use ($actor, $warungId, $superadminActor, $saleId, $kind, $key, $input, $hash): PenjualanKoreksi {
+                $existing = $this->findByKey($actor, $warungId, $kind, $key);
 
                 if ($existing instanceof PenjualanKoreksi) {
                     return $this->replayOrFail($existing, $hash);
                 }
 
                 $sale = Penjualan::query()
-                    ->where('warung_id', $actor->warung_id)
+                    ->where('warung_id', $warungId)
                     ->lockForUpdate()
                     ->with('rincian', 'retur')
                     ->findOrFail($saleId);
-                $existing = $this->findByKey($actor, $kind, $key);
+                $existing = $this->findByKey($actor, $warungId, $kind, $key);
 
                 if ($existing instanceof PenjualanKoreksi) {
                     return $this->replayOrFail($existing, $hash);
@@ -74,9 +76,10 @@ class CorrectPenjualan
                     : $this->updateSale($sale, $before, $input);
 
                 return PenjualanKoreksi::query()->create([
-                    'warung_id' => $actor->warung_id,
+                    'warung_id' => $warungId,
                     'penjualan_id' => $sale->getKey(),
-                    'user_id' => $actor->getKey(),
+                    'user_id' => $superadminActor ? null : $actor->getKey(),
+                    'superadmin_id' => $superadminActor ? $actor->getKey() : null,
                     'jenis' => $kind,
                     'alasan' => $input['alasan'],
                     'sebelum' => $before,
@@ -91,7 +94,7 @@ class CorrectPenjualan
                 throw $exception;
             }
 
-            $existing = $this->findByKey($actor, $kind, $key);
+            $existing = $this->findByKey($actor, $warungId, $kind, $key);
 
             if (! $existing instanceof PenjualanKoreksi) {
                 throw $exception;
@@ -296,6 +299,7 @@ class CorrectPenjualan
             'metode_pembayaran' => $sale->metode_pembayaran,
             'dibayar_pada' => $sale->dibayar_pada?->utc()->toISOString(),
             'pembayaran_user_id' => $sale->pembayaran_user_id === null ? null : (string) $sale->pembayaran_user_id,
+            'pembayaran_superadmin_id' => $sale->pembayaran_superadmin_id === null ? null : (string) $sale->pembayaran_superadmin_id,
             'catatan' => $sale->catatan,
             'rincian' => $sale->rincian->map(static fn ($line): array => [
                 'menu_id' => (string) $line->menu_id,
@@ -309,9 +313,9 @@ class CorrectPenjualan
         ];
     }
 
-    private function findByKey(User $actor, string $kind, string $key): ?PenjualanKoreksi
+    private function findByKey(User $actor, int $warungId, string $kind, string $key): ?PenjualanKoreksi
     {
-        $event = PenjualanKoreksi::query()->where('warung_id', $actor->warung_id)->where('user_id', $actor->getKey())
+        $event = PenjualanKoreksi::query()->where('warung_id', $warungId)->where($actor->role === 'superadmin' ? 'superadmin_id' : 'user_id', $actor->getKey())
             ->where('jenis', $kind)->where('idempotency_key', $key)->lockForUpdate()->first();
         if ($event !== null && $this->idempotencyKeyWindow->hasExpired($event->idempotency_expires_at)) {
             $this->idempotencyKeyWindow->release($event);

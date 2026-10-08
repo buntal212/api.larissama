@@ -22,22 +22,24 @@ class RecordPenjualanRetur
     ) {}
 
     /** @param array<string, mixed> $input */
-    public function execute(User $actor, int $saleId, string $key, array $input): PenjualanRetur
+    public function execute(User $actor, int $saleId, string $key, array $input, ?int $targetWarungId = null): PenjualanRetur
     {
+        $warungId = $targetWarungId ?? (int) ($input['warung_id'] ?? $actor->warung_id);
+        $superadminActor = $actor->role === 'superadmin';
         $hash = $this->payloadHasher->hash([
             'penjualan_id' => (string) $saleId,
             'request' => $input,
         ]);
 
         try {
-            return DB::transaction(function () use ($actor, $saleId, $key, $input, $hash): PenjualanRetur {
-                $existing = $this->findByKey($actor, $key);
+            return DB::transaction(function () use ($actor, $warungId, $superadminActor, $saleId, $key, $input, $hash): PenjualanRetur {
+                $existing = $this->findByKey($actor, $warungId, $key);
                 if ($existing instanceof PenjualanRetur) {
                     return $this->replayOrFail($existing, $hash);
                 }
 
-                $sale = Penjualan::query()->where('warung_id', $actor->warung_id)->lockForUpdate()->findOrFail($saleId);
-                $existing = $this->findByKey($actor, $key);
+                $sale = Penjualan::query()->where('warung_id', $warungId)->lockForUpdate()->findOrFail($saleId);
+                $existing = $this->findByKey($actor, $warungId, $key);
                 if ($existing instanceof PenjualanRetur) {
                     return $this->replayOrFail($existing, $hash);
                 }
@@ -53,7 +55,7 @@ class RecordPenjualanRetur
                 }
 
                 $returned = BigDecimal::of((string) PenjualanRetur::query()
-                    ->where('warung_id', $actor->warung_id)
+                    ->where('warung_id', $warungId)
                     ->where('penjualan_id', $sale->getKey())
                     ->sum('nominal'));
                 $saleTotal = BigDecimal::of((string) $sale->total);
@@ -65,9 +67,10 @@ class RecordPenjualanRetur
                 }
 
                 $event = PenjualanRetur::query()->create([
-                    'warung_id' => $actor->warung_id,
+                    'warung_id' => $warungId,
                     'penjualan_id' => $sale->getKey(),
-                    'user_id' => $actor->getKey(),
+                    'user_id' => $superadminActor ? null : $actor->getKey(),
+                    'superadmin_id' => $superadminActor ? $actor->getKey() : null,
                     'nominal' => (string) $amount,
                     'alasan' => $input['alasan'],
                     'idempotency_key' => $key,
@@ -86,7 +89,7 @@ class RecordPenjualanRetur
                 throw $exception;
             }
 
-            $existing = $this->findByKey($actor, $key);
+            $existing = $this->findByKey($actor, $warungId, $key);
             if (! $existing instanceof PenjualanRetur) {
                 throw $exception;
             }
@@ -95,10 +98,10 @@ class RecordPenjualanRetur
         }
     }
 
-    private function findByKey(User $actor, string $key): ?PenjualanRetur
+    private function findByKey(User $actor, int $warungId, string $key): ?PenjualanRetur
     {
-        $event = PenjualanRetur::query()->where('warung_id', $actor->warung_id)
-            ->where('user_id', $actor->getKey())->where('idempotency_key', $key)->lockForUpdate()->first();
+        $event = PenjualanRetur::query()->where('warung_id', $warungId)
+            ->where($actor->role === 'superadmin' ? 'superadmin_id' : 'user_id', $actor->getKey())->where('idempotency_key', $key)->lockForUpdate()->first();
         if ($event !== null && $this->idempotencyKeyWindow->hasExpired($event->idempotency_expires_at)) {
             $this->idempotencyKeyWindow->release($event);
 

@@ -2,11 +2,19 @@
 
 ## BE-107: baca lintas tenant superadmin dengan selector eksplisit
 
-Untuk setiap GET resource tenant (users, kategori, menu, penjualan, pembelian, dan kedua laporan), superadmin wajib mengirim `warung_id` query. Buktikan list dan laporan hanya berisi/agregasi data warung terpilih, sedangkan detail tenant lain di luar pilihan mengembalikan 404. Selector hilang, format salah, atau ID warung tidak ada harus menghasilkan 422 sesuai Error422. Pengguna tenant yang mengirim selector juga harus ditolak 422; request tanpa selector tetap memakai warung dari bearer token. Pastikan superadmin tidak memperoleh hak tulis lewat selector: create/update/pembayaran/koreksi tetap ditolak dan tidak mengubah data.
+Untuk setiap GET resource tenant (users, kategori, menu, penjualan, pembelian, dan kedua laporan), superadmin wajib mengirim `warung_id` query. Buktikan list dan laporan hanya berisi/agregasi data warung terpilih, sedangkan detail tenant lain di luar pilihan mengembalikan 404. Selector hilang, format salah, atau ID warung tidak ada harus menghasilkan 422 sesuai Error422. Pengguna tenant yang mengirim selector juga harus ditolak 422; request tanpa selector tetap memakai warung dari bearer token. Hak tulis user/katalog tetap terpisah dari read scope ini.
 
-Lulus ketika cakupan role di atas tercermin di OpenAPI, semua query dibatasi dengan ID tervalidasi (termasuk timezone laporan), detail tidak membocorkan keberadaan record tenant lain, dan test membuktikan read-only di seluruh resource. Tidak perlu mengulang full regression G3/G4 untuk slice ini; gunakan focused tenant-scope/role/API contract tests.
+Lulus ketika cakupan role di atas tercermin di OpenAPI, semua query dibatasi dengan ID tervalidasi (termasuk timezone laporan), dan detail tidak membocorkan keberadaan record tenant lain. Keputusan berikutnya menambah aksi tulis transaksi superadmin di BE-108; read scope tetap terpisah.
 
 Status terkini: BE-107 baca lintas warung superadmin lulus focused di MySQL 8.0.40 Compose disposable dengan 101 test / 15.315 assertions; Pint dan validator OpenAPI 3.1 lulus. Hasilnya dicatat pada artefak conformance di bawah. Slice D18 sebelumnya lulus 78 test / 30.684 assertions. Full regression suite G3/G4 dan production handoff tetap mengikuti tracker.
+
+## BE-108: aksi transaksi superadmin dengan scope eksplisit
+
+Pada semua endpoint tulis penjualan dan pembelian, buktikan superadmin wajib mengirim `warung_id` dalam body. ID hilang/tidak valid mendapat 422; user tenant yang mengirim field ini mendapat 422. Detail transaksi di luar selector mendapat 404 dan tidak menulis row. Superadmin dapat create, edit, payment, cancel, correction, serta return yang memang tersedia untuk masing-masing endpoint. Pastikan record header memakai `created_by_superadmin_id` dan bukan `user_id`; pembayaran memakai `pembayaran_superadmin_id`; event audit memakai `superadmin_id`. Pastikan action idempotency mengisolasi key menurut actor dan warung, dan FK gabungan untuk user tenant tetap berlaku.
+
+Lulus ketika migration maju menjaga FK tenant dan menambah FK audit superadmin, rollback ditolak saat ada transaksi superadmin, OpenAPI mendokumentasikan body/response/role, dan focused MySQL tests membuktikan seluruh operasi write, alasan dan aturan state, no-write pada scope salah, tenant injection, idempotent retry, serta atribusi pelaku.
+
+Status: PASS. [`BE-108-SUPERADMIN-TRANSACTION-WRITE-CONFORMANCE-001`](test-runs/BE-108-SUPERADMIN-TRANSACTION-WRITE-CONFORMANCE-001.md) mencatat 73 test / 35.449 assertions, Pint, validator OpenAPI 3.1, dan batas bahwa G3/G4 penuh belum diulang.
 
 Kebutuhan berasal dari K01–K09 pada [DECISIONS.md](DECISIONS.md), invariant INV01–INV11 pada [DESIGN.md](DESIGN.md), dan [OpenAPI](../api/openapi.yaml). Expected result yang bergantung keputusan terbuka tetap kandidat; perbarui hanya skenario yang terdampak sebelum dijadikan gate.
 

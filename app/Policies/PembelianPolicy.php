@@ -33,20 +33,21 @@ class PembelianPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['owner', 'manager'], true) && $user->warung_id !== null;
+        return ($user->role === 'superadmin' && $user->warung_id === null)
+            || (in_array($user->role, ['owner', 'manager'], true) && $user->warung_id !== null);
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Pembelian $pembelian): bool
+    public function update(User $user, Pembelian $pembelian, ?string $selectedWarungId = null): bool
     {
-        return $this->view($user, $pembelian);
+        return $this->view($user, $pembelian, $selectedWarungId);
     }
 
-    public function cancel(User $user, Pembelian $pembelian): bool
+    public function cancel(User $user, Pembelian $pembelian, ?string $selectedWarungId = null): bool
     {
-        return $this->view($user, $pembelian);
+        return $this->view($user, $pembelian, $selectedWarungId);
     }
 
     /**

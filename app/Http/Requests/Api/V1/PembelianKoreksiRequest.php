@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTransactionWriteScope;
 use App\Models\Pembelian;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -9,12 +10,19 @@ use Illuminate\Foundation\Http\FormRequest;
 
 abstract class PembelianKoreksiRequest extends FormRequest
 {
+    use ValidatesTransactionWriteScope;
+
     protected function authorizePurchaseCorrection(string $ability): bool
     {
         $actor = $this->user();
 
-        if (! $actor instanceof User || ! in_array($actor->role, ['owner', 'manager'], true) || $actor->warung_id === null) {
+        if (! $actor instanceof User || ! ($actor->role === 'superadmin' && $actor->warung_id === null)
+            && (! in_array($actor->role, ['owner', 'manager'], true) || $actor->warung_id === null)) {
             return false;
+        }
+
+        if ($actor->role === 'superadmin' && $actor->warung_id === null) {
+            return true;
         }
 
         $purchase = Pembelian::query()

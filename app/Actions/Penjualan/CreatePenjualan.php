@@ -27,13 +27,15 @@ class CreatePenjualan
     ) {}
 
     /** @param array<string, mixed> $input */
-    public function execute(User $actor, string $idempotencyKey, array $input): Penjualan
+    public function execute(User $actor, string $idempotencyKey, array $input, ?int $targetWarungId = null): Penjualan
     {
+        $warungId = $targetWarungId ?? (int) ($input['warung_id'] ?? $actor->warung_id);
+        $superadminActor = $actor->role === 'superadmin';
         $payloadHash = $this->payloadHasher->hash($input);
 
         try {
-            return DB::transaction(function () use ($actor, $idempotencyKey, $input, $payloadHash): Penjualan {
-                $existing = $this->findByKey($actor, $idempotencyKey);
+            return DB::transaction(function () use ($actor, $warungId, $superadminActor, $idempotencyKey, $input, $payloadHash): Penjualan {
+                $existing = $this->findByKey($actor, $warungId, $idempotencyKey);
 
                 if ($existing !== null) {
                     return $this->replayOrFail($existing, $payloadHash);
@@ -41,14 +43,14 @@ class CreatePenjualan
 
                 $menuIds = collect($input['rincian'])->pluck('menu_id')->map(fn (mixed $id): int => (int) $id)->unique()->sort()->values();
                 $menus = Menu::query()
-                    ->where('warung_id', $actor->warung_id)
+                    ->where('warung_id', $warungId)
                     ->whereIn('id', $menuIds)
                     ->orderBy('id')
                     ->lockForUpdate()
                     ->get()
                     ->keyBy(fn (Menu $menu): int => (int) $menu->getKey());
                 $categories = KategoriMenu::query()
-                    ->where('warung_id', $actor->warung_id)
+                    ->where('warung_id', $warungId)
                     ->whereIn('id', $menus->pluck('kategori_menu_id')->unique())
                     ->orderBy('id')
                     ->lockForUpdate()
@@ -85,7 +87,7 @@ class CreatePenjualan
                     $subtotal = $subtotal->plus($lineSubtotal);
                     $this->assertDatabaseMoney($subtotal, 'rincian');
                     $lineData[] = [
-                        'warung_id' => $actor->warung_id,
+                        'warung_id' => $warungId,
                         'menu_id' => $menuId,
                         'nama_menu' => $menu->nama,
                         'harga' => (string) $price->toScale(2),
@@ -126,8 +128,9 @@ class CreatePenjualan
                 }
 
                 $sale = Penjualan::query()->create([
-                    'warung_id' => $actor->warung_id,
-                    'user_id' => $actor->getKey(),
+                    'warung_id' => $warungId,
+                    'user_id' => $superadminActor ? null : $actor->getKey(),
+                    'created_by_superadmin_id' => $superadminActor ? $actor->getKey() : null,
                     'no_transaksi' => 'PJ-'.Str::ulid(),
                     'nama_pelanggan' => $input['nama_pelanggan'] ?? null,
                     'idempotency_key' => $idempotencyKey,
@@ -141,7 +144,8 @@ class CreatePenjualan
                     'kembalian' => (string) $change,
                     'metode_pembayaran' => $paymentMethod,
                     'dibayar_pada' => $paidAtCreation ? CarbonImmutable::now('UTC')->toDateTimeString() : null,
-                    'pembayaran_user_id' => $paidAtCreation ? $actor->getKey() : null,
+                    'pembayaran_user_id' => $paidAtCreation && ! $superadminActor ? $actor->getKey() : null,
+                    'pembayaran_superadmin_id' => $paidAtCreation && $superadminActor ? $actor->getKey() : null,
                     'status' => $paidAtCreation ? 'selesai' : 'menunggu_pembayaran',
                     'status_pembayaran' => $paidAtCreation ? 'lunas' : 'belum_lunas',
                     'catatan' => $input['catatan'] ?? null,
@@ -156,7 +160,7 @@ class CreatePenjualan
                 throw $exception;
             }
 
-            $existing = $this->findByKey($actor, $idempotencyKey);
+            $existing = $this->findByKey($actor, $warungId, $idempotencyKey);
 
             if ($existing === null) {
                 throw $exception;
@@ -166,11 +170,10 @@ class CreatePenjualan
         }
     }
 
-    private function findByKey(User $actor, string $idempotencyKey): ?Penjualan
+    private function findByKey(User $actor, int $warungId, string $idempotencyKey): ?Penjualan
     {
-        $sale = Penjualan::query()
-            ->where('warung_id', $actor->warung_id)
-            ->where('user_id', $actor->getKey())
+        $sale = Penjualan::query()->where('warung_id', $warungId)
+            ->where($actor->role === 'superadmin' ? 'created_by_superadmin_id' : 'user_id', $actor->getKey())
             ->where('idempotency_key', $idempotencyKey)
             ->lockForUpdate()
             ->first();

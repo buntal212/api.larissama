@@ -15,6 +15,7 @@ class PembelianCancelRequest extends PembelianKoreksiRequest
     public function rules(): array
     {
         return [
+            'warung_id' => $this->transactionWriteScopeRules(),
             'alasan' => $this->correctionReasonRules(),
         ];
     }

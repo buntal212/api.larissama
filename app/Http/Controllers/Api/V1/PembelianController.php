@@ -22,6 +22,7 @@ use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\PeriodBounds;
 use App\Support\TenantReadScope;
+use App\Support\TransactionWriteScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -58,10 +59,12 @@ class PembelianController extends Controller
         return ApiPaginationResponse::make($paginator, PembelianSummaryResource::class, $request, $page);
     }
 
-    public function store(PembelianStoreRequest $request, CreatePembelian $createPembelian): JsonResponse
+    public function store(PembelianStoreRequest $request, CreatePembelian $createPembelian, TransactionWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        $input = $request->validated();
+        $warungId = $writeScope->resolve($actor, $input);
         $idempotencyKey = $this->validatedIdempotencyKey($request);
 
         if ($idempotencyKey instanceof JsonResponse) {
@@ -69,7 +72,7 @@ class PembelianController extends Controller
         }
 
         try {
-            $purchase = $createPembelian->execute($actor, $idempotencyKey, $request->validated());
+            $purchase = $createPembelian->execute($actor, $idempotencyKey, $input, $warungId);
         } catch (IdempotencyKeyConflictException) {
             return ApiErrorResponse::make(
                 'IDEMPOTENCY_KEY_REUSED',
@@ -96,10 +99,14 @@ class PembelianController extends Controller
         return response()->json(['data' => (new PembelianResource($purchase))->resolve($request)]);
     }
 
-    public function update(PembelianUpdateRequest $request, string $id, CorrectPembelian $correctPembelian): JsonResponse
+    public function update(PembelianUpdateRequest $request, string $id, CorrectPembelian $correctPembelian, TransactionWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        $input = $request->validated();
+        $warungId = $writeScope->resolve($actor, $input);
+        $purchase = Pembelian::query()->where('warung_id', $warungId)->findOrFail($id);
+        Gate::authorize('update', [$purchase, (string) $warungId]);
         $idempotencyKey = $this->validatedIdempotencyKey($request);
 
         if ($idempotencyKey instanceof JsonResponse) {
@@ -107,7 +114,7 @@ class PembelianController extends Controller
         }
 
         try {
-            $correction = $correctPembelian->update($actor, (int) $id, $idempotencyKey, $request->validated());
+            $correction = $correctPembelian->update($actor, (int) $id, $idempotencyKey, $input, $warungId);
         } catch (IdempotencyKeyConflictException) {
             return $this->idempotencyConflict();
         } catch (PembelianStateConflictException $exception) {
@@ -117,10 +124,14 @@ class PembelianController extends Controller
         return response()->json(['data' => (new PembelianKoreksiResource($correction))->resolve($request)], 201);
     }
 
-    public function cancel(PembelianCancelRequest $request, string $id, CorrectPembelian $correctPembelian): JsonResponse
+    public function cancel(PembelianCancelRequest $request, string $id, CorrectPembelian $correctPembelian, TransactionWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
+        $input = $request->validated();
+        $warungId = $writeScope->resolve($actor, $input);
+        $purchase = Pembelian::query()->where('warung_id', $warungId)->findOrFail($id);
+        Gate::authorize('cancel', [$purchase, (string) $warungId]);
         $idempotencyKey = $this->validatedIdempotencyKey($request);
 
         if ($idempotencyKey instanceof JsonResponse) {
@@ -128,7 +139,7 @@ class PembelianController extends Controller
         }
 
         try {
-            $correction = $correctPembelian->cancel($actor, (int) $id, $idempotencyKey, $request->validated());
+            $correction = $correctPembelian->cancel($actor, (int) $id, $idempotencyKey, $input, $warungId);
         } catch (IdempotencyKeyConflictException) {
             return $this->idempotencyConflict();
         } catch (PembelianStateConflictException $exception) {
