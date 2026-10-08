@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTenantWriteScope;
 use App\Models\User;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
@@ -11,26 +12,17 @@ use Illuminate\Validation\Rule;
 #[FailOnUnknownFields]
 class UserUpdateRequest extends FormRequest
 {
-    private ?User $targetUser = null;
+    use ValidatesTenantWriteScope;
 
     public function authorize(): bool
     {
-        $actor = $this->user();
-
-        if (! $actor instanceof User || ! $actor->can('viewAny', User::class)) {
-            return false;
-        }
-
-        $this->targetUser = User::query()
-            ->where('warung_id', $actor->warung_id)
-            ->findOrFail($this->route('id'));
-
-        return $actor->can('update', $this->targetUser);
+        return $this->user()?->can('create', User::class) ?? false;
     }
 
     public function rules(): array
     {
         return [
+            'warung_id' => $this->tenantWriteScopeRules(),
             'nama' => ['sometimes', 'required', 'string', 'min:1', 'max:150'],
             'username' => [
                 'sometimes',
@@ -39,7 +31,7 @@ class UserUpdateRequest extends FormRequest
                 'min:1',
                 'max:100',
                 'lowercase',
-                Rule::unique('users', 'username')->ignore($this->targetUser),
+                Rule::unique('users', 'username')->ignore($this->route('id')),
             ],
             'email' => [
                 'sometimes',
@@ -47,7 +39,7 @@ class UserUpdateRequest extends FormRequest
                 'email',
                 'max:150',
                 'lowercase',
-                Rule::unique('users', 'email')->ignore($this->targetUser),
+                Rule::unique('users', 'email')->ignore($this->route('id')),
             ],
             'password' => ['sometimes', 'required', 'string', 'min:8'],
             'role' => ['sometimes', 'required', 'string', Rule::in(['owner', 'manager', 'kasir'])],
@@ -61,7 +53,7 @@ class UserUpdateRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            if ($this->all() === []) {
+            if ($this->except('warung_id') === []) {
                 $validator->errors()->add('data', 'Minimal satu field harus dikirim.');
             }
         }];

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Http\Requests\Api\V1\Concerns\ValidatesTransactionWriteScope;
+use App\Http\Requests\Api\V1\Concerns\ValidatesTenantWriteScope;
 use App\Models\Penjualan;
 use App\Models\User;
 use App\Rules\NotFutureTransactionTimestamp;
@@ -15,11 +15,11 @@ use Illuminate\Validation\Validator;
 #[FailOnUnknownFields]
 class PenjualanStoreRequest extends FormRequest
 {
-    use ValidatesTransactionWriteScope;
+    use ValidatesTenantWriteScope;
 
     public function authorize(): bool
     {
-        return $this->canWriteTransactions() && ($this->user()?->can('create', Penjualan::class) ?? false);
+        return $this->canWriteTenantData(['owner', 'manager', 'kasir']) && ($this->user()?->can('create', Penjualan::class) ?? false);
     }
 
     public function rules(): array
@@ -29,7 +29,7 @@ class PenjualanStoreRequest extends FormRequest
         $quantity = 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$/';
 
         return [
-            'warung_id' => $this->transactionWriteScopeRules(),
+            'warung_id' => $this->tenantWriteScopeRules(),
             'tanggal' => [
                 'required',
                 'date',

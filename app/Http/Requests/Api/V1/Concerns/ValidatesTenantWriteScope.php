@@ -5,10 +5,10 @@ namespace App\Http\Requests\Api\V1\Concerns;
 use App\Models\User;
 use Illuminate\Validation\Rule;
 
-trait ValidatesTransactionWriteScope
+trait ValidatesTenantWriteScope
 {
     /** @return array<int, mixed> */
-    protected function transactionWriteScopeRules(): array
+    protected function tenantWriteScopeRules(): array
     {
         $actor = $this->user();
 
@@ -19,12 +19,13 @@ trait ValidatesTransactionWriteScope
         return ['missing'];
     }
 
-    protected function canWriteTransactions(): bool
+    /** @param array<int, string> $tenantRoles */
+    protected function canWriteTenantData(array $tenantRoles): bool
     {
         $actor = $this->user();
 
         return $actor instanceof User
             && (($actor->role === 'superadmin' && $actor->warung_id === null)
-                || ($actor->warung_id !== null && in_array($actor->role, ['owner', 'manager', 'kasir'], true)));
+                || ($actor->warung_id !== null && in_array($actor->role, $tenantRoles, true)));
     }
 }

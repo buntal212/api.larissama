@@ -59,10 +59,10 @@ Nama class adalah usulan organisasi; tidak perlu membuat semua folder atau menam
 | Tanggung jawab inti | superadmin | owner | manager | kasir |
 | --- | --- | --- | --- | --- |
 | Mengelola warung pada jalur platform dan membuat owner awal | Ya | Tidak | Tidak | Tidak |
-| Membaca data tenant yang dipilih lewat GET `warung_id` | Ya, hanya-baca | Tenant dari token | Tenant dari token | Tenant dari token |
-| Mengelola user dan role tenant sendiri, termasuk menetapkan owner tambahan | Tidak | Ya | Tidak | Tidak |
+| Membaca data tenant yang dipilih lewat GET `warung_id` | Ya | Tenant dari token | Tenant dari token | Tenant dari token |
+| Mengelola user dan role tenant | Ya, `warung_id` di body | Ya | Tidak | Tidak |
 | Membaca katalog | Tenant terpilih, hanya-baca | Ya | Ya | Ya, hanya yang aktif |
-| Membuat dan mengubah kategori/menu | Tidak melalui jalur tenant | Ya | Ya | Tidak |
+| Membuat dan mengubah kategori/menu | Ya, `warung_id` di body | Ya | Ya | Tidak |
 | Membaca seluruh penjualan warung dan antrean lunas/belum lunas | Tenant terpilih, hanya-baca | Ya | Ya | Ya |
 | Membuat pesanan penjualan | Ya, `warung_id` di body | Ya | Ya | Ya |
 | Mengedit/membatalkan pesanan belum lunas | Ya, `warung_id` di body | Ya | Ya | Ya |
@@ -74,7 +74,7 @@ Nama class adalah usulan organisasi; tidak perlu membuat semua folder atau menam
 | Membaca laporan penjualan dan pembelian | Tenant terpilih, hanya-baca | Ya | Ya | Tidak |
 | Menyamar sebagai user tenant saat menulis | Tidak; transaksi tetap beratribusi superadmin | Tenant dari token | Tenant dari token | Tenant dari token |
 
-Matriks ini mengikuti revisi D04 user pada 2026-10-08. Setiap GET data tenant oleh superadmin wajib menyertakan `warung_id` pada query. Setiap aksi tulis transaksi oleh superadmin wajib menyertakan `warung_id` pada body; scope harus cocok dengan resource pada operasi detail. Tenant memakai warung dari token dan dilarang mengirim field tersebut. Superadmin dapat membuat, mengubah, membayar, membatalkan, mengoreksi, dan mencatat retur penjualan serta pembelian dalam warung pilihan. Identitas superadmin disimpan terpisah sebagai pelaku; `user_id` tenant bernilai NULL. Hak ini tidak memberi akses tulis katalog atau user tenant. Owner dapat menetapkan role owner/manager/kasir di warungnya; manager/kasir mengikuti alur pesanan dan pembayaran D18. Koreksi penjualan lunas tetap tunduk pada batas 72 jam sejak pembayaran.
+Matriks ini mengikuti revisi D04 user pada 2026-10-09. Setiap GET data tenant oleh superadmin wajib menyertakan `warung_id` pada query; setiap mutasi data tenant wajib menyertakan `warung_id` pada body. Scope detail harus cocok dengan warung resource. Tenant memakai warung dari token dan dilarang mengirim field tersebut. Superadmin dapat membuat/mengubah user tenant, kategori, menu, penjualan, dan pembelian di warung pilihan. Form user tenant hanya dapat menetapkan owner/manager/kasir; akun superadmin dikelola terpisah melalui jalur platform. Aksi transaksi mencakup pembayaran, koreksi, pembatalan, dan retur; identitas superadmin dicatat terpisah dari `user_id` tenant. Owner dapat menetapkan role owner/manager/kasir di warungnya; manager/kasir mengikuti alur pesanan dan pembayaran D18. Koreksi penjualan lunas tetap tunduk pada batas 72 jam sejak pembayaran.
 
 ## Integritas data dan migration
 

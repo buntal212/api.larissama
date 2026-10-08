@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Http\Requests\Api\V1\Concerns\ValidatesTenantWriteScope;
 use App\Models\KategoriMenu;
-use App\Models\User;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,26 +11,17 @@ use Illuminate\Foundation\Http\FormRequest;
 #[FailOnUnknownFields]
 class KategoriMenuUpdateRequest extends FormRequest
 {
-    private ?KategoriMenu $targetCategory = null;
+    use ValidatesTenantWriteScope;
 
     public function authorize(): bool
     {
-        $actor = $this->user();
-
-        if (! $actor instanceof User || ! $actor->can('create', KategoriMenu::class)) {
-            return false;
-        }
-
-        $this->targetCategory = KategoriMenu::query()
-            ->where('warung_id', $actor->warung_id)
-            ->findOrFail($this->route('id'));
-
-        return $actor->can('update', $this->targetCategory);
+        return $this->user()?->can('create', KategoriMenu::class) ?? false;
     }
 
     public function rules(): array
     {
         return [
+            'warung_id' => $this->tenantWriteScopeRules(),
             'nama' => ['sometimes', 'required', 'string', 'min:1', 'max:100'],
             'urutan' => ['sometimes', 'integer', 'min:0', 'max:4294967295'],
             'aktif' => ['sometimes', 'boolean'],
@@ -43,14 +34,9 @@ class KategoriMenuUpdateRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            if ($this->all() === []) {
+            if ($this->except('warung_id') === []) {
                 $validator->errors()->add('data', 'Minimal satu field harus dikirim.');
             }
         }];
-    }
-
-    public function targetCategory(): KategoriMenu
-    {
-        return $this->targetCategory ?? abort(404);
     }
 }

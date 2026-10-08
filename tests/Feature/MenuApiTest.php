@@ -383,17 +383,16 @@ class MenuApiTest extends TestCase
     {
         return [
             'cashier' => ['kasir'],
-            'superadmin' => ['superadmin'],
         ];
     }
 
     #[DataProvider('rolesWithoutMenuWriteAccess')]
     public function test_roles_without_menu_write_access_cannot_create_or_update_menus(string $role): void
     {
-        $warung = $role === 'superadmin' ? null : Warung::factory()->create();
-        $actor = User::factory()->create(['warung_id' => $warung?->id, 'role' => $role]);
-        $category = $warung === null ? null : KategoriMenu::factory()->create(['warung_id' => $warung->id]);
-        $menu = $category === null ? null : Menu::factory()->create([
+        $warung = Warung::factory()->create();
+        $actor = User::factory()->create(['warung_id' => $warung->id, 'role' => $role]);
+        $category = KategoriMenu::factory()->create(['warung_id' => $warung->id]);
+        $menu = Menu::factory()->create([
             'warung_id' => $warung->id,
             'kategori_menu_id' => $category->id,
         ]);
@@ -402,7 +401,7 @@ class MenuApiTest extends TestCase
 
         $create = $this->withToken($token)
             ->postJson('/api/v1/menus', [
-                'kategori_menu_id' => $category?->id,
+                'kategori_menu_id' => $category->id,
                 'nama' => 'Tidak Diizinkan',
                 'harga' => '10000.00',
             ])
@@ -410,14 +409,12 @@ class MenuApiTest extends TestCase
         $this->assertOperationResponseMatchesOpenApi($create, '/menus', 'post');
         $this->assertD13ErrorEnvelope($create, 'FORBIDDEN');
 
-        if ($menu !== null) {
-            $update = $this->withToken($token)
-                ->patchJson('/api/v1/menus/'.$menu->id, ['nama' => 'Tidak Diubah'])
-                ->assertForbidden();
-            $this->assertOperationResponseMatchesOpenApi($update, '/menus/{id}', 'patch');
-            $this->assertD13ErrorEnvelope($update, 'FORBIDDEN');
-            $this->assertDatabaseHas('menus', ['id' => $menu->id, 'nama' => $menu->nama]);
-        }
+        $update = $this->withToken($token)
+            ->patchJson('/api/v1/menus/'.$menu->id, ['nama' => 'Tidak Diubah'])
+            ->assertForbidden();
+        $this->assertOperationResponseMatchesOpenApi($update, '/menus/{id}', 'patch');
+        $this->assertD13ErrorEnvelope($update, 'FORBIDDEN');
+        $this->assertDatabaseHas('menus', ['id' => $menu->id, 'nama' => $menu->nama]);
 
         $this->assertSame($initialMenuCount, Menu::query()->count());
     }

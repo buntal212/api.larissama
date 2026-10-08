@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.6-draft
+  version: 0.1.7-draft
   description: >-
-    Status handoff 2026-10-08: 37 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih.
-    Seluruh aksi transaksi juga tersedia bagi superadmin dengan `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
+    Status handoff 2026-10-09: 37 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih.
+    Superadmin dapat membaca dan mengelola form tenant user, kategori, menu, penjualan, dan pembelian dengan `warung_id` wajib pada body mutasi. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
     langganan 30 hari, serta operasi koreksi/pembatalan/retur.
@@ -737,12 +737,13 @@ paths:
       tags:
       - Akses
       summary: Tambah User
-      description: 'READY_FOR_FRONTEND (core path): ADMIN-API-ACCEPTANCE-001 menguji owner membuat user, hash password, field tanpa password, dan larangan membuat superadmin; ADMIN-USER-CONFORMANCE-001 memvalidasi response terhadap schema untuk status 201/403/422. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses POST terpilih dengan requestBody OpenAPI. Payload invalid dan status lain belum diverifikasi. Username/email hanya menerima huruf kecil; angka pada username diperbolehkan.'
+      description: 'READY_FOR_FRONTEND (core path): owner membuat user pada warung token; superadmin dapat membuat owner/manager/kasir dengan warung_id di body. Password di-hash dan tidak dikembalikan; role superadmin tidak dapat dibuat lewat form tenant. Username/email hanya menerima huruf kecil; angka pada username diperbolehkan.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -799,7 +800,7 @@ paths:
       tags:
       - Akses
       summary: Detail User
-      description: 'READY_FOR_FRONTEND (core path): owner membaca user dari warung token; superadmin hanya dapat membaca user setelah menyertakan warung_id. User tenant lain tetap 404 dan manager/kasir 403. Pilihan warung superadmin tidak memberi akses tulis. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` dan `OWNER-TENANT-ACCESS-CONFORMANCE-001` mencakup boundary tenant. Username/email wajib lowercase; status lain dan conformance penuh masih terbuka.'
+      description: 'READY_FOR_FRONTEND (core path): owner membaca user dari warung token; superadmin membaca user setelah menyertakan warung_id. User tenant lain tetap 404 dan manager/kasir 403. Superadmin dapat mengubah user tenant melalui PATCH dengan warung_id target pada body; akun superadmin tidak dapat diubah melalui form ini.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -851,12 +852,13 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'READY_FOR_FRONTEND (core path): owner dapat memperbarui user dalam warung sendiri; ID tenant lain memberi 404, role non-owner mendapat 403, dan warung_id/superadmin tidak dapat diinjeksi. `NONOWNER-USER-ADMIN-RBAC-CONFORMANCE-001` menguji penolakan role tanpa write. ACCESS-CATALOG-WRITE-REQUEST-CONFORMANCE-001 mencocokkan body sukses PATCH terpilih; username/email wajib lowercase dan email nullable/unik global. Database produksi target kosong sehingga pemetaan user lama tidak dibutuhkan untuk rilis awal. Payload/status lain dan conformance penuh masih terbuka.'
+      description: 'READY_FOR_FRONTEND (core path): owner dapat memperbarui user dalam warung sendiri; superadmin dapat memperbarui user tenant yang dipilih lewat warung_id di body. ID tenant di luar pilihan memberi 404, user tenant tidak boleh mengirim warung_id, dan akun superadmin tidak dapat diubah lewat form tenant. Username/email wajib lowercase dan email nullable/unik global.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -985,13 +987,14 @@ paths:
       tags:
       - Katalog
       summary: Tambah KategoriMenu
-      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membuat kategori hanya dalam warung sendiri. Owner, manager, kasir, dan superadmin diuji pada HTTP feature tests; response 201/403/422/500 serta body sukses POST terpilih dicocokkan dengan schema OpenAPI. Payload invalid lain, seluruh status, dan conformance penuh masih terbuka.'
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager membuat kategori dalam warung token; superadmin dapat membuat kategori untuk warung pilihan dengan warung_id di body. Kategori/menu tetap wajib berada pada warung target.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -1100,13 +1103,14 @@ paths:
       tags:
       - Katalog
       summary: Ubah KategoriMenu
-      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat memperbarui kategori tenant sendiri, termasuk status. Role tenant, superadmin, injeksi warung_id, dan isolasi tenant diuji pada HTTP feature tests. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih juga dicocokkan. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager memperbarui kategori di warung token; superadmin memperbarui kategori di warung pilihan dengan warung_id pada body. Request tenant dilarang mengirim selector; detail di luar target menghasilkan 404.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -1241,13 +1245,14 @@ paths:
       tags:
       - Katalog
       summary: Tambah Menu
-      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat membuat menu dalam warung sendiri. Harga dikirim sebagai decimal string; kode `MNL-<ULID>` dibuat backend dan dikembalikan pada response. Kode tetap dapat diubah melalui PATCH dan unik per warung. Kategori lintas tenant, kode pada payload create, warung_id, harga_modal, gambar, serta harga invalid ditolak. CATALOG-ROLE-ACCEPTANCE-002 menguji role/tenant dan Error500; CATALOG-CONFORMANCE-001 mencocokkan response 201/403/422 dan body sukses POST terpilih. Payload/status lain dan conformance penuh belum diuji.'
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager membuat menu di warung token; superadmin membuat menu untuk warung pilihan dengan warung_id di body. Harga dikirim sebagai decimal string; kode MNL-<ULID> dibuat backend. Kategori lintas warung ditolak.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -1363,13 +1368,14 @@ paths:
       tags:
       - Katalog
       summary: Ubah Menu
-      description: 'READY_FOR_FRONTEND (core path): owner dan manager dapat memperbarui nama, harga, kategori, dan status menu dalam warung sendiri. Kategori lintas tenant, ID tenant lain, dan role tanpa hak tulis ditolak. CATALOG-CONFORMANCE-001 mencocokkan response 200/403/404/422; CATALOG-ROLE-ACCEPTANCE-002 menambah Error500 dan memastikan write gagal tidak mengubah row. Body sukses PATCH terpilih dicocokkan dengan schema OpenAPI. Penjualan baru atas menu atau kategori nonaktif ditolak 422 sesuai D06 (`TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001`); payload/status lain dan conformance penuh belum diuji.'
+      description: 'READY_FOR_FRONTEND (core path): owner dan manager memperbarui menu di warung token; superadmin mengubah menu di warung pilihan dengan warung_id di body. Kategori lintas warung ditolak dan detail di luar target menghasilkan 404.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
       - owner
       - manager
+      - superadmin
       x-blocked-by:
       - D02
       - D13
@@ -2385,7 +2391,7 @@ paths:
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
-        superadmin sebelum aturan pemilih warung; D04 kini mengizinkan owner/manager tenant dan superadmin hanya-baca dengan warung_id; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
+        superadmin sebelum aturan pemilih warung; D04 kini mengizinkan owner/manager tenant dan superadmin membaca dengan warung_id; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -2456,7 +2462,7 @@ paths:
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
         mencocokkan date_from/date_to wajib dan format Date pada query sukses terpilih; nilai/status lain
         dan gate penuh masih terbuka. REPORT-RBAC-CONFORMANCE-001 mencocokkan response 403 untuk kasir dan
-        superadmin sebelum aturan pemilih warung; D04 kini mengizinkan owner/manager tenant dan superadmin hanya-baca dengan warung_id; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
+        superadmin sebelum aturan pemilih warung; D04 kini mengizinkan owner/manager tenant dan superadmin membaca dengan warung_id; `OWNER-TENANT-ACCESS-CONFORMANCE-001` menguji akses owner ke kedua report dan mencocokkan response dengan schema.
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -2527,7 +2533,7 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/Id'
-      description: Wajib untuk superadmin pada seluruh GET data tenant dan harus menunjuk ID warung yang ada (ID tidak ada menghasilkan 422). Untuk detail, resource di luar warung pilihan menghasilkan 404. Pengguna tenant dilarang mengirim parameter ini; scope mereka selalu berasal dari bearer token. Selector baca tidak memberi wewenang mutasi katalog atau user tenant. Aksi tulis transaksi memakai warung_id di body.
+      description: Wajib untuk superadmin pada seluruh GET data tenant dan harus menunjuk ID warung yang ada (ID tidak ada menghasilkan 422). Untuk detail, resource di luar warung pilihan menghasilkan 404. Pengguna tenant dilarang mengirim parameter ini; scope mereka selalu berasal dari bearer token. Mutasi tenant memakai warung_id pada body.
     Id:
       name: id
       in: path
@@ -3045,6 +3051,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
+          description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
         nama:
           type: string
           minLength: 1
@@ -3074,7 +3083,7 @@ components:
           - owner
           - manager
           - kasir
-          description: Owner dapat menetapkan owner, manager, atau kasir hanya dalam warungnya; superadmin hanya melalui jalur platform.
+          description: Owner dapat menetapkan owner, manager, atau kasir dalam warungnya. Superadmin dapat menetapkan role tenant untuk warung pilihan, tetapi tidak dapat membuat akun superadmin.
         aktif:
           type: boolean
           default: true
@@ -3087,6 +3096,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
+          description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
         nama:
           type: string
           minLength: 1
@@ -3116,7 +3128,7 @@ components:
           - owner
           - manager
           - kasir
-          description: Owner dapat menetapkan owner, manager, atau kasir hanya dalam warungnya; superadmin hanya melalui jalur platform.
+          description: Owner dan superadmin dapat menetapkan role owner, manager, atau kasir dalam warung yang diizinkan.
         aktif:
           type: boolean
           default: true
@@ -3125,6 +3137,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
+          description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
         nama:
           type: string
           minLength: 1
@@ -3143,6 +3158,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
+          description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
         nama:
           type: string
           minLength: 1
@@ -3192,6 +3210,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
+          description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
         kategori_menu_id:
           $ref: '#/components/schemas/Id'
         nama:
@@ -3213,6 +3234,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        warung_id:
+          $ref: '#/components/schemas/Id'
+          description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
         kategori_menu_id:
           $ref: '#/components/schemas/Id'
         kode:

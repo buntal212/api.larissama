@@ -100,6 +100,62 @@ class UserApiTest extends TestCase
         ]);
     }
 
+    public function test_superadmin_can_create_and_update_tenant_users_only_in_selected_warung(): void
+    {
+        $selectedWarung = Warung::factory()->create();
+        $otherWarung = Warung::factory()->create();
+        $target = User::factory()->create([
+            'warung_id' => $selectedWarung->id,
+            'role' => 'manager',
+            'nama' => 'Manager Lama',
+        ]);
+        $superadmin = User::factory()->superadmin()->create();
+        $token = $superadmin->createToken('superadmin-user-write-test')->plainTextToken;
+
+        $createPayload = [
+            'warung_id' => (string) $selectedWarung->id,
+            'nama' => 'Owner Baru',
+            'username' => 'owner_baru',
+            'email' => null,
+            'password' => 'owner-baru-password',
+            'role' => 'owner',
+        ];
+        $this->assertOperationRequestMatchesOpenApi($createPayload, [], '/users', 'post');
+        $created = $this->withToken($token)->postJson('/api/v1/users', $createPayload)->assertCreated();
+        $this->assertOperationResponseMatchesOpenApi($created, '/users', 'post');
+        $createdUser = User::query()->findOrFail((int) $created->json('data.id'));
+        $this->assertSame((string) $selectedWarung->id, $created->json('data.warung_id'));
+        $this->assertSame('owner', $created->json('data.role'));
+        $this->assertTrue(Hash::check('owner-baru-password', $createdUser->password));
+
+        $updatePayload = [
+            'warung_id' => (string) $selectedWarung->id,
+            'nama' => 'Manager Diperbarui',
+            'role' => 'kasir',
+        ];
+        $this->assertOperationRequestMatchesOpenApi($updatePayload, [], '/users/{id}', 'patch');
+        $updated = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$target->id, $updatePayload)
+            ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($updated, '/users/{id}', 'patch');
+        $this->assertSame('Manager Diperbarui', $updated->json('data.nama'));
+        $this->assertSame('kasir', $updated->json('data.role'));
+
+        $outsideTarget = $this->withToken($token)
+            ->patchJson('/api/v1/users/'.$createdUser->id, [
+                'warung_id' => (string) $otherWarung->id,
+                'nama' => 'Tidak Boleh Pindah Scope',
+            ])
+            ->assertNotFound();
+        $this->assertOperationResponseMatchesOpenApi($outsideTarget, '/users/{id}', 'patch');
+        $this->assertDatabaseHas('users', [
+            'id' => $createdUser->id,
+            'warung_id' => $selectedWarung->id,
+            'nama' => 'Owner Baru',
+            'role' => 'owner',
+        ]);
+    }
+
     public function test_account_identifiers_require_lowercase_and_allow_digits(): void
     {
         $warung = Warung::factory()->create();
@@ -288,7 +344,6 @@ class UserApiTest extends TestCase
         return [
             'manager' => ['manager'],
             'cashier' => ['kasir'],
-            'superadmin' => ['superadmin'],
         ];
     }
 

@@ -10,8 +10,10 @@ use App\Http\Requests\Api\V1\UserUpdateRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\User;
+use App\Models\Warung;
 use App\Support\ApiPagination;
 use App\Support\TenantReadScope;
+use App\Support\TenantWriteScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -58,7 +60,7 @@ class UserController extends Controller
         return ApiPaginationResponse::make($paginator, UserResource::class, $request, $page);
     }
 
-    public function store(UserStoreRequest $request): JsonResponse
+    public function store(UserStoreRequest $request, TenantWriteScope $writeScope): JsonResponse
     {
         Gate::authorize('create', User::class);
 
@@ -66,8 +68,10 @@ class UserController extends Controller
         abort_unless($actor instanceof User, 401);
 
         $attributes = $request->validated();
+        $warungId = $writeScope->resolve($actor, $attributes);
+        unset($attributes['warung_id']);
         $attributes['aktif'] ??= true;
-        $user = $actor->warung()->firstOrFail()->users()->create($attributes);
+        $user = Warung::query()->findOrFail($warungId)->users()->create($attributes);
 
         return response()->json([
             'data' => (new UserResource($user))->resolve($request),
@@ -90,15 +94,18 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(UserUpdateRequest $request, string $id): JsonResponse
+    public function update(UserUpdateRequest $request, string $id, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
-        $user = $this->tenantUsers($actor)->findOrFail($id);
-        Gate::authorize('update', $user);
+        $attributes = $request->validated();
+        $warungId = $writeScope->resolve($actor, $attributes);
+        unset($attributes['warung_id']);
+        $user = $this->tenantUsers((string) $warungId)->findOrFail($id);
+        Gate::authorize('update', [$user, (string) $warungId]);
 
-        $user->fill($request->validated());
+        $user->fill($attributes);
         $user->save();
 
         return response()->json([

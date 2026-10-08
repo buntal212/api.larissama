@@ -11,8 +11,10 @@ use App\Http\Resources\Api\V1\MenuResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\Menu;
 use App\Models\User;
+use App\Models\Warung;
 use App\Support\ApiPagination;
 use App\Support\TenantReadScope;
+use App\Support\TenantWriteScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -66,16 +68,18 @@ class MenuController extends Controller
         return ApiPaginationResponse::make($paginator, MenuResource::class, $request, $page);
     }
 
-    public function store(MenuStoreRequest $request): JsonResponse
+    public function store(MenuStoreRequest $request, TenantWriteScope $writeScope): JsonResponse
     {
         Gate::authorize('create', Menu::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
         $attributes = $request->validated();
+        $warungId = $writeScope->resolve($actor, $attributes);
+        unset($attributes['warung_id']);
         $attributes['kode'] = 'MNL-'.Str::ulid();
         $attributes['aktif'] ??= true;
-        $menu = $actor->warung()->firstOrFail()->menus()->create($attributes);
+        $menu = Warung::query()->findOrFail($warungId)->menus()->create($attributes);
 
         return response()->json(['data' => (new MenuResource($menu))->resolve($request)], 201);
     }
@@ -99,11 +103,16 @@ class MenuController extends Controller
         return response()->json(['data' => (new MenuResource($menu))->resolve($request)]);
     }
 
-    public function update(MenuUpdateRequest $request): JsonResponse
+    public function update(MenuUpdateRequest $request, TenantWriteScope $writeScope): JsonResponse
     {
-        $menu = $request->targetMenu();
-        Gate::authorize('update', $menu);
-        $menu->fill($request->validated());
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $attributes = $request->validated();
+        $warungId = $writeScope->resolve($actor, $attributes);
+        unset($attributes['warung_id']);
+        $menu = $this->tenantMenus((string) $warungId)->findOrFail($request->route('id'));
+        Gate::authorize('update', [$menu, (string) $warungId]);
+        $menu->fill($attributes);
         $menu->save();
 
         return response()->json(['data' => (new MenuResource($menu))->resolve($request)]);

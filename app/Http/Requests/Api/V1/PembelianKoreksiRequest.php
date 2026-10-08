@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Http\Requests\Api\V1\Concerns\ValidatesTransactionWriteScope;
+use App\Http\Requests\Api\V1\Concerns\ValidatesTenantWriteScope;
 use App\Models\Pembelian;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -10,7 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 abstract class PembelianKoreksiRequest extends FormRequest
 {
-    use ValidatesTransactionWriteScope;
+    use ValidatesTenantWriteScope;
 
     protected function authorizePurchaseCorrection(string $ability): bool
     {

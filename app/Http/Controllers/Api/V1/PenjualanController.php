@@ -27,7 +27,7 @@ use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\PeriodBounds;
 use App\Support\TenantReadScope;
-use App\Support\TransactionWriteScope;
+use App\Support\TenantWriteScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -71,7 +71,7 @@ class PenjualanController extends Controller
         return ApiPaginationResponse::make($paginator, PenjualanSummaryResource::class, $request, $page);
     }
 
-    public function store(PenjualanStoreRequest $request, CreatePenjualan $createPenjualan, TransactionWriteScope $writeScope): JsonResponse
+    public function store(PenjualanStoreRequest $request, CreatePenjualan $createPenjualan, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
@@ -98,7 +98,7 @@ class PenjualanController extends Controller
         return response()->json(['data' => (new PenjualanResource($sale))->resolve($request)], 201);
     }
 
-    public function update(PenjualanKoreksiRequest $request, string $id, CorrectPenjualan $correctPenjualan, TransactionWriteScope $writeScope): JsonResponse
+    public function update(PenjualanKoreksiRequest $request, string $id, CorrectPenjualan $correctPenjualan, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
@@ -122,7 +122,7 @@ class PenjualanController extends Controller
         return response()->json(['data' => (new PenjualanKoreksiResource($event))->resolve($request)], 201);
     }
 
-    public function pay(PenjualanPembayaranRequest $request, string $id, RecordPenjualanPayment $recordPayment, TransactionWriteScope $writeScope): JsonResponse
+    public function pay(PenjualanPembayaranRequest $request, string $id, RecordPenjualanPayment $recordPayment, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
@@ -146,7 +146,7 @@ class PenjualanController extends Controller
         return response()->json(['data' => (new PenjualanResource($sale))->resolve($request)], 201);
     }
 
-    public function cancel(PenjualanCancelRequest $request, string $id, CorrectPenjualan $correctPenjualan, TransactionWriteScope $writeScope): JsonResponse
+    public function cancel(PenjualanCancelRequest $request, string $id, CorrectPenjualan $correctPenjualan, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
@@ -170,7 +170,7 @@ class PenjualanController extends Controller
         return response()->json(['data' => (new PenjualanKoreksiResource($event))->resolve($request)], 201);
     }
 
-    public function storeReturn(PenjualanReturRequest $request, string $id, RecordPenjualanRetur $recordReturn, TransactionWriteScope $writeScope): JsonResponse
+    public function storeReturn(PenjualanReturRequest $request, string $id, RecordPenjualanRetur $recordReturn, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);

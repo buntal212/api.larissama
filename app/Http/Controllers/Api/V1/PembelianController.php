@@ -22,7 +22,7 @@ use App\Models\User;
 use App\Support\ApiPagination;
 use App\Support\PeriodBounds;
 use App\Support\TenantReadScope;
-use App\Support\TransactionWriteScope;
+use App\Support\TenantWriteScope;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -59,7 +59,7 @@ class PembelianController extends Controller
         return ApiPaginationResponse::make($paginator, PembelianSummaryResource::class, $request, $page);
     }
 
-    public function store(PembelianStoreRequest $request, CreatePembelian $createPembelian, TransactionWriteScope $writeScope): JsonResponse
+    public function store(PembelianStoreRequest $request, CreatePembelian $createPembelian, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
@@ -99,7 +99,7 @@ class PembelianController extends Controller
         return response()->json(['data' => (new PembelianResource($purchase))->resolve($request)]);
     }
 
-    public function update(PembelianUpdateRequest $request, string $id, CorrectPembelian $correctPembelian, TransactionWriteScope $writeScope): JsonResponse
+    public function update(PembelianUpdateRequest $request, string $id, CorrectPembelian $correctPembelian, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
@@ -124,7 +124,7 @@ class PembelianController extends Controller
         return response()->json(['data' => (new PembelianKoreksiResource($correction))->resolve($request)], 201);
     }
 
-    public function cancel(PembelianCancelRequest $request, string $id, CorrectPembelian $correctPembelian, TransactionWriteScope $writeScope): JsonResponse
+    public function cancel(PembelianCancelRequest $request, string $id, CorrectPembelian $correctPembelian, TenantWriteScope $writeScope): JsonResponse
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);

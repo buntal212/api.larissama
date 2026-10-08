@@ -21,7 +21,7 @@ class PembelianUpdateRequest extends PembelianKoreksiRequest
         $quantity = 'regex:/^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,7}\.[0-9]{2})$/';
 
         return [
-            'warung_id' => $this->transactionWriteScopeRules(),
+            'warung_id' => $this->tenantWriteScopeRules(),
             'alasan' => $this->correctionReasonRules(),
             'tanggal' => [
                 'sometimes', 'date',

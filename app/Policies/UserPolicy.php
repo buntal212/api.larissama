@@ -14,7 +14,8 @@ class UserPolicy
 
     public function create(User $actor): bool
     {
-        return $actor->role === 'owner' && $actor->warung_id !== null;
+        return ($actor->role === 'owner' && $actor->warung_id !== null)
+            || ($actor->role === 'superadmin' && $actor->warung_id === null);
     }
 
     public function view(User $actor, User $target, ?string $selectedWarungId = null): bool
@@ -30,12 +31,19 @@ class UserPolicy
             && $target->role !== 'superadmin';
     }
 
-    public function update(User $actor, User $target): bool
+    public function update(User $actor, User $target, ?string $selectedWarungId = null): bool
     {
+        if ($target->role === 'superadmin') {
+            return false;
+        }
+
+        if ($actor->role === 'superadmin' && $actor->warung_id === null) {
+            return $selectedWarungId !== null && (string) $target->warung_id === $selectedWarungId;
+        }
+
         return $actor->role === 'owner'
             && $actor->warung_id !== null
             && $actor->warung_id === $target->warung_id
-            && $target->role !== 'superadmin'
             && $actor->getKey() !== $target->getKey();
     }
 }

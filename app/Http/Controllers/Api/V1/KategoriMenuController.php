@@ -11,8 +11,10 @@ use App\Http\Resources\Api\V1\KategoriMenuResource;
 use App\Http\Responses\ApiPaginationResponse;
 use App\Models\KategoriMenu;
 use App\Models\User;
+use App\Models\Warung;
 use App\Support\ApiPagination;
 use App\Support\TenantReadScope;
+use App\Support\TenantWriteScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -58,16 +60,18 @@ class KategoriMenuController extends Controller
         return ApiPaginationResponse::make($paginator, KategoriMenuResource::class, $request, $page);
     }
 
-    public function store(KategoriMenuStoreRequest $request): JsonResponse
+    public function store(KategoriMenuStoreRequest $request, TenantWriteScope $writeScope): JsonResponse
     {
         Gate::authorize('create', KategoriMenu::class);
         $actor = $request->user();
         abort_unless($actor instanceof User, 401);
 
         $attributes = $request->validated();
+        $warungId = $writeScope->resolve($actor, $attributes);
+        unset($attributes['warung_id']);
         $attributes['urutan'] ??= 0;
         $attributes['aktif'] ??= true;
-        $category = $actor->warung()->firstOrFail()->kategoriMenus()->create($attributes);
+        $category = Warung::query()->findOrFail($warungId)->kategoriMenus()->create($attributes);
 
         return response()->json(['data' => (new KategoriMenuResource($category))->resolve($request)], 201);
     }
@@ -91,11 +95,16 @@ class KategoriMenuController extends Controller
         return response()->json(['data' => (new KategoriMenuResource($category))->resolve($request)]);
     }
 
-    public function update(KategoriMenuUpdateRequest $request): JsonResponse
+    public function update(KategoriMenuUpdateRequest $request, TenantWriteScope $writeScope): JsonResponse
     {
-        $category = $request->targetCategory();
-        Gate::authorize('update', $category);
-        $category->fill($request->validated());
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $attributes = $request->validated();
+        $warungId = $writeScope->resolve($actor, $attributes);
+        unset($attributes['warung_id']);
+        $category = $this->tenantCategories((string) $warungId)->findOrFail($request->route('id'));
+        Gate::authorize('update', [$category, (string) $warungId]);
+        $category->fill($attributes);
         $category->save();
 
         return response()->json(['data' => (new KategoriMenuResource($category))->resolve($request)]);
