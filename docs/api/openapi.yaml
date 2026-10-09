@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.7-draft
+  version: 0.1.8-draft
   description: >-
     Status handoff 2026-10-09: 37 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih.
     Superadmin dapat membaca dan mengelola form tenant user, kategori, menu, penjualan, dan pembelian dengan `warung_id` wajib pada body mutasi. Request tenant menggunakan warung dari identitas dan menolak field selector.
@@ -1435,8 +1435,8 @@ paths:
       - Penjualan
       summary: Riwayat Penjualan
       description: >-
-        READY_FOR_FRONTEND untuk alur inti; extended edge-case tercatat untuk susulan. Setiap item berasal
-        dari menu terdaftar; owner, manager, dan kasir membaca seluruh penjualan pada warung sendiri.
+        READY_FOR_FRONTEND untuk alur inti; extended edge-case tercatat untuk susulan. Rincian dapat berisi
+        menu katalog atau item bebas dengan snapshot; owner, manager, dan kasir membaca seluruh penjualan pada warung sendiri.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200 dengan schema. TRANSACTION-QUERY-CONFORMANCE-001 mencocokkan page/per_page/sort/status pada query sukses terpilih.
         ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response;
         ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 membuktikan per_page=101 ditolak dengan HTTP 422, schema response 422,
@@ -1738,7 +1738,7 @@ paths:
       - Penjualan
       summary: Detail Penjualan dan rincian
       description: 'READY_FOR_FRONTEND untuk alur detail inti; detail dibatasi ke warung pengguna dan untuk
-        semua kasir dalam warung dapat membaca detail lintas pencatat. Setiap item berasal dari menu terdaftar. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; SalesOrderPaymentApiTest membuktikan cashier lain membaca pesanan dan transaksi tenant lain tetap terscope. Request schema, status lain, dan gate penuh masih terbuka.'
+        semua kasir dalam warung dapat membaca detail lintas pencatat. Baris menu katalog memiliki menu_id; item bebas memiliki menu_id null dan snapshot nama/harga. TRANSACTION-CONFORMANCE-001 mencocokkan response 200/404; SalesOrderPaymentApiTest membuktikan cashier lain membaca pesanan dan transaksi tenant lain tetap terscope. Request schema, status lain, dan gate penuh masih terbuka.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -3316,6 +3316,31 @@ components:
       - qty
       description: Setiap baris harus memilih menu aktif dari warung yang sama. Nama/harga snapshot berasal dari
         data menu yang dibaca backend; client tidak mengirim nama/harga.
+    SaleFreeFormLineInput:
+      type: object
+      additionalProperties: false
+      properties:
+        nama_menu:
+          type: string
+          minLength: 1
+          maxLength: 150
+          pattern: '\S'
+        harga:
+          type: string
+          pattern: '^(0\.(0[1-9]|[1-9][0-9])|[1-9][0-9]{0,12}\.[0-9]{2})$'
+          description: Harga satuan positif yang disimpan sebagai snapshot transaksi.
+        qty:
+          $ref: '#/components/schemas/Quantity'
+        diskon:
+          $ref: '#/components/schemas/Money'
+        catatan:
+          $ref: '#/components/schemas/Note'
+      required: [nama_menu, harga, qty]
+      description: Item satu kali yang tidak ditautkan ke katalog. Jumlah baris bebas; subtotal tetap dihitung backend.
+    SaleLineInput:
+      oneOf:
+      - $ref: '#/components/schemas/SaleMenuLineInput'
+      - $ref: '#/components/schemas/SaleFreeFormLineInput'
     PenjualanCreate:
       type: object
       additionalProperties: false
@@ -3343,14 +3368,15 @@ components:
         rincian:
           type: array
           items:
-            $ref: '#/components/schemas/SaleMenuLineInput'
+            $ref: '#/components/schemas/SaleLineInput'
           minItems: 1
       required:
       - tanggal
       - rincian
       description: >-
         Tanpa bayar dan metode_pembayaran, buat pesanan belum lunas. Sertakan keduanya hanya untuk penjualan
-        langsung lunas. Nama pelanggan adalah teks bebas opsional. Diskon yang tidak dikirim dianggap 0.00;
+        langsung lunas. Tiap baris rincian berupa menu_id atau pasangan nama_menu+harga item bebas; keduanya boleh
+        dicampur dan jumlah baris tidak dibatasi khusus. Nama pelanggan adalah teks bebas opsional. Diskon yang tidak dikirim dianggap 0.00;
         Untuk superadmin, warung_id wajib menunjuk warung target; user tenant dilarang mengirimnya. Subtotal/total/kembalian/identitas pelaku/no_transaksi/status ditetapkan backend.
     PenjualanPayment:
       type: object
@@ -3394,7 +3420,7 @@ components:
         rincian:
           type: array
           items:
-            $ref: '#/components/schemas/SaleMenuLineInput'
+            $ref: '#/components/schemas/SaleLineInput'
           minItems: 1
       required: [alasan]
       description: Superadmin wajib mengirim warung_id; user tenant dilarang mengirimnya. Sertakan alasan dan minimal satu field koreksi. Jika pembayaran diubah, bayar dan metode_pembayaran wajib dikirim bersama. Rincian mengganti seluruh rincian.
@@ -3479,7 +3505,9 @@ components:
       additionalProperties: false
       properties:
         menu_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         nama_menu:
           type: string
           minLength: 1
@@ -3646,7 +3674,9 @@ components:
         penjualan_id:
           $ref: '#/components/schemas/Id'
         menu_id:
-          $ref: '#/components/schemas/Id'
+          anyOf:
+          - $ref: '#/components/schemas/Id'
+          - type: 'null'
         nama_menu:
           type: string
           minLength: 1
@@ -3677,7 +3707,7 @@ components:
       - catatan
       - created_at
       - updated_at
-      description: menu_id wajib; nama dan harga adalah snapshot pada waktu penjualan.
+      description: menu_id berisi ID katalog atau null untuk item bebas; nama dan harga selalu snapshot pada transaksi.
     Penjualan:
       type: object
       additionalProperties: false

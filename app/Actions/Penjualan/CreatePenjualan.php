@@ -41,7 +41,7 @@ class CreatePenjualan
                     return $this->replayOrFail($existing, $payloadHash);
                 }
 
-                $menuIds = collect($input['rincian'])->pluck('menu_id')->map(fn (mixed $id): int => (int) $id)->unique()->sort()->values();
+                $menuIds = collect($input['rincian'])->pluck('menu_id')->filter()->map(fn (mixed $id): int => (int) $id)->unique()->sort()->values();
                 $menus = Menu::query()
                     ->where('warung_id', $warungId)
                     ->whereIn('id', $menuIds)
@@ -61,17 +61,18 @@ class CreatePenjualan
                 $subtotal = BigDecimal::zero();
 
                 foreach ($input['rincian'] as $index => $line) {
-                    $menuId = (int) $line['menu_id'];
-                    $menu = $menus->get($menuId);
+                    $menuId = isset($line['menu_id']) ? (int) $line['menu_id'] : null;
+                    $menu = $menuId === null ? null : $menus->get($menuId);
                     $category = $menu instanceof Menu ? $categories->get((int) $menu->kategori_menu_id) : null;
 
-                    if (! $menu instanceof Menu || ! $menu->aktif || ! $category instanceof KategoriMenu || ! $category->aktif) {
+                    if ($menuId !== null && (! $menu instanceof Menu || ! $menu->aktif || ! $category instanceof KategoriMenu || ! $category->aktif)) {
                         throw ValidationException::withMessages([
                             "rincian.$index.menu_id" => ['Menu harus aktif dan termasuk kategori aktif pada warung ini.'],
                         ]);
                     }
 
-                    $price = BigDecimal::of((string) $menu->harga);
+                    $price = BigDecimal::of((string) ($menu instanceof Menu ? $menu->harga : $line['harga']));
+                    $name = $menu instanceof Menu ? $menu->nama : $line['nama_menu'];
                     $quantity = BigDecimal::of((string) $line['qty']);
                     $lineDiscount = BigDecimal::of((string) ($line['diskon'] ?? '0.00'));
                     $gross = $price->multipliedBy($quantity)->toScale(2, RoundingMode::HalfUp);
@@ -89,7 +90,7 @@ class CreatePenjualan
                     $lineData[] = [
                         'warung_id' => $warungId,
                         'menu_id' => $menuId,
-                        'nama_menu' => $menu->nama,
+                        'nama_menu' => $name,
                         'harga' => (string) $price->toScale(2),
                         'qty' => (string) $quantity->toScale(2),
                         'diskon' => (string) $lineDiscount->toScale(2),

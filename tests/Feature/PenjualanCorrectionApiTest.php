@@ -74,6 +74,39 @@ class PenjualanCorrectionApiTest extends TestCase
         $this->assertDatabaseCount('penjualan_koreksis', 2);
     }
 
+    public function test_sale_correction_can_replace_details_with_free_form_snapshot_lines(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-06T12:00:00Z'));
+        $warung = Warung::factory()->create();
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+        $cashier = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'harga' => '100.00']);
+        $sale = $this->sale($warung, $cashier, $menu, CarbonImmutable::now('UTC')->subHour());
+        $token = $manager->createToken('free-form-sale-correction-test')->plainTextToken;
+        $payload = [
+            'alasan' => 'Item tidak ada di katalog.',
+            'rincian' => [['nama_menu' => 'Kerupuk', 'harga' => '2.50', 'qty' => '4.00']],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-free-form-correction-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans/{id}', 'patch');
+        $correction = $this->withToken($token)->patchJson('/api/v1/penjualans/'.$sale->id, $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.sesudah.subtotal', '10.00')
+            ->assertJsonPath('data.sesudah.total', '10.00')
+            ->assertJsonPath('data.sesudah.rincian.0.menu_id', null)
+            ->assertJsonPath('data.sesudah.rincian.0.nama_menu', 'Kerupuk')
+            ->assertJsonPath('data.sesudah.rincian.0.harga', '2.50')
+            ->assertJsonPath('data.sesudah.rincian.0.subtotal', '10.00');
+        $this->assertOperationResponseMatchesOpenApi($correction, '/penjualans/{id}', 'patch');
+        $this->assertDatabaseHas('penjualan_rincis', [
+            'penjualan_id' => $sale->id,
+            'menu_id' => null,
+            'nama_menu' => 'Kerupuk',
+            'subtotal' => '10.00',
+        ]);
+    }
+
     public function test_sale_correction_is_allowed_at_72_hour_boundary_and_rejected_afterward(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-10T12:00:00Z'));

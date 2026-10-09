@@ -1,6 +1,6 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.7-draft**, 2026-10-09. [openapi.yaml](openapi.yaml) berisi 37 operasi pada 25 path. Superadmin dapat membaca serta mengelola user, kategori, menu, penjualan, dan pembelian warung yang dipilih. Setiap GET tenant memakai `warung_id` di query; setiap mutasi tenant memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.8-draft**, 2026-10-09. [openapi.yaml](openapi.yaml) berisi 37 operasi pada 25 path. Superadmin dapat membaca serta mengelola user, kategori, menu, penjualan, dan pembelian warung yang dipilih. Setiap GET tenant memakai `warung_id` di query; setiap mutasi tenant memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
 
 `OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal 28 operasi ditambah dua koreksi pembelian, empat operasi siklus penjualan, dan tiga operasi pendaftaran/langganan menjadi 37 operasi pada 25 path.
 
@@ -208,7 +208,7 @@ Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier sete
 
 Nomor transaksi penjualan adalah `PJ-<ULID>` dan pembelian `PB-<ULID>`. API mengembalikan `no_transaksi`; frontend mencetak nomor yang sama pada nota pesanan dan nota pelunasan. Backend belum menyediakan PDF/print endpoint.
 
-Tidak ada kontrak endpoint delete transaksi, upload gambar, atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Semua 37 operasi tersedia untuk integrasi bertahap ke server development. Penjualan hanya memilih menu terdaftar; tidak ada input item bebas.
+Tidak ada kontrak endpoint delete transaksi, upload gambar, atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Semua 37 operasi tersedia untuk integrasi bertahap ke server development. Rincian penjualan dapat berupa menu katalog atau item bebas dengan snapshot nama dan harga; format tiap baris ada pada OpenAPI `SaleLineInput`.
 
 ## Alur layar dan contoh
 
@@ -249,7 +249,16 @@ Content-Type: application/json
 
 Response berisi `id`, `no_transaksi`, `total`, `status: menunggu_pembayaran`, dan `status_pembayaran: belum_lunas`. Untuk antrean kasir gunakan `GET /api/v1/penjualans?status_pembayaran=belum_lunas`; `lunas` menunjukkan riwayat yang sudah dibayar dan tanpa filter menampilkan semua status. Pesanan pending diedit melalui `PATCH /api/v1/penjualans/{id}` dengan `alasan` dan rincian lengkap pengganti, lalu pelanggan melunasi melalui `POST /api/v1/penjualans/{id}/pembayaran`.
 
-Contoh sintetis: Nasi `15000.00` × `2.00` dan Teh `5000.00` × `1.00`, diskon header `2000.00`, total `33000.00`. Ketika pelanggan siap membayar, panggil `POST /api/v1/penjualans/{id}/pembayaran` dengan `bayar` dan `metode_pembayaran`. Pembayaran melunasi seluruh total: cash menerima bayar >= total dan menghitung kembalian; QRIS/transfer harus sama persis dengan total. Cetak `no_transaksi` yang sama pada nota lunas. D05 memakai decimal eksak dua angka pecahan dan round half-up per rincian. Diskon tak boleh melebihi subtotal; harga menu dan qty harus positif, qty sampai dua desimal. Setiap item harus merujuk menu aktif di warung sama; backend menyimpan snapshot nama/harga jual.
+Contoh sintetis: Nasi `15000.00` × `2.00`, Teh `5000.00` × `1.00`, dan item bebas Kerupuk `1500.00` × `2.00`, diskon header `2000.00`, total `36000.00`. Item bebas dikirim dengan `nama_menu`, `harga`, dan `qty`, tanpa `menu_id`; baris katalog hanya mengirim `menu_id` dan `qty`. Dua bentuk boleh dicampur, tidak ada batas khusus jumlah baris, dan backend menyimpan nama/harga snapshot serta menghitung subtotal. Item bebas tidak masuk katalog. Ketika pelanggan siap membayar, panggil `POST /api/v1/penjualans/{id}/pembayaran` dengan `bayar` dan `metode_pembayaran`. Pembayaran melunasi seluruh total: cash menerima bayar >= total dan menghitung kembalian; QRIS/transfer harus sama persis dengan total. Cetak `no_transaksi` yang sama pada nota lunas. D05 memakai decimal eksak dua angka pecahan dan round half-up per rincian. Diskon tak boleh melebihi subtotal; harga dan qty harus positif, qty sampai dua desimal.
+
+Contoh rincian campuran:
+
+```json
+[
+  {"menu_id":"1001","qty":"2.00"},
+  {"nama_menu":"Kerupuk","harga":"1500.00","qty":"2.00"}
+]
+```
 
 Pesanan belum lunas dapat diedit atau dibatalkan kapan saja selama masih pending; setiap edit/pembatalan wajib membawa alasan dan `Idempotency-Key`, dan edit menyimpan snapshot sebelum/sesudah. Setelah lunas, owner/manager dapat mengoreksi tanggal, catatan, nama pelanggan, diskon, atau mengganti rincian sampai **72 jam sejak waktu pembayaran**. Pembatalan transaksi lunas juga dibatasi window ini. Setelahnya retur sebagian/penuh tetap dapat dicatat melalui `POST /api/v1/penjualans/{id}/retur`; alasan wajib, jumlah retur dibatasi sisa nilai, dan retur mengurangi laporan pada hari lokal saat dicatat. Retur tidak mengubah stok. Lihat request/response schema dan contoh di OpenAPI.
 
@@ -324,12 +333,13 @@ Checklist penerima: pendaftaran owner dan pesan menunggu persetujuan, approval/p
 
 Batas periode lokal pada empat GET daftar/laporan dikonversi ke UTC lalu divalidasi terhadap MySQL `DATETIME` tahun 1000–9999. Batas yang meluap ditolak 422 sebelum query bisnis; batas aman tetap diterima ([TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001.md)).
 
-Penjualan baru dan rincian koreksi hanya menerima menu aktif di kategori aktif. Menu/kategori nonaktif mendapat 422 tanpa write; histori lama tetap memakai snapshot ([TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-INACTIVE-CATALOG-SALE-CONFORMANCE-001.md)). Koreksi, pembatalan, dan retur penjualan siap untuk integrasi alur utama. Cakupan uji tersimpan dalam [SALE-CORRECTION-RETURN-CONFORMANCE-001](../backend/test-runs/SALE-CORRECTION-RETURN-CONFORMANCE-001.md), serta artefak request, state, role, audit, dan batas terkait; edge-case lanjutan tercatat di OpenAPI.
+Baris penjualan katalog hanya menerima menu aktif di kategori aktif. Baris item bebas wajib menyertakan nama dan harga satuan positif; keduanya dapat dicampur tanpa batas jumlah baris khusus dan semua subtotal dihitung backend. Snapshot item bebas memiliki `menu_id: null` dan tidak menambahkan menu katalog. Menu/kategori nonaktif mendapat 422 tanpa write; histori lama tetap memakai snapshot. Koreksi, pembatalan, dan retur penjualan mendukung dua jenis baris. Bukti conformance perubahan D07 dicatat pada [SALE-FREE-FORM-ITEM-CONFORMANCE-001](../backend/test-runs/SALE-FREE-FORM-ITEM-CONFORMANCE-001.md); edge-case lanjutan tetap tercatat di OpenAPI.
 
 ## Changelog kontrak
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
+| 0.1.8-draft | DRAFT | D07 direvisi: rincian penjualan memakai menu katalog atau item bebas dengan snapshot nama/harga, `menu_id` nullable, baris dapat dicampur tanpa batas jumlah khusus; schema request menggunakan `SaleLineInput`. |
 | 0.1.7-draft | DRAFT | D04 (revisi 2026-10-09): superadmin memakai query `warung_id` untuk GET tenant dan body `warung_id` untuk mutasi semua form tenant (user, katalog, transaksi). Tenant dilarang mengirim selector; identitas pelaku superadmin dicatat tersendiri untuk transaksi. |
 | 0.1.6-draft | DRAFT | D04: superadmin memakai query `warung_id` untuk GET tenant dan body `warung_id` untuk seluruh aksi transaksi. Aturan mutasi katalog/user dari versi ini superseded oleh persetujuan 2026-10-09. |
 | 0.1.5-draft | DRAFT | D04: superadmin membaca GET data tenant dengan query `warung_id` wajib; aturan mutasi transaksi pada versi ini superseded oleh persetujuan 2026-10-08. |

@@ -17,7 +17,7 @@ class PenjualanRinciResource extends JsonResource
         return [
             'id' => (string) $this->getKey(),
             'penjualan_id' => (string) $this->penjualan_id,
-            'menu_id' => (string) $this->menu_id,
+            'menu_id' => $this->menu_id === null ? null : (string) $this->menu_id,
             'nama_menu' => $this->nama_menu,
             'harga' => $this->harga,
             'qty' => $this->qty,

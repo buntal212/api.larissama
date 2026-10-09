@@ -158,7 +158,7 @@ Migration `2026_10_07_134141_add_unpaid_order_fields_to_penjualans_table` menjag
 | `id` | BIGINT primary key |
 | `warung_id` | BIGINT; bagian FK gabungan ke header penjualan dan menu |
 | `penjualan_id` | BIGINT; bagian FK gabungan ke header penjualan |
-| `menu_id` | BIGINT; FK gabungan wajib ke menu pada warung yang sama |
+| `menu_id` | BIGINT nullable; FK gabungan ke menu pada warung yang sama saat memakai katalog; NULL menandai item bebas |
 | `nama_menu` | VARCHAR(150), snapshot nama item |
 | `harga` | DECIMAL(15,2), snapshot harga saat transaksi |
 | `qty` | DECIMAL(10,2) |
@@ -167,7 +167,9 @@ Migration `2026_10_07_134141_add_unpaid_order_fields_to_penjualans_table` menjag
 | `catatan` | TEXT, nullable |
 | `created_at`, `updated_at` | timestamp |
 
-Setiap detail memakai `menu_id` dari warung transaksi serta snapshot `nama_menu` dan harga jual saat transaksi. Tidak ada rincian item bebas. Perubahan master menu tidak boleh menulis ulang snapshot transaksi yang sudah terjadi.
+Setiap baris menyimpan snapshot `nama_menu`, `harga`, `qty`, dan `subtotal`. `menu_id` terisi untuk menu katalog dan NULL untuk item bebas yang hanya berlaku pada transaksi tersebut. Baris katalog mengambil nama dan harga dari menu aktif; baris bebas wajib mengirim nama dan harga satuan positif. Keduanya boleh dicampur dalam transaksi, jumlah baris tidak memiliki batas khusus, dan satu baris dapat memiliki qty lebih dari satu. Backend menghitung subtotal/total; item bebas tidak menjadi menu katalog. Perubahan master menu tidak menulis ulang snapshot transaksi.
+
+Migration maju `2026_10_09_020520_make_sale_detail_menu_optional` mengubah nullability tanpa menghapus atau mengganti FK gabungan yang sudah ada. Rollback hanya dapat dilakukan bila belum ada baris dengan `menu_id = NULL`.
 
 ### `penjualan_koreksis` dan `penjualan_returs`
 

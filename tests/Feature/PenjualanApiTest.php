@@ -103,6 +103,61 @@ class PenjualanApiTest extends TestCase
         ]);
     }
 
+    public function test_sale_can_mix_catalog_and_free_form_snapshot_lines(): void
+    {
+        $warung = Warung::factory()->create();
+        $kasir = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $menu = Menu::factory()->create(['warung_id' => $warung->id, 'nama' => 'Teh', 'harga' => '5000.00']);
+        $token = $kasir->createToken('free-form-sale-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'rincian' => [
+                ['menu_id' => (string) $menu->id, 'qty' => '2.00'],
+                ['nama_menu' => 'Kerupuk', 'harga' => '1500.00', 'qty' => '3.00'],
+            ],
+        ];
+        $headers = ['Idempotency-Key' => 'sale-free-form-mixed-001'];
+
+        $this->assertOperationRequestMatchesOpenApi($payload, $headers, '/penjualans', 'post');
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, $headers)
+            ->assertCreated()
+            ->assertJsonPath('data.subtotal', '14500.00')
+            ->assertJsonPath('data.total', '14500.00')
+            ->assertJsonPath('data.rincian.0.menu_id', (string) $menu->id)
+            ->assertJsonPath('data.rincian.0.nama_menu', 'Teh')
+            ->assertJsonPath('data.rincian.1.menu_id', null)
+            ->assertJsonPath('data.rincian.1.nama_menu', 'Kerupuk')
+            ->assertJsonPath('data.rincian.1.harga', '1500.00')
+            ->assertJsonPath('data.rincian.1.qty', '3.00')
+            ->assertJsonPath('data.rincian.1.subtotal', '4500.00');
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+
+        $this->assertDatabaseHas('penjualan_rincis', [
+            'penjualan_id' => $response->json('data.id'),
+            'menu_id' => null,
+            'nama_menu' => 'Kerupuk',
+            'harga' => '1500.00',
+            'qty' => '3.00',
+            'subtotal' => '4500.00',
+        ]);
+    }
+
+    public function test_free_form_sale_line_requires_name_and_positive_unit_price(): void
+    {
+        $warung = Warung::factory()->create();
+        $kasir = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $token = $kasir->createToken('invalid-free-form-sale-test')->plainTextToken;
+        $payload = [
+            'tanggal' => '2026-10-04T10:00:00+07:00',
+            'rincian' => [['qty' => '1.00', 'harga' => '0.00']],
+        ];
+        $response = $this->withToken($token)->postJson('/api/v1/penjualans', $payload, [
+            'Idempotency-Key' => 'sale-free-form-invalid-001',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['rincian.0.nama_menu', 'rincian.0.harga']);
+        $this->assertOperationResponseMatchesOpenApi($response, '/penjualans', 'post');
+        $this->assertDatabaseCount('penjualans', 0);
+    }
+
     public function test_sale_calculates_exact_decimal_subtotal_total_and_change(): void
     {
         $warung = Warung::factory()->create();

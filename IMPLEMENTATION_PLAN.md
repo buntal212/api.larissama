@@ -26,7 +26,7 @@ Jangan menduplikasi status pelaksanaan dalam dokumen desain. Tracker adalah cata
 - Pembelian bahan: header-rincian, mendukung input lengkap maupun satu baris seperti “Belanja di pasar” dan nominal. Total pembelian periode berdiri sendiri dari penjualan.
 - API yang terdokumentasi untuk akses, administrasi, katalog, penjualan, pembelian dan laporan; test membuktikan izin, angka, integritas, serta kontrak.
 
-Aplikasi tidak memerlukan workflow dapur, resep, stok, item penjualan bebas, atau perhitungan HPP/laba. D07 telah diputuskan: semua baris penjualan memilih menu terdaftar, sedangkan pembelian tidak ditautkan ke menu. Field schema lama seperti `harga_modal` dan role `koki` tidak membuat fitur biaya/dapur; bila dipakai perlu keputusan dan kontrak tersendiri.
+Aplikasi tidak memerlukan workflow dapur, resep, stok, atau perhitungan HPP/laba. D07 mengizinkan baris penjualan dari menu terdaftar maupun item bebas satu kali dengan snapshot nama dan harga, tanpa batas jumlah baris khusus. Item bebas dapat bercampur dengan menu katalog dan tidak membuat data menu; pembelian tetap tidak ditautkan ke menu. Field schema lama seperti `harga_modal` dan role `koki` tidak membuat fitur biaya/dapur; bila dipakai perlu keputusan dan kontrak tersendiri.
 
 ## Milestone dan gate
 
@@ -57,7 +57,7 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 
 1. M0/M1: D01 engine/transisi data, D02 auth, D03 tanggal nullable, D04 role/superadmin, D12 identitas/email, D13 HTTP; bagian D08 yang diperlukan untuk tanggal masa aktif.
 2. M2: baseline decimal D05 sudah dipilih; arsip active-only D06 diterapkan. FK gabungan tenant D16 telah dipilih dan diterapkan. D14 hanya bila media gambar menu masuk scope.
-3. M3: D05/D06/D18 diputuskan; pending order bisa diedit/dibatalkan tanpa batas sampai dibayar, pembayaran penuh tercatat terpisah, dan koreksi/cancel transaksi lunas dibatasi 72 jam dari `dibayar_pada` UTC. Retur nominal penuh/sebagian dengan alasan tersedia setelahnya. Gunakan timezone periode D08, laporan pendapatan menurut waktu bayar, serta replay durable D09. Setiap item wajib dari menu sesuai D07.
+3. M3: D05/D06/D18 diputuskan; pending order bisa diedit/dibatalkan tanpa batas sampai dibayar, pembayaran penuh tercatat terpisah, dan koreksi/cancel transaksi lunas dibatasi 72 jam dari `dibayar_pada` UTC. Retur nominal penuh/sebagian dengan alasan tersedia setelahnya. Gunakan timezone periode D08, laporan pendapatan menurut waktu bayar, serta replay durable D09. Rincian dapat memakai menu katalog atau snapshot item bebas sesuai D07.
 4. M4: terapkan baseline decimal D05, timezone D08, replay D09, dan finalisasi input sebagian D10 serta koreksi pembelian D11.
 
 Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Pilihan MySQL 8.0.40, auth, baseline nominal, Idempotency-Key, dan FK tenant gabungan sudah dicatat; rincian tersisa tetap menjadi gate sebelum kontrak siap frontend. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.

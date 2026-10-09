@@ -112,6 +112,21 @@ class TenantCompositeForeignKeyTest extends TestCase
         ]));
     }
 
+    public function test_database_allows_a_tenant_scoped_sale_detail_without_catalog_menu(): void
+    {
+        $warung = Warung::factory()->create();
+        $kasir = User::factory()->create(['warung_id' => $warung->id, 'role' => 'kasir']);
+        $sale = Penjualan::factory()->create(['warung_id' => $warung->id, 'user_id' => $kasir->id]);
+
+        $this->insertSaleDetail($warung->id, $sale->id, null);
+
+        $this->assertDatabaseHas('penjualan_rincis', [
+            'warung_id' => $warung->id,
+            'penjualan_id' => $sale->id,
+            'menu_id' => null,
+        ]);
+    }
+
     public function test_menu_code_can_repeat_across_warungs_but_not_within_one(): void
     {
         $warungA = Warung::factory()->create();
@@ -203,7 +218,7 @@ class TenantCompositeForeignKeyTest extends TestCase
         $this->fail("Expected database constraint {$constraint} to reject the write.");
     }
 
-    private function insertSaleDetail(int $warungId, int $saleId, int $menuId): void
+    private function insertSaleDetail(int $warungId, int $saleId, ?int $menuId): void
     {
         $now = now('UTC');
 

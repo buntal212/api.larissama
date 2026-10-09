@@ -58,7 +58,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
         $this->assertColumn('penjualans', 'pembayaran_idempotency_key', 'varchar', 255, null, null, true);
         $this->assertColumn('penjualans', 'pembayaran_payload_hash', 'char', 64, null, null, true);
         $this->assertColumn('penjualans', 'pembayaran_idempotency_expires_at', 'datetime', null, null, null, true, 6);
-        $this->assertColumn('penjualan_rincis', 'menu_id', 'bigint', null, 20, 0, false);
+        $this->assertColumn('penjualan_rincis', 'menu_id', 'bigint', null, 20, 0, true);
         $this->assertColumn('penjualan_rincis', 'qty', 'decimal', null, 10, 2, false);
         $this->assertColumn('penjualan_rincis', 'subtotal', 'decimal', null, 15, 2, false);
         $this->assertFalse(Schema::hasColumn('penjualan_rincis', 'jenis_item'));
@@ -164,7 +164,7 @@ class BusinessSchemaMigrationConformanceTest extends TestCase
                 'id' => 'bigint unsigned|NO|<NULL>|auto_increment|<NULL>',
                 'warung_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
                 'penjualan_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
-                'menu_id' => 'bigint unsigned|NO|<NULL>|<NONE>|<NULL>',
+                'menu_id' => 'bigint unsigned|YES|<NULL>|<NONE>|<NULL>',
                 'nama_menu' => 'varchar(150)|NO|<NULL>|<NONE>|<NULL>',
                 'harga' => 'decimal(15,2)|NO|<NULL>|<NONE>|<NULL>',
                 'qty' => 'decimal(10,2)|NO|<NULL>|<NONE>|<NULL>',

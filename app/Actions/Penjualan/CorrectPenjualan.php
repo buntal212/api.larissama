@@ -126,7 +126,7 @@ class CorrectPenjualan
         if (array_key_exists('rincian', $input)) {
             [$lineData, $subtotal] = $this->calculateLines($input['rincian'], (int) $sale->warung_id);
             $after['rincian'] = array_map(static fn (array $line): array => [
-                'menu_id' => (string) $line['menu_id'],
+                'menu_id' => $line['menu_id'] === null ? null : (string) $line['menu_id'],
                 'nama_menu' => $line['nama_menu'],
                 'harga' => $line['harga'],
                 'qty' => $line['qty'],
@@ -227,20 +227,22 @@ class CorrectPenjualan
      */
     private function calculateLines(array $lines, int $warungId): array
     {
-        $menuIds = collect($lines)->pluck('menu_id')->map(fn ($id): int => (int) $id)->unique()->sort()->values();
+        $menuIds = collect($lines)->pluck('menu_id')->filter()->map(fn ($id): int => (int) $id)->unique()->sort()->values();
         $menus = Menu::query()->where('warung_id', $warungId)->whereIn('id', $menuIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $categories = KategoriMenu::query()->where('warung_id', $warungId)->whereIn('id', $menus->pluck('kategori_menu_id')->unique())->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $data = [];
         $subtotal = BigDecimal::zero();
 
         foreach ($lines as $index => $line) {
-            $menu = $menus->get((int) $line['menu_id']);
+            $menuId = isset($line['menu_id']) ? (int) $line['menu_id'] : null;
+            $menu = $menuId === null ? null : $menus->get($menuId);
             $category = $menu instanceof Menu ? $categories->get((int) $menu->kategori_menu_id) : null;
-            if (! $menu instanceof Menu || ! $menu->aktif || ! $category instanceof KategoriMenu || ! $category->aktif) {
+            if ($menuId !== null && (! $menu instanceof Menu || ! $menu->aktif || ! $category instanceof KategoriMenu || ! $category->aktif)) {
                 throw ValidationException::withMessages(["rincian.$index.menu_id" => ['Menu harus aktif dan termasuk kategori aktif pada warung ini.']]);
             }
 
-            $price = BigDecimal::of((string) $menu->harga);
+            $price = BigDecimal::of((string) ($menu instanceof Menu ? $menu->harga : $line['harga']));
+            $name = $menu instanceof Menu ? $menu->nama : $line['nama_menu'];
             $quantity = BigDecimal::of((string) $line['qty']);
             $discount = BigDecimal::of((string) ($line['diskon'] ?? '0.00'));
             $gross = $price->multipliedBy($quantity)->toScale(2, RoundingMode::HalfUp);
@@ -253,8 +255,8 @@ class CorrectPenjualan
             $this->assertDatabaseMoney($subtotal, 'rincian');
             $data[] = [
                 'warung_id' => $warungId,
-                'menu_id' => $menu->getKey(),
-                'nama_menu' => $menu->nama,
+                'menu_id' => $menuId,
+                'nama_menu' => $name,
                 'harga' => (string) $price->toScale(2),
                 'qty' => (string) $quantity->toScale(2),
                 'diskon' => (string) $discount->toScale(2),
@@ -302,7 +304,7 @@ class CorrectPenjualan
             'pembayaran_superadmin_id' => $sale->pembayaran_superadmin_id === null ? null : (string) $sale->pembayaran_superadmin_id,
             'catatan' => $sale->catatan,
             'rincian' => $sale->rincian->map(static fn ($line): array => [
-                'menu_id' => (string) $line->menu_id,
+                'menu_id' => $line->menu_id === null ? null : (string) $line->menu_id,
                 'nama_menu' => $line->nama_menu,
                 'harga' => $line->harga,
                 'qty' => $line->qty,
