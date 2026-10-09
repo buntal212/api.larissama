@@ -44,7 +44,7 @@ class CurrentWarungApiTest extends TestCase
 
         $profile = $response->json('data');
         $this->assertEqualsCanonicalizing(
-            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'created_at', 'updated_at'],
+            ['id', 'kode', 'nama', 'alamat', 'telepon', 'logo', 'timezone', 'tanggal_mulai', 'tanggal_berakhir', 'aktif', 'status_langganan', 'created_at', 'updated_at'],
             array_keys($profile),
         );
         $this->assertSame((string) $warung->id, $profile['id']);
@@ -58,6 +58,7 @@ class CurrentWarungApiTest extends TestCase
         $this->assertSame('2026-01-01', $profile['tanggal_mulai']);
         $this->assertSame('2026-12-31', $profile['tanggal_berakhir']);
         $this->assertTrue($profile['aktif']);
+        $this->assertSame('aktif', $profile['status_langganan']);
         $this->assertSame($warung->created_at->copy()->utc()->toISOString(), $profile['created_at']);
         $this->assertSame($warung->updated_at->copy()->utc()->toISOString(), $profile['updated_at']);
     }

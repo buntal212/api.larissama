@@ -34,8 +34,14 @@ class PenjualanPolicyTest extends TestCase
             $this->assertFalse($policy->view($actor, $ownSale));
         }
         $this->assertFalse($policy->view($actor, $foreignSale, $selectedWarungId));
-        $this->assertSame($canManageCorrections, $policy->update($actor, $ownSale));
-        $this->assertSame($canManageCorrections, $policy->manageCorrections($actor, $ownSale));
+        $this->assertSame($canManageCorrections, $policy->update($actor, $ownSale, $selectedWarungId));
+        $this->assertSame($canManageCorrections, $policy->manageCorrections($actor, $ownSale, $selectedWarungId));
+        $this->assertSame($canCreate, $policy->pay($actor, $ownSale, $selectedWarungId));
+        if ($role === 'superadmin') {
+            $this->assertFalse($policy->update($actor, $ownSale));
+            $this->assertFalse($policy->manageCorrections($actor, $ownSale));
+            $this->assertFalse($policy->pay($actor, $ownSale));
+        }
         $this->assertFalse($policy->delete($actor, $ownSale));
         $this->assertFalse($policy->restore($actor, $ownSale));
         $this->assertFalse($policy->forceDelete($actor, $ownSale));
@@ -50,7 +56,7 @@ class PenjualanPolicyTest extends TestCase
             'owner' => ['owner', 10, true, true, true, true],
             'manager' => ['manager', 10, true, true, true, true],
             'cashier' => ['kasir', 10, true, true, true, false],
-            'superadmin' => ['superadmin', null, true, false, true, false],
+            'superadmin' => ['superadmin', null, true, true, true, true],
             'owner without tenant' => ['owner', null, false, false, false, false],
             'manager without tenant' => ['manager', null, false, false, false, false],
             'cashier without tenant' => ['kasir', null, false, false, false, false],

@@ -15,7 +15,8 @@ class PembelianPolicyTest extends TestCase
         string $role,
         ?int $warungId,
         bool $canRead,
-        bool $canManage,
+        bool $canCreate,
+        bool $canManageSelectedWarung,
     ): void {
         $policy = new PembelianPolicy;
         $actor = $this->user(1, $role, $warungId);
@@ -23,15 +24,19 @@ class PembelianPolicyTest extends TestCase
         $foreignPurchase = $this->purchase(20);
 
         $this->assertSame($canRead, $policy->viewAny($actor));
-        $this->assertSame($canManage, $policy->create($actor));
+        $this->assertSame($canCreate, $policy->create($actor));
         $selectedWarungId = $role === 'superadmin' ? '10' : null;
         $this->assertSame($canRead, $policy->view($actor, $ownPurchase, $selectedWarungId));
         if ($role === 'superadmin') {
             $this->assertFalse($policy->view($actor, $ownPurchase));
         }
         $this->assertFalse($policy->view($actor, $foreignPurchase, $selectedWarungId));
-        $this->assertSame($canManage, $policy->update($actor, $ownPurchase));
-        $this->assertSame($canManage, $policy->cancel($actor, $ownPurchase));
+        $this->assertSame($canManageSelectedWarung, $policy->update($actor, $ownPurchase, $selectedWarungId));
+        $this->assertSame($canManageSelectedWarung, $policy->cancel($actor, $ownPurchase, $selectedWarungId));
+        if ($role === 'superadmin') {
+            $this->assertFalse($policy->update($actor, $ownPurchase));
+            $this->assertFalse($policy->cancel($actor, $ownPurchase));
+        }
         $this->assertFalse($policy->update($actor, $foreignPurchase));
         $this->assertFalse($policy->cancel($actor, $foreignPurchase));
         $this->assertFalse($policy->delete($actor, $ownPurchase));
@@ -40,18 +45,18 @@ class PembelianPolicyTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string, ?int, bool, bool}>
+     * @return array<string, array{string, ?int, bool, bool, bool}>
      */
     public static function roleMatrix(): array
     {
         return [
-            'owner' => ['owner', 10, true, true],
-            'manager' => ['manager', 10, true, true],
-            'cashier' => ['kasir', 10, false, false],
-            'superadmin' => ['superadmin', null, true, false],
-            'owner without tenant' => ['owner', null, false, false],
-            'manager without tenant' => ['manager', null, false, false],
-            'cashier without tenant' => ['kasir', null, false, false],
+            'owner' => ['owner', 10, true, true, true],
+            'manager' => ['manager', 10, true, true, true],
+            'cashier' => ['kasir', 10, false, false, false],
+            'superadmin' => ['superadmin', null, true, true, true],
+            'owner without tenant' => ['owner', null, false, false, false],
+            'manager without tenant' => ['manager', null, false, false, false],
+            'cashier without tenant' => ['kasir', null, false, false, false],
         ];
     }
 

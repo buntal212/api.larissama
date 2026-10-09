@@ -9,6 +9,7 @@ use App\Models\Penjualan;
 use App\Models\PenjualanRinci;
 use App\Models\User;
 use App\Models\Warung;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,6 +19,7 @@ class OwnerTenantAccessConformanceTest extends TestCase
 
     public function test_owner_can_manage_tenant_operations_without_reading_another_warung(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-10-05T06:00:00Z'));
         $warungA = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
         $warungB = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
         $owner = User::factory()->create(['warung_id' => $warungA->id, 'role' => 'owner']);

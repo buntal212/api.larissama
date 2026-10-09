@@ -73,7 +73,8 @@ class ProtectedOperation401ConformanceTest extends TestCase
                     throw new LogicException("OpenAPI {$method} {$path} must have an operationId.");
                 }
 
-                if ($operationId === 'login') {
+                $effectiveSecurity = $operation['security'] ?? $document['security'] ?? [];
+                if ($effectiveSecurity === []) {
                     continue;
                 }
 

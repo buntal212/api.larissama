@@ -43,8 +43,6 @@ class ProvisionWarungAtomicityTest extends TestCase
                     'timezone' => 'Asia/Jakarta',
                     'alamat' => null,
                     'telepon' => null,
-                    'tanggal_mulai' => null,
-                    'tanggal_berakhir' => null,
                     'owner' => [
                         'nama' => 'Owner Rollback Uji',
                         'username' => $ownerUsername,

@@ -13,7 +13,7 @@ class SuperadminTenantWriteAccessApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_superadmin_must_select_a_warung_for_each_tenant_form_write(): void
+    public function test_superadmin_must_select_a_warung_for_user_writes_and_cannot_write_catalog(): void
     {
         $warung = Warung::factory()->create();
         $category = KategoriMenu::factory()->create(['warung_id' => $warung->id]);
@@ -22,19 +22,27 @@ class SuperadminTenantWriteAccessApiTest extends TestCase
         $superadmin = User::factory()->superadmin()->create();
         $token = $superadmin->createToken('superadmin-tenant-write-scope-test')->plainTextToken;
 
-        $requests = [
+        $userRequests = [
             ['POST', '/api/v1/users', ['nama' => 'Kasir', 'username' => 'kasir_baru', 'password' => 'kasir-password', 'role' => 'kasir']],
             ['PATCH', '/api/v1/users/'.$user->id, ['nama' => 'Nama Baru']],
+        ];
+
+        foreach ($userRequests as [$method, $uri, $payload]) {
+            $response = $this->withToken($token)->json($method, $uri, $payload)->assertUnprocessable();
+            $this->assertSame('VALIDATION_ERROR', $response->json('code'));
+            $this->assertArrayHasKey('warung_id', $response->json('errors'));
+        }
+
+        $catalogRequests = [
             ['POST', '/api/v1/kategori-menus', ['nama' => 'Kategori Baru']],
             ['PATCH', '/api/v1/kategori-menus/'.$category->id, ['nama' => 'Kategori Baru']],
             ['POST', '/api/v1/menus', ['kategori_menu_id' => (string) $category->id, 'nama' => 'Menu Baru', 'harga' => '12000.00']],
             ['PATCH', '/api/v1/menus/'.$menu->id, ['nama' => 'Menu Baru']],
         ];
 
-        foreach ($requests as [$method, $uri, $payload]) {
-            $response = $this->withToken($token)->json($method, $uri, $payload)->assertUnprocessable();
-            $this->assertSame('VALIDATION_ERROR', $response->json('code'));
-            $this->assertArrayHasKey('warung_id', $response->json('errors'));
+        foreach ($catalogRequests as [$method, $uri, $payload]) {
+            $response = $this->withToken($token)->json($method, $uri, $payload)->assertForbidden();
+            $this->assertSame('FORBIDDEN', $response->json('code'));
         }
 
         $this->assertDatabaseCount('users', 2);

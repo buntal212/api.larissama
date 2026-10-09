@@ -215,7 +215,8 @@ class ApiRequestUnknownFieldsConformanceTest extends TestCase
         foreach ($cases as $case) {
             $body = [...$case['body'], 'warung_id' => (string) $warung->id];
             $method = strtolower($case['method']);
-            $this->assertOperationRequestDoesNotMatchOpenApi($body, $case['openapi_path'], $method);
+            // Selector ini sah pada kontrak superadmin; validasi runtime menolaknya untuk token tenant.
+            $this->assertOperationRequestMatchesOpenApi($body, $case['headers'], $case['openapi_path'], $method);
 
             $response = $this->withToken($ownerToken)->json(
                 $case['method'],
@@ -276,7 +277,8 @@ class ApiRequestUnknownFieldsConformanceTest extends TestCase
         foreach ($cases as $case) {
             $body = [...$case['body'], 'warung_id' => (string) $warung->id];
             $method = strtolower($case['method']);
-            $this->assertOperationRequestDoesNotMatchOpenApi($body, $case['openapi_path'], $method);
+            // Selector ini sah pada kontrak superadmin; validasi runtime menolaknya untuk token tenant.
+            $this->assertOperationRequestMatchesOpenApi($body, $case['headers'], $case['openapi_path'], $method);
 
             $response = $this->withToken($ownerToken)->json(
                 $case['method'],

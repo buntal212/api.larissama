@@ -14,40 +14,45 @@ class UserPolicyTest extends TestCase
         string $role,
         ?int $warungId,
         bool $canReadTenant,
-        bool $canManage,
+        bool $canCreate,
+        bool $canUpdateSelectedWarung,
     ): void {
         $policy = new UserPolicy;
         $actor = $this->user(1, $role, $warungId);
         $target = $this->user(2, 'manager', 10);
 
         $this->assertSame($canReadTenant, $policy->viewAny($actor));
-        $this->assertSame($canManage, $policy->create($actor));
-        $this->assertSame($canReadTenant, $policy->view($actor, $target, $role === 'superadmin' ? '10' : null));
+        $this->assertSame($canCreate, $policy->create($actor));
+        $selectedWarungId = $role === 'superadmin' ? '10' : null;
+        $this->assertSame($canReadTenant, $policy->view($actor, $target, $selectedWarungId));
         if ($role === 'superadmin') {
             $this->assertFalse($policy->view($actor, $target));
         }
-        $this->assertSame($canManage, $policy->update($actor, $target));
-        $this->assertFalse($policy->view($actor, $this->user(3, 'manager', 20), $role === 'superadmin' ? '10' : null));
+        $this->assertSame($canUpdateSelectedWarung, $policy->update($actor, $target, $selectedWarungId));
+        if ($role === 'superadmin') {
+            $this->assertFalse($policy->update($actor, $target));
+        }
+        $this->assertFalse($policy->view($actor, $this->user(3, 'manager', 20), $selectedWarungId));
         $this->assertFalse($policy->update($actor, $this->user(3, 'manager', 20)));
         $this->assertFalse($policy->view($actor, $this->user(4, 'superadmin', null)));
         $this->assertFalse($policy->update($actor, $this->user(4, 'superadmin', null)));
-        $this->assertSame($canManage, $policy->view($actor, $actor));
+        $this->assertSame($role === 'owner' && $warungId !== null, $policy->view($actor, $actor, $selectedWarungId));
         $this->assertFalse($policy->update($actor, $actor));
     }
 
     /**
-     * @return array<string, array{string, ?int, bool, bool}>
+     * @return array<string, array{string, ?int, bool, bool, bool}>
      */
     public static function roleMatrix(): array
     {
         return [
-            'owner' => ['owner', 10, true, true],
-            'manager' => ['manager', 10, false, false],
-            'cashier' => ['kasir', 10, false, false],
-            'superadmin' => ['superadmin', null, true, false],
-            'owner without tenant' => ['owner', null, false, false],
-            'manager without tenant' => ['manager', null, false, false],
-            'cashier without tenant' => ['kasir', null, false, false],
+            'owner' => ['owner', 10, true, true, true],
+            'manager' => ['manager', 10, false, false, false],
+            'cashier' => ['kasir', 10, false, false, false],
+            'superadmin' => ['superadmin', null, true, true, true],
+            'owner without tenant' => ['owner', null, false, false, false],
+            'manager without tenant' => ['manager', null, false, false, false],
+            'cashier without tenant' => ['kasir', null, false, false, false],
         ];
     }
 

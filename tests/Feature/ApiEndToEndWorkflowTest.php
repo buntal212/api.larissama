@@ -29,8 +29,6 @@ class ApiEndToEndWorkflowTest extends TestCase
             'timezone' => 'Asia/Jakarta',
             'alamat' => null,
             'telepon' => null,
-            'tanggal_mulai' => null,
-            'tanggal_berakhir' => null,
             'owner' => [
                 'nama' => 'Owner E2E',
                 'username' => 'owner-e2e',
@@ -46,6 +44,11 @@ class ApiEndToEndWorkflowTest extends TestCase
         $warungId = $provisioned->json('data.warung.id');
         $ownerId = $provisioned->json('data.owner.id');
         $this->assertSame($warungId, $provisioned->json('data.owner.warung_id'));
+
+        $approved = $this->withFreshToken($superadminToken)
+            ->postJson('/api/v1/admin/warungs/'.$warungId.'/persetujuan')
+            ->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($approved, '/admin/warungs/{id}/persetujuan', 'post');
 
         $ownerToken = $this->login('owner-e2e', $ownerPassword);
         $managerPassword = 'Manager-e2e-secret';
