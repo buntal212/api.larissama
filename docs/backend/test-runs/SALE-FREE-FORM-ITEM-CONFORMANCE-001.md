@@ -7,6 +7,7 @@
 - Jumlah baris item bebas tidak memiliki batas khusus. Baris bebas dan katalog boleh dicampur; qty per baris tetap mengikuti D05.
 - API contract: OpenAPI 3.1 `SaleLineInput`, digunakan oleh `PenjualanCreate` dan `PenjualanUpdate`. Response detail dan snapshot koreksi mengirim `menu_id` sebagai ID string atau null.
 - Skema maju: `2026_10_09_020520_make_sale_detail_menu_optional`; FK gabungan tetap berlaku untuk menu ID terisi. Rollback menolak jika sudah ada baris item bebas.
+- Implementation commit: `5643fb60cfb1094698457e8bd2512b7b0901b91c` (`feat(sales): support free-form sale items`).
 
 ## Verifikasi
 
