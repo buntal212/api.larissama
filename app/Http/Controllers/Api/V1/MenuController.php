@@ -111,7 +111,7 @@ class MenuController extends Controller
         $warungId = $writeScope->resolve($actor, $attributes);
         unset($attributes['warung_id']);
         $menu = $this->tenantMenus((string) $warungId)->findOrFail($request->route('id'));
-        Gate::authorize('update', [$menu, (string) $warungId]);
+        Gate::authorize('update', $menu);
         $menu->fill($attributes);
         $menu->save();
 

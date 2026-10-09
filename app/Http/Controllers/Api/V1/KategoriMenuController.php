@@ -103,7 +103,7 @@ class KategoriMenuController extends Controller
         $warungId = $writeScope->resolve($actor, $attributes);
         unset($attributes['warung_id']);
         $category = $this->tenantCategories((string) $warungId)->findOrFail($request->route('id'));
-        Gate::authorize('update', [$category, (string) $warungId]);
+        Gate::authorize('update', $category);
         $category->fill($attributes);
         $category->save();
 
