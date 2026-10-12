@@ -112,6 +112,30 @@ jobs:
 
           echo ""
           echo "========================================"
+          echo "PHP FILE UPLOAD SUPPORT"
+          echo "========================================"
+
+          if ! php -m | grep -iq '^fileinfo$'; then
+            echo "PHP fileinfo extension is required for safe logo upload validation."
+            exit 1
+          fi
+
+          php -r '
+            $bytes = static function (string $value): int {
+                if (preg_match("/^([0-9]+)([KMG]?)$/i", trim($value), $matches) !== 1) {
+                    return 0;
+                }
+                $power = match (strtolower($matches[2])) { "g" => 3, "m" => 2, "k" => 1, default => 0 };
+                return (int) $matches[1] * (1024 ** $power);
+            };
+            if ($bytes(ini_get("upload_max_filesize")) < 2 * 1024 * 1024 || $bytes(ini_get("post_max_size")) < 8 * 1024 * 1024) {
+                fwrite(STDERR, "PHP upload_max_filesize must be at least 2M and post_max_size at least 8M.\n");
+                exit(1);
+            }
+          '
+
+          echo ""
+          echo "========================================"
           echo "COMPOSER"
           echo "========================================"
           composer --version
@@ -128,6 +152,19 @@ jobs:
           echo "========================================"
           whoami
           groups
+
+      # ========================================================
+      # PREFLIGHT PUBLIC STORAGE PATH
+      # ========================================================
+      - name: Check existing public storage path
+        run: |
+          APP_ROOT=/www/wwwroot/apilarissama.udumbara.my.id
+
+          if [ -e "$APP_ROOT/public/storage" ] && [ ! -L "$APP_ROOT/public/storage" ]; then
+            echo "public/storage already exists as a directory or file."
+            echo "Move its files into storage/app/public and replace it with a symlink before deploying logos."
+            exit 1
+          fi
 
       # ========================================================
       # INSTALL COMPOSER DEPENDENCIES
@@ -157,6 +194,7 @@ jobs:
             --exclude='.user.ini' \
             --exclude='.well-known/' \
             --exclude='storage/' \
+            --exclude='public/storage' \
             ./ /www/wwwroot/apilarissama.udumbara.my.id/
 
       # ========================================================
@@ -213,6 +251,25 @@ jobs:
           sudo find bootstrap/cache \
             -type f \
             -exec chmod 664 {} \;
+
+      # ============================================================
+      # LINK PUBLIC STORAGE
+      # ============================================================
+      - name: Link public storage for warung logos
+        run: |
+          cd /www/wwwroot/apilarissama.udumbara.my.id
+
+          php artisan storage:link --force
+
+          if [ ! -L public/storage ]; then
+            echo "public/storage must be a symbolic link."
+            exit 1
+          fi
+
+          if [ ! -d storage/app/public ]; then
+            echo "storage/app/public must exist."
+            exit 1
+          fi
 
       # ========================================================
       # VERIFY WRITABLE DIRECTORIES

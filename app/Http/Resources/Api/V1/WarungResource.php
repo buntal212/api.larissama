@@ -5,6 +5,7 @@ namespace App\Http\Resources\Api\V1;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class WarungResource extends JsonResource
 {
@@ -21,7 +22,7 @@ class WarungResource extends JsonResource
             'nama' => $this->nama,
             'alamat' => $this->alamat,
             'telepon' => $this->telepon,
-            'logo' => $this->logo,
+            'logo' => $this->logoUrl(),
             'timezone' => $this->timezone,
             'tanggal_mulai' => $this->tanggal_mulai?->toDateString(),
             'tanggal_berakhir' => $this->tanggal_berakhir?->toDateString(),
@@ -30,5 +31,18 @@ class WarungResource extends JsonResource
             'created_at' => $this->created_at?->copy()->utc()->toISOString(),
             'updated_at' => $this->updated_at?->copy()->utc()->toISOString(),
         ];
+    }
+
+    private function logoUrl(): ?string
+    {
+        if ($this->logo === null) {
+            return null;
+        }
+
+        if (in_array(strtolower((string) parse_url($this->logo, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+            return $this->logo;
+        }
+
+        return Storage::disk('public')->url($this->logo);
     }
 }

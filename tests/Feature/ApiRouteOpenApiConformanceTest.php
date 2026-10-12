@@ -110,8 +110,8 @@ class ApiRouteOpenApiConformanceTest extends TestCase
             }
         }
 
-        $this->assertCount(37, $contractOperations, 'The contract includes the baseline operations, purchase/sale lifecycle additions, and owner subscription operations.');
-        $this->assertCount(25, $contractPaths, 'The contract includes the payment path in addition to purchase/sale lifecycle and subscription paths.');
+        $this->assertCount(40, $contractOperations, 'The contract includes owner profile and logo operations.');
+        $this->assertCount(26, $contractPaths, 'The contract includes the owner logo path.');
 
         $runtimeOperations = [];
         foreach (Route::getRoutes() as $route) {

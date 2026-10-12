@@ -33,6 +33,11 @@ class WarungPolicy
             && $actor->warung_id !== null;
     }
 
+    public function updateCurrent(User $actor): bool
+    {
+        return $actor->role === 'owner' && $actor->warung_id !== null;
+    }
+
     private function isSuperadmin(User $actor): bool
     {
         return $actor->role === 'superadmin' && $actor->warung_id === null;

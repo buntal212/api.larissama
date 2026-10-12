@@ -79,7 +79,7 @@ Catatan D16 2026-10-05: test MySQL langsung membuktikan enam composite FK menola
 
 Catatan test bertanggal berikut merekam keadaan pada saat run dilakukan. Status lama di catatan tersebut bersifat historis; paragraf ini dan nilai `x-contract-status` OpenAPI menunjukkan status terkini.
 
-[OpenAPI](../api/openapi.yaml) menjadi kontrak implementasi. Per 2026-10-07, 37 operationId tersedia untuk integrasi alur utama pada server development; `payPenjualan` dan lifecycle pesanan pending ditambahkan pada D18. Lihat `x-contract-status` dan `x-deferred-verification`; uji edge-case tetap dicatat per operasi. Production/TLS belum disiapkan. AI frontend menggunakan base URL `http://localhost:8010/api/v1` dan memeriksa [tracker](../../IMPLEMENTATION_PROGRESS.md).
+[OpenAPI](../api/openapi.yaml) menjadi kontrak implementasi. Per 2026-10-12, 40 operationId tersedia untuk integrasi alur utama pada server development; profil owner memiliki endpoint edit dan pengelolaan logo tanpa selector tenant. Lihat `x-contract-status` dan `x-deferred-verification`; uji edge-case tetap dicatat per operasi. Production/TLS belum disiapkan. AI frontend menggunakan base URL `http://localhost:8010/api/v1` dan memeriksa [tracker](../../IMPLEMENTATION_PROGRESS.md).
 
 Catatan D04 2026-10-05: `CURRENT-WARUNG-API-ACCEPTANCE-001` membuktikan manager/kasir dapat membaca profil tenant sendiri, superadmin menerima 403, dan anonim 401; response terpilih cocok schema. Keputusan user berikutnya mengizinkan owner membaca profil tenant dan semua operasi tenant lain; bukti role owner masih perlu dijalankan sehingga operasi tetap DRAFT.
 

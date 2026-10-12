@@ -37,6 +37,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         });
 
         Route::get('warung', [CurrentWarungController::class, 'show'])->name('warung.current');
+        Route::patch('warung', [CurrentWarungController::class, 'update'])->name('warung.update');
+        Route::post('warung/logo', [CurrentWarungController::class, 'storeLogo'])->name('warung.logo.store');
+        Route::delete('warung/logo', [CurrentWarungController::class, 'deleteLogo'])->name('warung.logo.delete');
 
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::post('users', [UserController::class, 'store'])->name('users.store');

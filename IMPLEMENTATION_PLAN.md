@@ -93,4 +93,4 @@ AI frontend mulai dari docs/api/README.md, memeriksa operationId di OpenAPI, lal
 - perilaku retry/correction jika fitur itu diserahkan;
 - run test yang mendukung dan keterbatasan yang masih berlaku.
 
-Seluruh 37 operasi dapat diintegrasikan terhadap server development untuk alur utama sesuai status `READY_FOR_FRONTEND` pada OpenAPI. Gunakan mock untuk variasi edge-case yang ditandai `x-deferred-verification`. Milestone G3/G4 masih menyimpan regression dan conformance lanjutan; status handoff frontend tidak menyatakan seluruh gate backend atau deployment production selesai. Lanjutkan dependency yang masih terbuka pada tracker.
+Seluruh 40 operasi dapat diintegrasikan terhadap server development untuk alur utama sesuai status `READY_FOR_FRONTEND` pada OpenAPI. Gunakan mock untuk variasi edge-case yang ditandai `x-deferred-verification`. Milestone G3/G4 masih menyimpan regression dan conformance lanjutan; status handoff frontend tidak menyatakan seluruh gate backend atau deployment production selesai. Lanjutkan dependency yang masih terbuka pada tracker.

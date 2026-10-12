@@ -1,25 +1,25 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.9-draft**, 2026-10-09. [openapi.yaml](openapi.yaml) berisi 37 operasi pada 25 path. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.10-draft**, 2026-10-12. [openapi.yaml](openapi.yaml) berisi 40 operasi pada 26 path. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
 
-`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline awal 28 operasi ditambah dua koreksi pembelian, empat operasi siklus penjualan, dan tiga operasi pendaftaran/langganan menjadi 37 operasi pada 25 path.
+`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline 37 operasi kini ditambah tiga endpoint profil owner menjadi 40 operasi pada 26 path.
 
 ## Implementasi backend dan status kontrak
 
-Frontend dapat mulai integrasi alur utama melalui 37 operasi: termasuk pendaftaran owner, pengelolaan langganan admin, pesanan penjualan pending, pembayaran pesanan, dan filter status lunas. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
+Frontend dapat mulai integrasi alur utama melalui 40 operasi: termasuk pendaftaran owner, pengelolaan langganan admin, profil owner, unggah/hapus logo, pesanan penjualan pending, pembayaran pesanan, dan filter status lunas. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
 
 `x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. Semua operasi saat ini `READY_FOR_FRONTEND`; `x-deferred-verification` menandai pemeriksaan edge-case yang masih dapat dilanjutkan.
 
-Implementasi handler tersedia untuk seluruh 37 operationId:
+Implementasi handler tersedia untuk seluruh 40 operationId:
 
 - Auth: `registerWarungOwner`, `login`, `getCurrentUser`, `logout`.
-- Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `approveWarungRegistration`, `extendWarungSubscription`, `getCurrentWarung`.
+- Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `approveWarungRegistration`, `extendWarungSubscription`, `getCurrentWarung`, `updateCurrentWarung`, `uploadCurrentWarungLogo`, `deleteCurrentWarungLogo`.
 - User: `listUsers`, `createUser`, `getUser`, `updateUser`.
 - Katalog: `listKategoriMenus`, `createKategoriMenu`, `getKategoriMenu`, `updateKategoriMenu`, `listMenus`, `createMenu`, `getMenu`, `updateMenu`.
 - Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `updatePenjualan`, `payPenjualan`, `cancelPenjualan`, `createPenjualanRetur`, `getLaporanPenjualan`.
 - Pembelian/laporan: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
 
-Semua 37 handler tersedia. Status kontrak per operationId pada OpenAPI menjadi acuan handoff; pendaftaran/langganan dan alur pending-payment memiliki test fokus. Status task/gate serta bukti test ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md).
+Semua 40 handler tersedia. Status kontrak per operationId pada OpenAPI menjadi acuan handoff; pendaftaran/langganan, alur pending-payment, dan profil owner memiliki test fokus. Status task/gate serta bukti test ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md).
 
 ## Validasi spesifikasi
 
@@ -30,6 +30,20 @@ Seluruh contoh inline request/response diuji terhadap schema OpenAPI tiap operas
 ## Kode Warung dan Menu
 
 `POST /api/v1/admin/warungs` (superadmin) dan `POST /api/v1/auth/register` (owner publik) sama-sama membuat warung serta akun owner secara atomik dalam status menunggu persetujuan. Jangan kirim `kode`, tanggal langganan, atau flag aktif; backend membuat kode `WRG-<ULID>`. Owner yang mendaftar belum dapat login sampai admin menyetujui. Kode warung dikembalikan pada `data.warung.kode` dan unik global.
+
+## Profil warung owner
+
+Owner membaca profil melalui `GET /api/v1/warung`, lalu mengubah profil sendiri dengan `PATCH /api/v1/warung`. Body boleh mengirim satu atau lebih field dari `nama`, `alamat`, `telepon`, dan `timezone`; field yang tidak dikirim tidak berubah, `alamat`/`telepon` menerima `null`, dan body kosong ditolak. Jangan kirim `warung_id`: server selalu memakai tenant pada bearer token. `kode`, `aktif`, status, dan tanggal langganan tidak dapat diubah dari endpoint ini. Mengubah timezone akan mengubah pengelompokan tanggal lokal pada laporan untuk transaksi historis juga.
+
+```http
+PATCH /api/v1/warung HTTP/1.1
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{"nama":"Warung Pagi","alamat":null,"telepon":"08123456789","timezone":"Asia/Jakarta"}
+```
+
+Logo dikelola terpisah dengan `POST /api/v1/warung/logo` (multipart field `logo`, PNG/JPEG/WebP maksimal 1 MiB) dan `DELETE /api/v1/warung/logo`. Upload mengganti logo sebelumnya; nama file dibuat server. Setiap operasi merespons envelope `data` berisi profil terbaru. `data.logo` adalah URL publik untuk langsung ditampilkan frontend, atau `null` jika tidak ada. Manager, kasir, dan superadmin tidak dapat mengubah profil melalui endpoint owner.
 
 ## Pendaftaran owner dan langganan warung
 
@@ -156,7 +170,7 @@ Keputusan D04/D18: untuk setiap GET data tenant, superadmin wajib mengirim query
 
 ## Daftar operasi
 
-Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI; 37 operasi telah dibuka untuk alur utama.
+Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI; 40 operasi telah dibuka untuk alur utama.
 
 | Area / operasi | Method dan path | operationId | Akses kandidat | Status handoff |
 | --- | --- | --- | --- | --- |
@@ -171,6 +185,9 @@ Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status in
 | Setujui pendaftaran dan mulai 30 hari | POST /admin/warungs/{id}/persetujuan | approveWarungRegistration | superadmin | READY_FOR_FRONTEND |
 | Tambah masa aktif 30 hari | POST /admin/warungs/{id}/langganan/perpanjangan | extendWarungSubscription | superadmin | READY_FOR_FRONTEND |
 | Profil warung sendiri | GET /warung | getCurrentWarung | owner/manager/kasir dalam tenant token; superadmin memakai GET /admin/warungs/{id} untuk profil platform | READY_FOR_FRONTEND |
+| Ubah profil warung sendiri | PATCH /warung | updateCurrentWarung | owner dalam tenant token; tanpa warung_id; field nama, alamat, telepon, timezone | READY_FOR_FRONTEND |
+| Unggah/ganti logo sendiri | POST /warung/logo | uploadCurrentWarungLogo | owner dalam tenant token; multipart `logo`, PNG/JPEG/WebP maksimal 1 MiB | READY_FOR_FRONTEND |
+| Hapus logo sendiri | DELETE /warung/logo | deleteCurrentWarungLogo | owner dalam tenant token | READY_FOR_FRONTEND |
 | Daftar user | GET /users | listUsers | owner; superadmin dengan `warung_id`, baca saja | READY_FOR_FRONTEND |
 | Tambah user | POST /users | createUser | owner | READY_FOR_FRONTEND |
 | Detail user | GET /users/{id} | getUser | owner; superadmin dengan `warung_id`, baca saja | READY_FOR_FRONTEND |
@@ -208,7 +225,7 @@ Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier sete
 
 Nomor transaksi penjualan adalah `PJ-<ULID>` dan pembelian `PB-<ULID>`. API mengembalikan `no_transaksi`; frontend mencetak nomor yang sama pada nota pesanan dan nota pelunasan. Backend belum menyediakan PDF/print endpoint.
 
-Tidak ada kontrak endpoint delete transaksi, upload gambar, atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Semua 37 operasi tersedia untuk integrasi bertahap ke server development. Rincian penjualan dapat berupa menu katalog atau item bebas dengan snapshot nama dan harga; format tiap baris ada pada OpenAPI `SaleLineInput`.
+Tidak ada kontrak endpoint delete transaksi atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Endpoint logo profil tersedia untuk integrasi bertahap. Semua 40 operasi tersedia pada server development. Rincian penjualan dapat berupa menu katalog atau item bebas dengan snapshot nama dan harga; format tiap baris ada pada OpenAPI `SaleLineInput`.
 
 ## Alur layar dan contoh
 
@@ -329,7 +346,7 @@ Sukses create adalah 201, read/update/login 200, logout 204 tanpa JSON body. Jan
 
 Untuk prioritas kerja saat ini, operasi dapat berstatus `READY_FOR_FRONTEND` setelah keputusan inti final, endpoint dan alur utama diuji secara fungsional/tenant, serta contoh utama cocok dengan schema. Pengujian kombinasi error dan edge-case yang kompleks dapat menyusul setelah frontend mulai integrasi. Tracker tetap mencatat status, versi spec, base URL dev, auth, bukti yang tersedia, dan test yang ditunda.
 
-Checklist penerima: pendaftaran owner dan pesan menunggu persetujuan, approval/perpanjangan admin, login/me/logout, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, pesanan pending yang bisa diedit, pembayaran kasir, nomor transaksi pada nota, koreksi/pembatalan/retur, pembelian ringkas, laporan menurut tanggal pembayaran, laporan kosong, dan kegagalan jaringan. Seluruh 37 operasi tersedia untuk alur utama; uji edge-case dapat menyusul.
+Checklist penerima: pendaftaran owner dan pesan menunggu persetujuan, approval/perpanjangan admin, login/me/logout, profil warung dan unggah/ganti/hapus logo owner, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, pesanan pending yang bisa diedit, pembayaran kasir, nomor transaksi pada nota, koreksi/pembatalan/retur, pembelian ringkas, laporan menurut tanggal pembayaran, laporan kosong, dan kegagalan jaringan. Seluruh 40 operasi tersedia untuk alur utama; uji edge-case dapat menyusul.
 
 Batas periode lokal pada empat GET daftar/laporan dikonversi ke UTC lalu divalidasi terhadap MySQL `DATETIME` tahun 1000–9999. Batas yang meluap ditolak 422 sebelum query bisnis; batas aman tetap diterima ([TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001.md)).
 
@@ -339,6 +356,7 @@ Baris penjualan katalog hanya menerima menu aktif di kategori aktif. Baris item 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
+| 0.1.10-draft | DRAFT | Menambahkan profil owner untuk edit nama/alamat/telepon/timezone serta upload, ganti, dan hapus logo; kode dan masa langganan tetap admin-managed. |
 | 0.1.9-draft | DRAFT | D04 dikoreksi: selector `warung_id` superadmin memberi akses baca eksplisit untuk kategori/menu, tetapi tidak memberi hak membuat atau mengubah katalog; operasi tulis tetap owner/manager pada tenant token. |
 | 0.1.8-draft | DRAFT | D07 direvisi: rincian penjualan memakai menu katalog atau item bebas dengan snapshot nama/harga, `menu_id` nullable, baris dapat dicampur tanpa batas jumlah khusus; schema request menggunakan `SaleLineInput`. |
 | 0.1.7-draft | DRAFT | D04 (revisi 2026-10-09): superadmin memakai query `warung_id` untuk GET tenant dan body `warung_id` untuk mutasi semua form tenant (user, katalog, transaksi). Tenant dilarang mengirim selector; identitas pelaku superadmin dicatat tersendiri untuk transaksi. |

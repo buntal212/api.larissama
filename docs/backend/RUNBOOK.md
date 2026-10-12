@@ -25,21 +25,24 @@ Wajib ditetapkan sebelum service menerima trafik:
 | `LARISSAMA_CORS_ALLOWED_ORIGINS` | Daftar origin frontend HTTPS yang tepat, dipisahkan koma; tanpa wildcard. |
 | `LOG_LEVEL` | Pilih level production dan pastikan log tidak merekam bearer token, password, atau payload sensitif. |
 | HTTPS/proxy | TLS wajib. Jika TLS selesai pada load balancer/proxy, konfigurasi trusted proxy dan forwarded headers secara eksplisit pada environment tersebut. |
+| Logo warung | `APP_URL` harus menjadi URL publik HTTPS API. Runtime PHP memerlukan `fileinfo`, `upload_max_filesize >= 2M`, dan `post_max_size >= 8M`; verifikasi konfigurasi PHP-FPM juga karena konfigurasi CLI dapat berbeda. Logo memakai public disk lokal; `storage/app/public` harus persisten dan shared antar worker/instance yang melayani API. Workflow deploy yang ada memakai direktori aplikasi tetap dan mengecualikan `storage/` dari rsync; bila beralih ke release directory, mount shared storage di luar release. |
 
 Token Sanctum berlaku 30 hari. Pastikan jam host tersinkronisasi UTC; database/runtime menyimpan timestamp UTC, sedangkan laporan memakai timezone IANA milik warung.
 
 ## Prosedur rilis dan migration
 
 1. Pilih commit/tag immutable yang sudah lulus workflow `Backend CI`. Catat versi aplikasi, commit, versi PHP, dan versi MySQL.
-2. Tinjau migration baru dan status migration pada database target. Dilarang memakai `migrate:fresh`, `db:wipe`, atau seeding fixture untuk deployment.
-3. Buat backup database mengikuti bagian Backup. Pastikan file ada, ukurannya masuk akal, checksum dicatat, dan hasil restore terakhir pada database terisolasi tersedia.
-4. Siapkan release baru secara terpisah. Pasang dependency dari lock file: `composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader`.
-5. Pasang environment production melalui mekanisme rahasia deployment. Pastikan `APP_DEBUG=false`, `APP_KEY` stabil, koneksi DB benar, CORS origin tepat, dan direktori `storage` serta `bootstrap/cache` dapat ditulis oleh user runtime.
-6. Untuk deployment yang membutuhkan downtime, aktifkan maintenance mode pada release aktif dengan `php artisan down --retry=60` dan pastikan load balancer tidak mengirim write baru. Untuk rolling deployment, jalankan hanya migration yang kompatibel dengan versi aplikasi lama dan baru; repository belum menetapkan strategi zero-downtime khusus.
-7. Jalankan `php artisan migrate --force` satu kali dari release yang dipilih, memakai satu deployment job. Hentikan rilis bila migration gagal; jangan jalankan rollback otomatis.
-8. Buat cache konfigurasi/rute yang didukung aplikasi: `php artisan optimize`. Restart/reload PHP workers dan service web sesuai supervisor/platform deployment.
-9. Verifikasi `GET /up`, status container/service, koneksi DB dari proses aplikasi, serta smoke request API melalui HTTPS. Pastikan login, bearer auth, operasi tenant, dan laporan dapat dipanggil pada tenant sintetis yang disetujui tanpa mencatat token.
-10. Nonaktifkan maintenance mode dengan `php artisan up` hanya setelah pemeriksaan lulus. Catat waktu, commit, migration, hasil smoke, dan operator pada deployment log.
+2. Workflow memeriksa `public/storage` sebelum menyalin release. Jika path itu merupakan file atau direktori biasa, migrasikan isinya dengan operator ke `storage/app/public` dan ganti path dengan symlink; deploy sengaja berhenti agar tidak menghapus aset yang sudah ada. Symlink valid boleh dibuat ulang oleh workflow.
+3. Tinjau migration baru dan status migration pada database target. Dilarang memakai `migrate:fresh`, `db:wipe`, atau seeding fixture untuk deployment.
+4. Buat backup database mengikuti bagian Backup. Pastikan file ada, ukurannya masuk akal, checksum dicatat, dan hasil restore terakhir pada database terisolasi tersedia.
+5. Siapkan release baru secara terpisah. Pasang dependency dari lock file: `composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader`.
+6. Pasang environment production melalui mekanisme rahasia deployment. Pastikan `APP_DEBUG=false`, `APP_KEY` stabil, `APP_URL` publik HTTPS, koneksi DB benar, CORS origin tepat, dan direktori `storage` serta `bootstrap/cache` dapat ditulis oleh user runtime. Pastikan `storage/app/public` persisten; jika menjalankan beberapa instance, share storage yang sama.
+7. Buat symlink public storage dengan `php artisan storage:link` pada setiap deployment setelah storage terpasang. Pastikan `public/storage` menunjuk ke `storage/app/public`; verifikasi URL file contoh dapat diakses melalui HTTPS dan web server memperlakukan berkas upload sebagai aset statis tanpa mengeksekusi script di direktori tersebut.
+8. Untuk deployment yang membutuhkan downtime, aktifkan maintenance mode pada release aktif dengan `php artisan down --retry=60` dan pastikan load balancer tidak mengirim write baru. Untuk rolling deployment, jalankan hanya migration yang kompatibel dengan versi aplikasi lama dan baru; repository belum menetapkan strategi zero-downtime khusus.
+9. Jalankan `php artisan migrate --force` satu kali dari release yang dipilih, memakai satu deployment job. Hentikan rilis bila migration gagal; jangan jalankan rollback otomatis.
+10. Buat cache konfigurasi/rute yang didukung aplikasi: `php artisan optimize`. Restart/reload PHP workers dan service web sesuai supervisor/platform deployment.
+11. Verifikasi `GET /up`, status container/service, koneksi DB dari proses aplikasi, serta smoke request API melalui HTTPS. Pastikan login, bearer auth, operasi tenant, laporan, dan baca URL logo dapat dipanggil pada tenant sintetis yang disetujui tanpa mencatat token.
+12. Nonaktifkan maintenance mode dengan `php artisan up` hanya setelah pemeriksaan lulus. Catat waktu, commit, migration, hasil smoke, dan operator pada deployment log.
 
 Laravel `/up` hanya membuktikan aplikasi berhasil boot secara normal. Tambahkan pemeriksaan DB pada platform monitoring bila readiness DB diperlukan; jangan menganggap HTTP 200 `/up` sebagai bukti backup, koneksi DB, atau seluruh dependency sehat.
 
@@ -72,7 +75,7 @@ sha256sum "${BACKUP_FILE}.sql.gz" > "${BACKUP_FILE}.sql.gz.sha256"
 ```
 
 4. Periksa exit code pipeline (`set -o pipefail` pada shell Bash), ukuran file, checksum, timestamp, nama DB, commit aplikasi, dan versi MySQL. Enkripsi sebelum mengirim/menyimpan off-host.
-5. Tentukan frekuensi serta retensi dari target RPO/RTO yang disetujui. Belum ada kebijakan backup atau binary log point-in-time recovery yang ditetapkan dalam repository.
+5. Sertakan direktori persisten `storage/app/public/warung-logos` pada backup terenkripsi yang sama kebijakan retensinya dengan database; database hanya menyimpan key file. Catat dan checksum arsip file terpisah dari dump MySQL. Tentukan frekuensi serta retensi dari target RPO/RTO yang disetujui. Belum ada kebijakan backup atau binary log point-in-time recovery yang ditetapkan dalam repository.
 
 ## Restore drill dan pemulihan
 
@@ -87,9 +90,9 @@ gzip -dc "${BACKUP_FILE}.sql.gz" | mysql --defaults-extra-file="$RESTORE_OPTION_
   --host="$RESTORE_DB_HOST" "$EMPTY_RESTORE_DB"
 ```
 
-3. Periksa tabel, jumlah row transaksi, foreign key, timezone, dan `migrations`. Jalankan aplikasi versi commit sumber backup dengan `APP_DEBUG=false` terhadap DB drill.
-4. Lakukan read-only smoke: `/up`, autentikasi dengan akun drill, daftar/detail tenant yang disetujui, dan laporan pada periode diketahui. Jangan membuat transaksi nyata saat latihan.
-5. Catat durasi restore, ukuran dump, versi source/target, pemeriksaan yang dilakukan, dan gap. Ulangi berdasarkan frekuensi drill yang ditetapkan operator.
+3. Pulihkan arsip public storage ke path persisten drill yang terpisah. Periksa key logo di DB memiliki file, buat ulang `storage:link`, lalu jalankan aplikasi versi commit sumber backup dengan `APP_DEBUG=false` terhadap DB drill.
+4. Lakukan read-only smoke: `/up`, autentikasi dengan akun drill, daftar/detail tenant yang disetujui, laporan pada periode diketahui, dan URL logo contoh. Jangan membuat transaksi nyata saat latihan.
+5. Catat durasi restore, ukuran dump dan arsip logo, versi source/target, pemeriksaan yang dilakukan, dan gap. Ulangi berdasarkan frekuensi drill yang ditetapkan operator.
 
 Saat incident production, isolasi write terlebih dahulu dan simpan salinan kondisi DB saat ini sebelum pemulihan. Restore ke DB baru, verifikasi, lalu alihkan konfigurasi aplikasi melalui prosedur change yang disetujui. Restore in-place, penghapusan volume, atau pengembalian backup lama yang menghilangkan transaksi terbaru memerlukan keputusan incident owner setelah dampak dan kehilangan data dipahami. Jangan menjalankan `migrate:rollback` atau memulihkan backup lama otomatis sebagai respons migration gagal.
 

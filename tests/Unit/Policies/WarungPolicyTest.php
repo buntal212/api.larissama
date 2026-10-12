@@ -16,6 +16,7 @@ class WarungPolicyTest extends TestCase
         ?int $warungId,
         bool $canManagePlatform,
         bool $canViewCurrentWarung,
+        bool $canUpdateCurrentWarung,
     ): void {
         $policy = new WarungPolicy;
         $actor = $this->user($role, $warungId);
@@ -27,22 +28,23 @@ class WarungPolicyTest extends TestCase
         $this->assertSame($canManagePlatform, $policy->view($actor, $warung));
         $this->assertSame($canManagePlatform, $policy->update($actor, $warung));
         $this->assertSame($canViewCurrentWarung, $policy->viewCurrent($actor));
+        $this->assertSame($canUpdateCurrentWarung, $policy->updateCurrent($actor));
     }
 
     /**
-     * @return array<string, array{string, ?int, bool, bool}>
+     * @return array<string, array{string, ?int, bool, bool, bool}>
      */
     public static function roleMatrix(): array
     {
         return [
-            'owner with tenant' => ['owner', 10, false, true],
-            'manager with tenant' => ['manager', 10, false, true],
-            'cashier with tenant' => ['kasir', 10, false, true],
-            'superadmin without tenant' => ['superadmin', null, true, false],
-            'superadmin with tenant' => ['superadmin', 10, false, false],
-            'owner without tenant' => ['owner', null, false, false],
-            'manager without tenant' => ['manager', null, false, false],
-            'cashier without tenant' => ['kasir', null, false, false],
+            'owner with tenant' => ['owner', 10, false, true, true],
+            'manager with tenant' => ['manager', 10, false, true, false],
+            'cashier with tenant' => ['kasir', 10, false, true, false],
+            'superadmin without tenant' => ['superadmin', null, true, false, false],
+            'superadmin with tenant' => ['superadmin', 10, false, false, false],
+            'owner without tenant' => ['owner', null, false, false, false],
+            'manager without tenant' => ['manager', null, false, false, false],
+            'cashier without tenant' => ['kasir', null, false, false, false],
         ];
     }
 
