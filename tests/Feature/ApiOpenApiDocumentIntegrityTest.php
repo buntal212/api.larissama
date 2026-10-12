@@ -41,7 +41,7 @@ class ApiOpenApiDocumentIntegrityTest extends TestCase
 
         $duplicates = array_filter($operationIds, static fn (array $locations): bool => count($locations) > 1);
         $this->assertSame([], $duplicates, 'OpenAPI operationId values must be unique across the document.');
-        $this->assertSame(40, $operationCount, 'The contract includes the owner profile and logo operations.');
+        $this->assertSame(43, $operationCount, 'The contract includes owner profile, logo, and report operations.');
         $this->assertArrayHasKey('updatePembelian', $operationIds);
         $this->assertArrayHasKey('cancelPembelian', $operationIds);
         $this->assertArrayHasKey('updatePenjualan', $operationIds);

@@ -48,7 +48,7 @@ Slice D18 selesai pada commit `a29e2e75800a503a2564f4780eb413c97398f44e`: peruba
 | M5 Integrasi dan rilis | 4 | 0 | Belum terpenuhi |
 | Total | 35 | 26 | 74% task selesai |
 
-Status saat ini: **40/40 operasi `READY_FOR_FRONTEND` untuk alur utama**. Task implementasi: 26/35 selesai (74%); revisi D04 memperluas akses tulis superadmin ke form user/katalog selain seluruh transaksi, tanpa menambah operationId. Base URL Docker: `http://localhost:8010/api/v1`. Regression G3/G4 dan production deployment tetap terbuka.
+Status saat ini: **43/43 operasi `READY_FOR_FRONTEND` untuk alur utama**. Task implementasi: 26/35 selesai (74%); revisi D04 memperluas akses tulis superadmin ke form user/katalog selain seluruh transaksi, dan endpoint laporan baru menambah tiga operationId. Base URL Docker: `http://localhost:8010/api/v1`. Regression G3/G4 dan production deployment tetap terbuka.
 
 Persentase = jumlah task DONE / jumlah task implementasi aktif × 100. Semua task berbobot sama untuk tracking pekerjaan, bukan estimasi usaha. Dokumen perencanaan tidak masuk pembilang. Bila scope berubah, catat penambahan/pengurangan task dan sumber keputusan; jangan menghapus task gagal agar persentase naik.
 
@@ -577,3 +577,7 @@ Permintaan ini membatasi selector `warung_id` superadmin sebagai jalur baca eksp
 ## Perbaikan regresi 13 test CI - 2026-10-09
 
 `FIX-13-CI-TEST-REGRESSIONS-001` menyelaraskan test dengan kontrak D04, D17, dan D18 tanpa melemahkan authorization atau isolasi tenant. Matrix policy membedakan create dari akses objek superadmin yang selalu memerlukan `warung_id` terpilih; user dan transaksi tetap dapat ditulis superadmin hanya dengan selector eksplisit, sedangkan tulis katalog tetap 403. Payload provisioning tidak lagi mengirim tanggal yang dikelola endpoint persetujuan/langganan; alur end-to-end menyetujui warung sebelum owner login. Response profil warung mengakui `status_langganan`; conformance 401 mengecualikan operasi OpenAPI publik termasuk pendaftaran; dan fixture laporan membekukan waktu pembayaran agar pendapatan dihitung dari `dibayar_pada` sesuai D18. `warung_id` PATCH transaksi tetap terdokumentasi untuk jalur superadmin dan ditolak runtime untuk token tenant. CI MySQL 8.0.40 lengkap lulus: 569 test / 97.154 assertion dalam 222,17 detik; Pint 211 file lulus. Tidak ada perubahan migration, schema database, middleware, policy produksi, maupun kontrak OpenAPI.
+
+## Laporan periode dan handoff laporan — 2026-10-12
+
+OpenAPI `0.1.11-draft` kini mempunyai 43 operation pada 29 path. Ringkasan penjualan dilengkapi rata-rata transaksi lunas dan pembagian jumlah/nilai per metode; ditambahkan laporan pending saat ini, tren harian lokal, dan item snapshot menu/item bebas. Panduan [API dan handoff](docs/api/README.md#handoff-laporan) menjelaskan definisi, query, scope role, dan batas interpretasi. Tidak ada perubahan frontend atau migration. `REPORT-EXTENSIONS-ACCEPTANCE-001` mencatat full suite MySQL 8.0.40: 583/583 test, 100.158 assertion; Pint dan OpenAPI validator lulus. Operasi laporan siap untuk integrasi bertahap.

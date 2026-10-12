@@ -1,22 +1,22 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.10-draft**, 2026-10-12. [openapi.yaml](openapi.yaml) berisi 40 operasi pada 26 path. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.11-draft**, 2026-10-12. [openapi.yaml](openapi.yaml) berisi 43 operasi pada 29 path. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
 
-`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline 37 operasi kini ditambah tiga endpoint profil owner menjadi 40 operasi pada 26 path.
+`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline 37 operasi kini ditambah tiga endpoint profil owner dan tiga endpoint laporan menjadi 43 operasi pada 29 path.
 
 ## Implementasi backend dan status kontrak
 
-Frontend dapat mulai integrasi alur utama melalui 40 operasi: termasuk pendaftaran owner, pengelolaan langganan admin, profil owner, unggah/hapus logo, pesanan penjualan pending, pembayaran pesanan, dan filter status lunas. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
+Frontend dapat mulai integrasi alur utama melalui 43 operasi: termasuk pendaftaran owner, pengelolaan langganan admin, profil owner, unggah/hapus logo, pesanan penjualan pending, pembayaran pesanan, filter status lunas, dan lima bentuk laporan. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
 
 `x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. Semua operasi saat ini `READY_FOR_FRONTEND`; `x-deferred-verification` menandai pemeriksaan edge-case yang masih dapat dilanjutkan.
 
-Implementasi handler tersedia untuk seluruh 40 operationId:
+Implementasi handler tersedia untuk seluruh 43 operationId:
 
 - Auth: `registerWarungOwner`, `login`, `getCurrentUser`, `logout`.
 - Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `approveWarungRegistration`, `extendWarungSubscription`, `getCurrentWarung`, `updateCurrentWarung`, `uploadCurrentWarungLogo`, `deleteCurrentWarungLogo`.
 - User: `listUsers`, `createUser`, `getUser`, `updateUser`.
 - Katalog: `listKategoriMenus`, `createKategoriMenu`, `getKategoriMenu`, `updateKategoriMenu`, `listMenus`, `createMenu`, `getMenu`, `updateMenu`.
-- Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `updatePenjualan`, `payPenjualan`, `cancelPenjualan`, `createPenjualanRetur`, `getLaporanPenjualan`.
+- Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `updatePenjualan`, `payPenjualan`, `cancelPenjualan`, `createPenjualanRetur`, `getLaporanPenjualan`, `getLaporanPenjualanHarian`, `getLaporanPenjualanItem`, `getLaporanPesananBelumLunas`.
 - Pembelian/laporan: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
 
 Semua 40 handler tersedia. Status kontrak per operationId pada OpenAPI menjadi acuan handoff; pendaftaran/langganan, alur pending-payment, dan profil owner memiliki test fokus. Status task/gate serta bukti test ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md).
@@ -170,7 +170,7 @@ Keputusan D04/D18: untuk setiap GET data tenant, superadmin wajib mengirim query
 
 ## Daftar operasi
 
-Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI; 40 operasi telah dibuka untuk alur utama.
+Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI; 43 operasi telah dibuka untuk alur utama.
 
 | Area / operasi | Method dan path | operationId | Akses kandidat | Status handoff |
 | --- | --- | --- | --- | --- |
@@ -214,8 +214,23 @@ Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status in
 | Batalkan pembelian | POST /pembelians/{id}/pembatalan | cancelPembelian | owner/manager dalam tenant; superadmin dengan `warung_id` di body, dengan alasan | READY_FOR_FRONTEND |
 | Pendapatan periode | GET /laporan/penjualan | getLaporanPenjualan | owner/manager dalam tenant; superadmin wajib `warung_id`, baca saja | READY_FOR_FRONTEND |
 | Total pembelian periode | GET /laporan/pembelian | getLaporanPembelian | owner/manager dalam tenant; superadmin wajib `warung_id`, baca saja | READY_FOR_FRONTEND |
+| Antrean nilai belum lunas | GET /laporan/pesanan-belum-lunas | getLaporanPesananBelumLunas | owner/manager dalam tenant; superadmin wajib `warung_id`, baca saja | READY_FOR_FRONTEND |
+| Tren penjualan harian | GET /laporan/penjualan-harian | getLaporanPenjualanHarian | owner/manager dalam tenant; superadmin wajib `warung_id`, baca saja | READY_FOR_FRONTEND |
+| Penjualan per snapshot item | GET /laporan/penjualan-item | getLaporanPenjualanItem | owner/manager dalam tenant; superadmin wajib `warung_id`, baca saja | READY_FOR_FRONTEND |
 
-Semua daftar punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi: hasilnya satu ringkasan periode. Untuk user tenant, data terscope ke warung bearer; untuk superadmin, GET tenant terscope ke query `warung_id`, sedangkan transaksi ditulis dalam body dengan `warung_id` terpilih. FK gabungan juga mencegah relasi lintas warung di database. Status per endpoint tertera pada kolom terakhir.
+Semua daftar transaksi punya pagination dan allowlist sort. Katalog/user/warung juga menyediakan q dan aktif; menu menyediakan kategori_menu_id. Riwayat penjualan menyediakan status. Laporan tidak dipaginasi; endpoint item dan tren mengembalikan array hasil di dalam periode. Untuk user tenant, data terscope ke warung bearer; untuk superadmin, GET tenant terscope ke query `warung_id`, sedangkan transaksi ditulis dalam body dengan `warung_id` terpilih. FK gabungan juga mencegah relasi lintas warung di database. Status per endpoint tertera pada kolom terakhir.
+
+### Handoff laporan
+
+Semua laporan menerima `date_from` dan `date_to` (`YYYY-MM-DD`) wajib, memakai hari lokal sesuai timezone warung, dan mengembalikan decimal sebagai string. Owner/manager tidak mengirim `warung_id`; superadmin wajib mengirim `?warung_id=<id>`. Pembelian dan pendapatan tetap dipisah, bukan laba.
+
+- `GET /laporan/penjualan`: jumlah transaksi lunas, total `total` transaksi setelah diskon dan sebelum retur menurut tanggal pembayaran, rata-rata `total` per transaksi lunas, total dan jumlah transaksi per metode pembayaran, serta retur dan pendapatan bersih. Rata-rata dan kelompok metode adalah angka sebelum alokasi retur; total mengikuti nilai transaksi, bukan jumlah tunai yang diserahkan.
+- `GET /laporan/pembelian`: jumlah dan total pembelian berstatus `tercatat` menurut tanggal pembelian.
+- `GET /laporan/pesanan-belum-lunas`: jumlah dan total order yang saat ini masih `menunggu_pembayaran`/`belum_lunas`, dengan rentang berdasarkan tanggal order. Ini snapshot saat request, bukan pendapatan atau rekonstruksi historis status.
+- `GET /laporan/penjualan-harian`: hanya hari yang memiliki transaksi/retur. Nilai penjualan adalah total transaksi setelah diskon dan sebelum retur; dikelompokkan menurut tanggal pembayaran lokal. Retur dikelompokkan menurut tanggal pencatatan lokal. Hari tanpa data tidak dikirim. `total_pendapatan` harian dapat negatif jika retur hari itu melebihi penjualan hari itu.
+- `GET /laporan/penjualan-item`: kelompok berdasarkan `menu_id`, nama snapshot, dan harga snapshot. `jenis_item` membedakan `menu` dan `bebas`; untuk item bebas, teks nama serta harga sama digabung karena tidak ada identitas item katalog. `nilai_item` memakai subtotal rincian setelah diskon baris, sebelum diskon header. Retur tidak dapat dibagi ke item karena retur hanya merekam nominal transaksi.
+
+Bentuk response lengkap dan contoh tersedia pada masing-masing operationId di [OpenAPI](openapi.yaml). Frontend dapat menampilkan `rata_rata_transaksi`, `per_metode_pembayaran`, tren harian, antrean belum lunas, dan rincian item memakai kontrak tersebut.
 
 ### Retry create transaksi
 
@@ -225,7 +240,7 @@ Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier sete
 
 Nomor transaksi penjualan adalah `PJ-<ULID>` dan pembelian `PB-<ULID>`. API mengembalikan `no_transaksi`; frontend mencetak nomor yang sama pada nota pesanan dan nota pelunasan. Backend belum menyediakan PDF/print endpoint.
 
-Tidak ada kontrak endpoint delete transaksi atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Endpoint logo profil tersedia untuk integrasi bertahap. Semua 40 operasi tersedia pada server development. Rincian penjualan dapat berupa menu katalog atau item bebas dengan snapshot nama dan harga; format tiap baris ada pada OpenAPI `SaleLineInput`.
+Tidak ada kontrak endpoint delete transaksi atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Endpoint logo profil tersedia untuk integrasi bertahap. Semua 43 operasi tersedia pada server development. Rincian penjualan dapat berupa menu katalog atau item bebas dengan snapshot nama dan harga; format tiap baris ada pada OpenAPI `SaleLineInput`.
 
 ## Alur layar dan contoh
 
@@ -346,7 +361,7 @@ Sukses create adalah 201, read/update/login 200, logout 204 tanpa JSON body. Jan
 
 Untuk prioritas kerja saat ini, operasi dapat berstatus `READY_FOR_FRONTEND` setelah keputusan inti final, endpoint dan alur utama diuji secara fungsional/tenant, serta contoh utama cocok dengan schema. Pengujian kombinasi error dan edge-case yang kompleks dapat menyusul setelah frontend mulai integrasi. Tracker tetap mencatat status, versi spec, base URL dev, auth, bukti yang tersedia, dan test yang ditunda.
 
-Checklist penerima: pendaftaran owner dan pesan menunggu persetujuan, approval/perpanjangan admin, login/me/logout, profil warung dan unggah/ganti/hapus logo owner, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, pesanan pending yang bisa diedit, pembayaran kasir, nomor transaksi pada nota, koreksi/pembatalan/retur, pembelian ringkas, laporan menurut tanggal pembayaran, laporan kosong, dan kegagalan jaringan. Seluruh 40 operasi tersedia untuk alur utama; uji edge-case dapat menyusul.
+Checklist penerima: pendaftaran owner dan pesan menunggu persetujuan, approval/perpanjangan admin, login/me/logout, profil warung dan unggah/ganti/hapus logo owner, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, pesanan pending yang bisa diedit, pembayaran kasir, nomor transaksi pada nota, koreksi/pembatalan/retur, pembelian ringkas, laporan penjualan/pembelian, antrean belum lunas, tren harian, rata-rata/metode pembayaran, item menu/item bebas, laporan kosong, dan kegagalan jaringan. Seluruh 43 operasi tersedia untuk alur utama; uji edge-case dapat menyusul.
 
 Batas periode lokal pada empat GET daftar/laporan dikonversi ke UTC lalu divalidasi terhadap MySQL `DATETIME` tahun 1000–9999. Batas yang meluap ditolak 422 sebelum query bisnis; batas aman tetap diterima ([TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001.md)).
 

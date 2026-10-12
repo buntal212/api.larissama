@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.10-draft
+  version: 0.1.11-draft
   description: >-
-    Status handoff 2026-10-12: 40 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
+    Status handoff 2026-10-12: 43 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
@@ -23,11 +23,11 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Implementasi 40 operationId tersedia untuk alur utama; edge-case tertunda tercatat per operasi.
+    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 43 operationId tersedia untuk alur utama; edge-case tertunda tercatat per operasi.
     D17 menambah pendaftaran owner publik yang menunggu persetujuan admin, aktivasi awal 30 tanggal lokal, perpanjangan 30 hari, dan status kedaluwarsa otomatis dari tanggal akhir.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
-    API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory terkini 40 operation pada 26 path dan telah dicocokkan oleh test route terkini;
+    API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory terkini 43 operation pada 29 path dan telah dicocokkan oleh test route terkini;
     pemeriksaan ini adalah inventory terkini; bukti conformance request/response dan kesiapan integrasi tetap per operationId.
     API-PATH-ID-POSITIVE-CONFORMANCE-001 membuktikan seluruh sepuluh operasi ber-parameter {id} memakai
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
@@ -2489,8 +2489,8 @@ paths:
       - Laporan
       summary: Pendapatan penjualan pada periode
       description: >-
-        Menjumlahkan penjualan non-batal menurut tanggal transaksi lokal dan mengurangi nominal retur yang dicatat
-        pada periode lokal retur. Respons memisahkan jumlah penjualan kotor, retur, dan pendapatan bersih;
+        Menjumlahkan total penjualan lunas non-batal (sesudah diskon, sebelum retur) menurut tanggal pembayaran lokal dan mengurangi nominal retur yang dicatat
+        pada periode lokal retur. Respons memisahkan jumlah transaksi, total, rata-rata total transaksi, total menurut metode pembayaran, retur, dan pendapatan bersih;
         retur dapat membuat pendapatan periode negatif. Tidak menjumlahkan bayar atau join rincian.
         READY_FOR_FRONTEND untuk alur laporan inti; edge-case lanjutan tercatat untuk susulan.
         TRANSACTION-CONFORMANCE-001 mencocokkan response 200/422. TRANSACTION-QUERY-CONFORMANCE-001
@@ -2522,6 +2522,11 @@ paths:
                     timezone: Asia/Jakarta
                   jumlah_transaksi: 1
                   total_penjualan: '33000.00'
+                  rata_rata_transaksi: '33000.00'
+                  per_metode_pembayaran:
+                  - metode_pembayaran: cash
+                    jumlah_transaksi: 1
+                    total_penjualan: '33000.00'
                   jumlah_retur: 0
                   total_retur: '0.00'
                   total_pendapatan: '33000.00'
@@ -2623,6 +2628,116 @@ paths:
           $ref: '#/components/schemas/Date'
         description: Tanggal akhir lokal inklusif (D08); date_from <= date_to. Respons 422 pada date_to bila batas akhir-eksklusif UTC berada di luar rentang MySQL DATETIME tahun 1000–9999.
         required: true
+  /laporan/pesanan-belum-lunas:
+    get:
+      operationId: getLaporanPesananBelumLunas
+      tags: [Laporan]
+      summary: Nilai pesanan yang masih belum lunas
+      description: >-
+        Snapshot saat ini dari pesanan yang masih menunggu pembayaran dan dibuat pada rentang tanggal lokal yang diminta.
+        Ini bukan pendapatan dan bukan rekonstruksi status pada masa lalu. Owner/manager memakai tenant dari token;
+        superadmin wajib mengirim warung_id. Pesanan dibatalkan dan yang sudah dibayar tidak dihitung.
+      x-contract-status: READY_FOR_FRONTEND
+      x-implementation-status: DONE
+      x-deferred-verification: "Uji fokus mencakup status, periode lokal, tenant scope, dan schema; edge-case lanjutan mengikuti docs/api/README.md."
+      x-candidate-roles: [owner, manager, superadmin]
+      responses:
+        '200':
+          description: Snapshot antrean pembayaran pada saat request.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LaporanPesananBelumLunasResponse'}
+              example:
+                data:
+                  period: {date_from: '2026-10-01', date_to: '2026-10-31', timezone: Asia/Jakarta}
+                  jumlah_pesanan: 2
+                  total_belum_lunas: '45000.00'
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
+      parameters:
+      - {$ref: '#/components/parameters/WarungReadScope'}
+      - {name: date_from, in: query, required: true, schema: {$ref: '#/components/schemas/Date'}, description: Awal hari lokal inklusif; kirim bersama date_to.}
+      - {name: date_to, in: query, required: true, schema: {$ref: '#/components/schemas/Date'}, description: Tanggal akhir lokal inklusif; date_from harus <= date_to.}
+  /laporan/penjualan-harian:
+    get:
+      operationId: getLaporanPenjualanHarian
+      tags: [Laporan]
+      summary: Tren penjualan dan retur per hari
+      description: >-
+        Penjualan dikelompokkan menurut tanggal pembayaran lokal warung dan retur menurut tanggal retur lokal.
+        Hari tanpa transaksi/retur tidak dikirim. Total penjualan harian sudah memperhitungkan diskon transaksi; pendapatan harian adalah total tersebut dikurangi retur yang
+        dicatat hari itu; nilainya dapat negatif. Pesanan belum lunas tidak dihitung.
+      x-contract-status: READY_FOR_FRONTEND
+      x-implementation-status: DONE
+      x-deferred-verification: "Uji fokus mencakup zona waktu warung dan schema; edge-case lanjutan mengikuti docs/api/README.md."
+      x-candidate-roles: [owner, manager, superadmin]
+      responses:
+        '200':
+          description: Daftar hari yang memiliki transaksi atau retur.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LaporanPenjualanHarianResponse'}
+              example:
+                data:
+                  period: {date_from: '2026-10-01', date_to: '2026-10-02', timezone: Asia/Jakarta}
+                  data:
+                  - {tanggal: '2026-10-01', jumlah_transaksi: 2, total_penjualan: '50000.00', jumlah_retur: 0, total_retur: '0.00', total_pendapatan: '50000.00'}
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
+      parameters:
+      - {$ref: '#/components/parameters/WarungReadScope'}
+      - {name: date_from, in: query, required: true, schema: {$ref: '#/components/schemas/Date'}}
+      - {name: date_to, in: query, required: true, schema: {$ref: '#/components/schemas/Date'}}
+  /laporan/penjualan-item:
+    get:
+      operationId: getLaporanPenjualanItem
+      tags: [Laporan]
+      summary: Rincian penjualan menurut snapshot item
+      description: >-
+        Mengelompokkan rincian transaksi lunas non-batal berdasarkan menu_id (jika menu katalog), nama, dan harga
+        saat transaksi. Item bebas memiliki menu_id null dan hanya dikelompokkan berdasarkan teks nama serta harga.
+        nilai_item menjumlah subtotal rincian setelah diskon baris tetapi sebelum diskon header. Retur tidak dialokasikan
+        per item karena data retur hanya menyimpan nominal tingkat transaksi.
+      x-contract-status: READY_FOR_FRONTEND
+      x-implementation-status: DONE
+      x-deferred-verification: "Uji fokus mencakup snapshot item katalog/bebas, pembayaran dalam periode, tenant scope, dan schema; edge-case lanjutan mengikuti docs/api/README.md."
+      x-candidate-roles: [owner, manager, superadmin]
+      responses:
+        '200':
+          description: Rincian item dalam periode pembayaran lokal.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LaporanPenjualanItemResponse'}
+              example:
+                data:
+                  period: {date_from: '2026-10-01', date_to: '2026-10-31', timezone: Asia/Jakarta}
+                  data:
+                  - {jenis_item: menu, menu_id: '12', nama_item: Nasi Goreng, harga_saat_transaksi: '25000.00', qty_terjual: '2.00', nilai_item: '50000.00'}
+                  - {jenis_item: bebas, menu_id: null, nama_item: Kerupuk, harga_saat_transaksi: '2000.00', qty_terjual: '1.00', nilai_item: '2000.00'}
+        '400': {$ref: '#/components/responses/Error400'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '500': {$ref: '#/components/responses/Error500'}
+      parameters:
+      - {$ref: '#/components/parameters/WarungReadScope'}
+      - {name: date_from, in: query, required: true, schema: {$ref: '#/components/schemas/Date'}}
+      - {name: date_to, in: query, required: true, schema: {$ref: '#/components/schemas/Date'}}
 components:
   securitySchemes:
     bearerAuth:
@@ -4303,6 +4418,23 @@ components:
           minimum: 0
         total_penjualan:
           $ref: '#/components/schemas/AggregateMoney'
+        rata_rata_transaksi:
+          $ref: '#/components/schemas/AggregateMoney'
+        per_metode_pembayaran:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              metode_pembayaran:
+                type: string
+                enum: [cash, qris, transfer]
+              jumlah_transaksi:
+                type: integer
+                minimum: 0
+              total_penjualan:
+                $ref: '#/components/schemas/AggregateMoney'
+            required: [metode_pembayaran, jumlah_transaksi, total_penjualan]
         jumlah_retur:
           type: integer
           minimum: 0
@@ -4314,6 +4446,8 @@ components:
       - period
       - jumlah_transaksi
       - total_penjualan
+      - rata_rata_transaksi
+      - per_metode_pembayaran
       - jumlah_retur
       - total_retur
       - total_pendapatan
@@ -4332,6 +4466,52 @@ components:
       - period
       - jumlah_transaksi
       - total_pembelian
+    LaporanPesananBelumLunas:
+      type: object
+      additionalProperties: false
+      properties:
+        period: {$ref: '#/components/schemas/Period'}
+        jumlah_pesanan:
+          type: integer
+          minimum: 0
+        total_belum_lunas: {$ref: '#/components/schemas/AggregateMoney'}
+      required: [period, jumlah_pesanan, total_belum_lunas]
+    LaporanPenjualanHarian:
+      type: object
+      additionalProperties: false
+      properties:
+        tanggal: {$ref: '#/components/schemas/Date'}
+        jumlah_transaksi:
+          type: integer
+          minimum: 0
+        total_penjualan: {$ref: '#/components/schemas/AggregateMoney'}
+        jumlah_retur:
+          type: integer
+          minimum: 0
+        total_retur: {$ref: '#/components/schemas/AggregateMoney'}
+        total_pendapatan: {$ref: '#/components/schemas/SignedAggregateMoney'}
+      required: [tanggal, jumlah_transaksi, total_penjualan, jumlah_retur, total_retur, total_pendapatan]
+    LaporanPenjualanItem:
+      type: object
+      additionalProperties: false
+      properties:
+        jenis_item:
+          type: string
+          enum: [menu, bebas]
+        menu_id:
+          anyOf:
+          - {$ref: '#/components/schemas/Id'}
+          - type: 'null'
+        nama_item:
+          type: string
+        harga_saat_transaksi:
+          $ref: '#/components/schemas/AggregateMoney'
+        qty_terjual:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)\.[0-9]{2}$'
+        nilai_item:
+          $ref: '#/components/schemas/AggregateMoney'
+      required: [jenis_item, menu_id, nama_item, harga_saat_transaksi, qty_terjual, nilai_item]
     Pagination:
       type: object
       additionalProperties: false
@@ -4550,6 +4730,40 @@ components:
           $ref: '#/components/schemas/LaporanPembelian'
       required:
       - data
+    LaporanPesananBelumLunasResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data: {$ref: '#/components/schemas/LaporanPesananBelumLunas'}
+      required: [data]
+    LaporanPenjualanHarianResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          properties:
+            period: {$ref: '#/components/schemas/Period'}
+            data:
+              type: array
+              items: {$ref: '#/components/schemas/LaporanPenjualanHarian'}
+          required: [period, data]
+      required: [data]
+    LaporanPenjualanItemResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          properties:
+            period: {$ref: '#/components/schemas/Period'}
+            data:
+              type: array
+              items: {$ref: '#/components/schemas/LaporanPenjualanItem'}
+          required: [period, data]
+      required: [data]
     AggregateMoney:
       type: string
       pattern: ^(0|[1-9][0-9]*)\.[0-9]{2}$

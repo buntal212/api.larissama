@@ -207,7 +207,7 @@ class LaporanApiTest extends TestCase
 
         $this->assertEqualsCanonicalizing(['data'], array_keys($body));
         $expectedFields = $totalField === 'total_pendapatan'
-            ? ['period', 'jumlah_transaksi', 'total_penjualan', 'jumlah_retur', 'total_retur', 'total_pendapatan']
+            ? ['period', 'jumlah_transaksi', 'total_penjualan', 'rata_rata_transaksi', 'per_metode_pembayaran', 'jumlah_retur', 'total_retur', 'total_pendapatan']
             : ['period', 'jumlah_transaksi', 'total_pembelian'];
         $this->assertEqualsCanonicalizing($expectedFields, array_keys($body['data']));
         $this->assertEqualsCanonicalizing(
@@ -217,6 +217,8 @@ class LaporanApiTest extends TestCase
         $this->assertIsInt($body['data']['jumlah_transaksi']);
         $this->assertIsString($body['data'][$totalField]);
         if ($totalField === 'total_pendapatan') {
+            $this->assertIsString($body['data']['rata_rata_transaksi']);
+            $this->assertIsArray($body['data']['per_metode_pembayaran']);
             $this->assertIsInt($body['data']['jumlah_retur']);
             $this->assertIsString($body['data']['total_penjualan']);
             $this->assertIsString($body['data']['total_retur']);

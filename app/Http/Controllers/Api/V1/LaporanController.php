@@ -33,6 +33,39 @@ class LaporanController extends Controller
         return response()->json(['data' => $report->pembelian($warungId, $filters['date_from'], $filters['date_to'])]);
     }
 
+    public function pesananBelumLunas(LaporanPeriodeRequest $request, BuildLaporanPeriode $report, TenantReadScope $tenantReadScope): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $this->authorizeReportAccess($actor);
+        $filters = $request->validated();
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+
+        return response()->json(['data' => $report->pesananBelumLunas($warungId, $filters['date_from'], $filters['date_to'])]);
+    }
+
+    public function penjualanHarian(LaporanPeriodeRequest $request, BuildLaporanPeriode $report, TenantReadScope $tenantReadScope): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $this->authorizeReportAccess($actor);
+        $filters = $request->validated();
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+
+        return response()->json(['data' => $report->penjualanHarian($warungId, $filters['date_from'], $filters['date_to'])]);
+    }
+
+    public function penjualanItem(LaporanPeriodeRequest $request, BuildLaporanPeriode $report, TenantReadScope $tenantReadScope): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 401);
+        $this->authorizeReportAccess($actor);
+        $filters = $request->validated();
+        $warungId = $tenantReadScope->resolve($actor, $filters);
+
+        return response()->json(['data' => $report->penjualanItem($warungId, $filters['date_from'], $filters['date_to'])]);
+    }
+
     private function authorizeReportAccess(User $actor): void
     {
         abort_unless(

@@ -72,5 +72,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::get('laporan/penjualan', [LaporanController::class, 'penjualan'])->name('laporan.penjualan');
         Route::get('laporan/pembelian', [LaporanController::class, 'pembelian'])->name('laporan.pembelian');
+        Route::get('laporan/pesanan-belum-lunas', [LaporanController::class, 'pesananBelumLunas'])->name('laporan.pesanan-belum-lunas');
+        Route::get('laporan/penjualan-harian', [LaporanController::class, 'penjualanHarian'])->name('laporan.penjualan-harian');
+        Route::get('laporan/penjualan-item', [LaporanController::class, 'penjualanItem'])->name('laporan.penjualan-item');
     });
 });
