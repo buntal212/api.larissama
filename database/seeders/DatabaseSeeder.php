@@ -15,5 +15,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Production users must be provisioned explicitly, never seeded from defaults.
+        // $this->call(PerformanceHistorySeeder::class); // Manual local benchmark only; keep disabled for normal/server seeding.
     }
 }
