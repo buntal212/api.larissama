@@ -1,0 +1,91 @@
+name: larissama-backend-performance
+
+services:
+  performance-db:
+    image: mysql:8.0.40
+    command: ["--log-bin-trust-function-creators=1"]
+    environment:
+      MYSQL_DATABASE: larissama_performance
+      MYSQL_USER: larissama_performance
+      MYSQL_PASSWORD: larissama-performance-only
+      MYSQL_ROOT_PASSWORD: larissama-performance-root-only
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping --protocol=tcp -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  performance-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: base64:bGFyaXNzYW1hLWxvY2FsLXRlc3Qta2V5LTEyMzQ1Njc=
+      APP_URL: http://performance-api:8000
+      DB_CONNECTION: mysql
+      DB_HOST: performance-db
+      DB_PORT: "3306"
+      DB_DATABASE: larissama_performance
+      DB_USERNAME: larissama_performance
+      DB_PASSWORD: larissama-performance-only
+      DB_URL: ""
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      PHP_CLI_SERVER_WORKERS: "4"
+      COMPOSER_HOME: /tmp/composer
+    command:
+      - sh
+      - -lc
+      - composer install --no-interaction --prefer-dist --no-progress && php artisan migrate --force --no-interaction && php artisan serve --host=0.0.0.0 --port=8000
+    healthcheck:
+      test:
+        - CMD
+        - php
+        - -r
+        - "$$response = @file_get_contents('http://127.0.0.1:8000/up'); exit($$response === false ? 1 : 0);"
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 45s
+    depends_on:
+      performance-db:
+        condition: service_healthy
+
+  performance-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: base64:bGFyaXNzYW1hLWxvY2FsLXRlc3Qta2V5LTEyMzQ1Njc=
+      APP_URL: http://performance-api:8000
+      DB_CONNECTION: mysql
+      DB_HOST: performance-db
+      DB_PORT: "3306"
+      DB_DATABASE: larissama_performance
+      DB_USERNAME: larissama_performance
+      DB_PASSWORD: larissama-performance-only
+      DB_URL: ""
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      LARISSAMA_PERFORMANCE_BASE_URL: http://performance-api:8000
+      LARISSAMA_PERFORMANCE_CONCURRENCY: ${LARISSAMA_PERFORMANCE_CONCURRENCY:-4}
+      LARISSAMA_PERFORMANCE_REQUESTS_PER_WORKER: ${LARISSAMA_PERFORMANCE_REQUESTS_PER_WORKER:-10}
+      COMPOSER_HOME: /tmp/composer
+    depends_on:
+      performance-api:
+        condition: service_healthy
