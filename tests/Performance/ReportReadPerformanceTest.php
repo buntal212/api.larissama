@@ -20,6 +20,8 @@ class ReportReadPerformanceTest extends TestCase
         $this->assertPerformanceDatabaseIsIsolated();
         $fixture = $this->createLargeDataset();
 
+        $this->assertHistoryQueryCountDoesNotGrowWithRows($fixture['token'], $fixture['empty_token']);
+        $this->assertHistoryPlansUseTenantDateIndexes($fixture['warung']->id);
         $this->assertReportQueryCountDoesNotGrowWithRows($fixture['warung']->id, $fixture['empty_warung']->id);
         $this->assertReportPlansUseTenantDateIndexes($fixture['warung']->id);
         $this->runConcurrentReportLoad($fixture['token']);
@@ -36,7 +38,7 @@ class ReportReadPerformanceTest extends TestCase
         );
     }
 
-    /** @return array{empty_warung: Warung, token: string, warung: Warung} */
+    /** @return array{empty_token: string, empty_warung: Warung, token: string, warung: Warung} */
     private function createLargeDataset(): array
     {
         $targetWarung = null;
@@ -166,12 +168,89 @@ class ReportReadPerformanceTest extends TestCase
         self::assertInstanceOf(Warung::class, $targetWarung);
         self::assertInstanceOf(User::class, $targetUser);
         $emptyWarung = Warung::factory()->create(['timezone' => 'Asia/Jakarta']);
+        $emptyManager = User::factory()->create(['warung_id' => $emptyWarung->id, 'role' => 'manager']);
 
         return [
+            'empty_token' => $emptyManager->createToken('optional-empty-performance')->plainTextToken,
             'empty_warung' => $emptyWarung,
             'warung' => $targetWarung,
             'token' => $targetUser->createToken('optional-performance')->plainTextToken,
         ];
+    }
+
+    private function assertHistoryQueryCountDoesNotGrowWithRows(string $denseToken, string $emptyToken): void
+    {
+        foreach ([
+            'sales history' => ['/api/v1/penjualans', 'penjualans'],
+            'purchase history' => ['/api/v1/pembelians', 'pembelians'],
+        ] as $name => [$path, $table]) {
+            $emptyCount = $this->countHistoryTableQueries($path, $emptyToken, $table);
+            $denseCount = $this->countHistoryTableQueries($path, $denseToken, $table);
+
+            self::assertSame(2, $emptyCount, "Unexpected pagination query count for empty {$name}.");
+            self::assertSame(2, $denseCount, "Pagination query count for {$name} grew with matching rows.");
+        }
+    }
+
+    private function countHistoryTableQueries(string $path, string $token, string $table): int
+    {
+        $capturing = false;
+        $count = 0;
+        DB::listen(static function (QueryExecuted $event) use (&$capturing, &$count, $table): void {
+            if ($capturing && str_contains(strtolower($event->sql), strtolower($table))) {
+                $count++;
+            }
+        });
+
+        $capturing = true;
+        $this->withToken($token)->getJson($path)->assertOk();
+        $capturing = false;
+
+        return $count;
+    }
+
+    private function assertHistoryPlansUseTenantDateIndexes(int $warungId): void
+    {
+        $saleHistoryQuery = Penjualan::query()
+            ->where('warung_id', $warungId)
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit(20);
+        $statusFilteredSaleHistoryQuery = Penjualan::query()
+            ->where('warung_id', $warungId)
+            ->where('status', 'selesai')
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit(20);
+        $paymentFilteredSaleHistoryQuery = Penjualan::query()
+            ->where('warung_id', $warungId)
+            ->where('status_pembayaran', 'lunas')
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit(20);
+        $purchaseHistoryQuery = Pembelian::query()
+            ->where('warung_id', $warungId)
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit(20);
+        $filteredPurchaseHistoryQuery = Pembelian::query()
+            ->where('warung_id', $warungId)
+            ->where('status', 'tercatat')
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit(20);
+
+        $salePlan = $this->explain($saleHistoryQuery->toSql(), $saleHistoryQuery->getBindings());
+        $statusFilteredSalePlan = $this->explain($statusFilteredSaleHistoryQuery->toSql(), $statusFilteredSaleHistoryQuery->getBindings());
+        $paymentFilteredSalePlan = $this->explain($paymentFilteredSaleHistoryQuery->toSql(), $paymentFilteredSaleHistoryQuery->getBindings());
+        $purchasePlan = $this->explain($purchaseHistoryQuery->toSql(), $purchaseHistoryQuery->getBindings());
+        $filteredPurchasePlan = $this->explain($filteredPurchaseHistoryQuery->toSql(), $filteredPurchaseHistoryQuery->getBindings());
+
+        self::assertStringContainsString('penjualans_warung_tanggal_idx', $salePlan, 'Default sales history should use the tenant/date index.');
+        self::assertStringContainsString('penjualans_warung_status_tanggal_idx', $statusFilteredSalePlan, 'Status-filtered sales history should use the tenant/status/date index.');
+        self::assertStringContainsString('penjualans_warung_payment_status_idx', $paymentFilteredSalePlan, 'Payment-filtered sales history should use the tenant/payment/date index.');
+        self::assertStringContainsString('pembelians_warung_tanggal_idx', $purchasePlan, 'Default purchase history should use the tenant/date index.');
+        self::assertStringContainsString('pembelians_warung_status_tanggal_idx', $filteredPurchasePlan, 'Filtered purchase history should use the tenant/status/date index.');
     }
 
     private function assertReportQueryCountDoesNotGrowWithRows(int $warungId, int $emptyWarungId): void
@@ -285,21 +364,24 @@ class ReportReadPerformanceTest extends TestCase
         $requestsPerWorker = $this->boundedEnvironmentInteger('LARISSAMA_PERFORMANCE_REQUESTS_PER_WORKER', 10, 1, 20);
         self::assertNotSame('', $baseUrl, 'Set LARISSAMA_PERFORMANCE_BASE_URL through the dedicated Compose file.');
 
-        $paths = [
-            '/api/v1/laporan/penjualan',
-            '/api/v1/laporan/pembelian',
-            '/api/v1/laporan/pesanan-belum-lunas',
-            '/api/v1/laporan/penjualan-harian',
-            '/api/v1/laporan/penjualan-item',
+        $requests = [
+            'sales history' => ['/api/v1/penjualans', ['per_page' => '20', 'sort' => '-tanggal']],
+            'purchase history' => ['/api/v1/pembelians', ['per_page' => '20', 'sort' => '-tanggal']],
+            'sales report' => ['/api/v1/laporan/penjualan', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
+            'purchase report' => ['/api/v1/laporan/pembelian', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
+            'unpaid-order report' => ['/api/v1/laporan/pesanan-belum-lunas', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
+            'daily-sales report' => ['/api/v1/laporan/penjualan-harian', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
+            'item-sales report' => ['/api/v1/laporan/penjualan-item', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
         ];
 
-        foreach ($paths as $path) {
+        foreach ($requests as $name => [$path, $query]) {
+            $url = $baseUrl.$path.'?'.http_build_query($query);
             $latenciesMs = [];
             $requestCount = 0;
             $overallStartedAt = microtime(true);
 
             for ($round = 0; $round < $requestsPerWorker; $round++) {
-                $batchLatencies = $this->sendConcurrentGetBatch($baseUrl.$path, $token, $concurrency);
+                $batchLatencies = $this->sendConcurrentGetBatch($url, $token, $concurrency);
                 array_push($latenciesMs, ...$batchLatencies);
                 $requestCount += count($batchLatencies);
             }
@@ -311,8 +393,8 @@ class ReportReadPerformanceTest extends TestCase
             $throughput = $requestCount / max($elapsed, 0.001);
 
             fwrite(STDOUT, sprintf(
-                "\nOptional report load %s: %d requests, concurrency=%d, status=all 200, p50=%.1fms, p95=%.1fms, throughput=%.2f req/s\n",
-                $path,
+                "\nOptional history/report load %s: %d requests, concurrency=%d, status=all 200, p50=%.1fms, p95=%.1fms, throughput=%.2f req/s\n",
+                $name,
                 $requestCount,
                 $concurrency,
                 $p50,
@@ -329,7 +411,7 @@ class ReportReadPerformanceTest extends TestCase
         $handles = [];
 
         for ($worker = 0; $worker < $concurrency; $worker++) {
-            $handle = curl_init($url.'?date_from=2026-10-10&date_to=2026-10-10');
+            $handle = curl_init($url);
             curl_setopt_array($handle, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_CONNECTTIMEOUT => 5,
