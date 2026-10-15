@@ -59,8 +59,9 @@ class ReportReadPerformanceTest extends TestCase
             }
 
             $tenantSales = [];
+            $salesPerTenant = $tenantNumber === 0 ? 5000 : 125;
 
-            for ($rowNumber = 0; $rowNumber < 125; $rowNumber++) {
+            for ($rowNumber = 0; $rowNumber < $salesPerTenant; $rowNumber++) {
                 $timestamp = $anchor
                     ->subDays($rowNumber % 30)
                     ->setTime($rowNumber % 24, ($rowNumber * 7) % 60)
