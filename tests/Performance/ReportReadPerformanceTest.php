@@ -367,7 +367,9 @@ class ReportReadPerformanceTest extends TestCase
 
         $requests = [
             'sales history' => ['/api/v1/penjualans', ['per_page' => '20', 'sort' => '-tanggal']],
+            'sales history deep page' => ['/api/v1/penjualans', ['page' => '200', 'per_page' => '20', 'sort' => '-tanggal']],
             'purchase history' => ['/api/v1/pembelians', ['per_page' => '20', 'sort' => '-tanggal']],
+            'purchase history deep page' => ['/api/v1/pembelians', ['page' => '200', 'per_page' => '20', 'sort' => '-tanggal']],
             'sales report' => ['/api/v1/laporan/penjualan', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
             'purchase report' => ['/api/v1/laporan/pembelian', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
             'unpaid-order report' => ['/api/v1/laporan/pesanan-belum-lunas', ['date_from' => '2026-10-10', 'date_to' => '2026-10-10']],
