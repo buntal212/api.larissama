@@ -11,7 +11,7 @@ return [
     'allowed_origins' => array_values($allowedOrigins),
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key'],
-    'exposed_headers' => [],
+    'exposed_headers' => ['Date'],
     'max_age' => 600,
     'supports_credentials' => false,
 ];
