@@ -2,6 +2,10 @@
 
 Riwayat slice di bawah ini menyimpan hasil pada saat dicatat. Jika catatan historis menyebut seluruh API `DRAFT`, acuan terkini adalah ringkasan pelaksanaan, tabel status handoff, dan `x-contract-status` pada OpenAPI.
 
+## Perbaikan edit pengguna — 2026-10-22
+
+Owner kini dapat memperbarui akun sendiri di tenantnya. PATCH user mendukung ganti password dengan `password_confirmation`; ID tetap tidak dapat diubah. Commit backend `11d084b` dan frontend `4dee893`. Verifikasi backend yang tercatat: policy 7 test / 72 assertion, test manual password 1 / 245 assertion, Pint dan validator OpenAPI PASS. Test manual berada di `tests/Manual`, di luar testsuite CI `Unit`/`Feature`. Frontend `lint:check` belum berjalan karena `prettier` tidak tersedia lokal. CI dan deploy belum dijalankan.
+
 Snapshot fitur pendaftaran/langganan D17 per 2026-10-07: kontrak memiliki 36 operationId pada 24 path. Perubahan backend menambah pendaftaran owner publik, antrean persetujuan, aktivasi 30 hari, perpanjangan 30 hari, dan status kedaluwarsa turunan tanggal lokal. Feature/conformance fokus PASS 77 test / 21.809 assertions di MySQL 8.0.40; Pint dan validator OpenAPI 3.1 PASS. Migration sudah diterapkan ke database development. Full regression suite belum dijalankan untuk perubahan D17. Snapshot ini mendahului BE-107; hitungan aktif terbaru ada pada ringkasan pelaksanaan.
 
 Slice D12 terbaru, commit keputusan/dokumen `48bcdc7` dan test boundary `de29a62`: minimum password 8 karakter berlaku saat provisioning owner, membuat user tenant, dan mengganti password. Request tujuh karakter ditolak 422 tanpa write, tepat delapan diterima untuk pembuatan; penggantian invalid menjaga password lama. Feature test PASS 2/408, Pint 174 file PASS, OpenAPI validator PASS; Docker Compose disposable dibersihkan. Bukti: [PASSWORD-MINIMUM-CONFORMANCE-001](docs/backend/test-runs/PASSWORD-MINIMUM-CONFORMANCE-001.md). Runtime validation sudah menerapkan batas ini; slice menyelaraskan kontrak dan menambah conformance. Hitungan task 16/29 tidak berubah. Semua operasi tetap DRAFT.
