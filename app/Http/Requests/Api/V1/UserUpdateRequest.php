@@ -41,7 +41,8 @@ class UserUpdateRequest extends FormRequest
                 'lowercase',
                 Rule::unique('users', 'email')->ignore($this->route('id')),
             ],
-            'password' => ['sometimes', 'required', 'string', 'min:8'],
+            'password' => ['sometimes', 'required', 'string', 'min:8', 'confirmed'],
+            'password_confirmation' => ['sometimes', 'required_with:password', 'string'],
             'role' => ['sometimes', 'required', 'string', Rule::in(['owner', 'manager', 'kasir'])],
             'aktif' => ['sometimes', 'boolean'],
         ];
@@ -53,7 +54,11 @@ class UserUpdateRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            if ($this->except('warung_id') === []) {
+            if (array_key_exists('password_confirmation', $this->all()) && ! array_key_exists('password', $this->all())) {
+                $validator->errors()->add('password_confirmation', 'Konfirmasi hanya boleh dikirim bersama password baru.');
+            }
+
+            if ($this->except(['warung_id', 'password_confirmation']) === []) {
                 $validator->errors()->add('data', 'Minimal satu field harus dikirim.');
             }
         }];

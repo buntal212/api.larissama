@@ -543,6 +543,10 @@ paths:
               ubah_status:
                 value:
                   aktif: false
+              ganti_password:
+                value:
+                  password: password-baru-aman
+                  password_confirmation: password-baru-aman
   /admin/warungs/{id}/persetujuan:
     post:
       operationId: approveWarungRegistration
@@ -961,7 +965,7 @@ paths:
       tags:
       - Akses
       summary: Ubah User
-      description: 'READY_FOR_FRONTEND (core path): owner dapat memperbarui user dalam warung sendiri; superadmin dapat memperbarui user tenant yang dipilih lewat warung_id di body. ID tenant di luar pilihan memberi 404, user tenant tidak boleh mengirim warung_id, dan akun superadmin tidak dapat diubah lewat form tenant. Username/email wajib lowercase dan email nullable/unik global.'
+      description: 'READY_FOR_FRONTEND (core path): owner dapat memperbarui user dalam warung sendiri; superadmin dapat memperbarui user tenant yang dipilih lewat warung_id di body. ID tenant di luar pilihan memberi 404, user tenant tidak boleh mengirim warung_id, dan akun superadmin tidak dapat diubah lewat form tenant. Username/email wajib lowercase dan email nullable/unik global. Jika password baru dikirim, password_confirmation wajib sama.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -3341,46 +3345,89 @@ components:
       - password
       - role
     UserUpdate:
-      type: object
-      additionalProperties: false
-      properties:
-        warung_id:
-          $ref: '#/components/schemas/Id'
-          description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
-        nama:
-          type: string
-          minLength: 1
-          maxLength: 150
-        username:
-          type: string
-          minLength: 1
-          maxLength: 100
-          pattern: '^[^A-Z]+$'
-          description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
-        email:
-          type:
-          - string
-          - 'null'
-          format: email
-          maxLength: 150
-          pattern: '^[^A-Z]+$'
-          description: Jika diisi, email wajib huruf kecil; input huruf besar ditolak.
-        password:
-          type: string
-          minLength: 8
-          writeOnly: true
-          description: Jika dikirim untuk mengganti password, panjang minimum 8 karakter sesuai keputusan D12.
-        role:
-          type: string
-          enum:
-          - owner
-          - manager
-          - kasir
-          description: Owner dan superadmin dapat menetapkan role owner, manager, atau kasir dalam warung yang diizinkan.
-        aktif:
-          type: boolean
-          default: true
-      minProperties: 1
+      oneOf:
+      - type: object
+        additionalProperties: false
+        properties:
+          warung_id:
+            $ref: '#/components/schemas/Id'
+            description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
+          nama:
+            type: string
+            minLength: 1
+            maxLength: 150
+          username:
+            type: string
+            minLength: 1
+            maxLength: 100
+            pattern: '^[^A-Z]+$'
+            description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
+          email:
+            type:
+            - string
+            - 'null'
+            format: email
+            maxLength: 150
+            pattern: '^[^A-Z]+$'
+            description: Jika diisi, email wajib huruf kecil; input huruf besar ditolak.
+          role:
+            type: string
+            enum:
+            - owner
+            - manager
+            - kasir
+            description: Owner dan superadmin dapat menetapkan role owner, manager, atau kasir dalam warung yang diizinkan.
+          aktif:
+            type: boolean
+            default: true
+        minProperties: 1
+      - type: object
+        additionalProperties: false
+        properties:
+          warung_id:
+            $ref: '#/components/schemas/Id'
+            description: Wajib untuk superadmin; user tenant dilarang mengirim field ini.
+          nama:
+            type: string
+            minLength: 1
+            maxLength: 150
+          username:
+            type: string
+            minLength: 1
+            maxLength: 100
+            pattern: '^[^A-Z]+$'
+            description: Wajib huruf kecil; angka boleh. Input huruf besar ditolak, tidak diubah otomatis.
+          email:
+            type:
+            - string
+            - 'null'
+            format: email
+            maxLength: 150
+            pattern: '^[^A-Z]+$'
+            description: Jika diisi, email wajib huruf kecil; input huruf besar ditolak.
+          password:
+            type: string
+            minLength: 8
+            writeOnly: true
+            description: Jika dikirim untuk mengganti password, panjang minimum 8 karakter sesuai keputusan D12.
+          password_confirmation:
+            type: string
+            writeOnly: true
+            description: Wajib sama dengan password jika mengganti password.
+          role:
+            type: string
+            enum:
+            - owner
+            - manager
+            - kasir
+            description: Owner dan superadmin dapat menetapkan role owner, manager, atau kasir dalam warung yang diizinkan.
+          aktif:
+            type: boolean
+            default: true
+        required:
+        - password
+        - password_confirmation
+        minProperties: 2
     KategoriMenuCreate:
       type: object
       additionalProperties: false

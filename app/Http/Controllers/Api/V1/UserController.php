@@ -101,7 +101,7 @@ class UserController extends Controller
 
         $attributes = $request->validated();
         $warungId = $writeScope->resolve($actor, $attributes);
-        unset($attributes['warung_id']);
+        unset($attributes['warung_id'], $attributes['password_confirmation']);
         $user = $this->tenantUsers((string) $warungId)->findOrFail($id);
         Gate::authorize('update', [$user, (string) $warungId]);
 

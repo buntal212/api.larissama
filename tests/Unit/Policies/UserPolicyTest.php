@@ -37,7 +37,7 @@ class UserPolicyTest extends TestCase
         $this->assertFalse($policy->view($actor, $this->user(4, 'superadmin', null)));
         $this->assertFalse($policy->update($actor, $this->user(4, 'superadmin', null)));
         $this->assertSame($role === 'owner' && $warungId !== null, $policy->view($actor, $actor, $selectedWarungId));
-        $this->assertFalse($policy->update($actor, $actor));
+        $this->assertSame($role === 'owner' && $warungId !== null, $policy->update($actor, $actor));
     }
 
     /**

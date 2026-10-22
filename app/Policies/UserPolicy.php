@@ -43,7 +43,6 @@ class UserPolicy
 
         return $actor->role === 'owner'
             && $actor->warung_id !== null
-            && $actor->warung_id === $target->warung_id
-            && $actor->getKey() !== $target->getKey();
+            && $actor->warung_id === $target->warung_id;
     }
 }
