@@ -543,10 +543,6 @@ paths:
               ubah_status:
                 value:
                   aktif: false
-              ganti_password:
-                value:
-                  password: password-baru-aman
-                  password_confirmation: password-baru-aman
   /admin/warungs/{id}/persetujuan:
     post:
       operationId: approveWarungRegistration
@@ -1021,6 +1017,10 @@ paths:
               ubah_status:
                 value:
                   aktif: false
+              ganti_password:
+                value:
+                  password: password-baru-aman
+                  password_confirmation: password-baru-aman
   /kategori-menus:
     get:
       operationId: listKategoriMenus
@@ -3345,6 +3345,7 @@ components:
       - password
       - role
     UserUpdate:
+      type: object
       oneOf:
       - type: object
         additionalProperties: false
