@@ -38,7 +38,7 @@ Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan mencakup pendaftaran
 
 Arahan user 2026-10-25 menyetujui slice katalog harga aktif read-only untuk owner menggunakan endpoint UDEV. Sandbox UAT tetap perlu dilakukan. Keputusan berikut masih menunggu kontrak dan persetujuan lanjutan:
 
-- UAT Sandbox untuk API `GET /api/v1/integrations/subscription-plans` dengan scope `subscription-plans:read`; pemilihan paket dan kebijakan produk Larissama.
+- UAT Sandbox untuk API `GET /api/v1/integrations/subscription-plans`; satu token UDEV bersama memerlukan scope `customers:write` dan `subscription-plans:read`. Pemilihan paket dan kebijakan produk Larissama tetap pending.
 - Pembuatan invoice, checkout URL, pembacaan invoice/payment/subscription, dan idempotency.
 - Mata uang, pajak/biaya, metode pembayaran, masa berlaku invoice, dan renewal.
 - Sumber kebenaran status invoice, payment, settlement, refund/chargeback, `paid_at`, dan `paid_until`.

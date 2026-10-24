@@ -59,7 +59,7 @@ UDEV menerima upsert customer segera setelah pendaftaran lokal berhasil. Satu wa
 
 ## Katalog paket UDEV
 
-Owner warung aktif dapat membaca `GET /api/v1/subscription-plans`. Backend Larissama mengambil katalog aktif dari `GET /api/v1/integrations/subscription-plans` menggunakan token server-side dengan scope `subscription-plans:read`, melalui `UDEV_BASE_URL` dan `UDEV_SUBSCRIPTION_PLANS_TOKEN`. Harga diteruskan sebagai decimal string dan UI mempertahankan nilainya tanpa floating point. Endpoint ini read-only; belum membuat invoice, checkout, atau pembayaran. Akun kedaluwarsa belum mendapat grace/payment-only sehingga belum dapat masuk ke halaman ini. Status kontrak tetap `DRAFT` sampai verifikasi runtime dan UAT Sandbox selesai.
+Owner warung aktif dapat membaca `GET /api/v1/subscription-plans`. Backend Larissama mengambil katalog aktif dari `GET /api/v1/integrations/subscription-plans` memakai token yang sama dari `UDEV_CUSTOMERS_TOKEN`; token UDEV tersebut perlu memiliki scope `customers:write` dan `subscription-plans:read`. `UDEV_BASE_URL` tetap menjadi base URL backend. Harga diteruskan sebagai decimal string dan UI mempertahankan nilainya tanpa floating point. Endpoint ini read-only; belum membuat invoice, checkout, atau pembayaran. Akun kedaluwarsa belum mendapat grace/payment-only sehingga belum dapat masuk ke halaman ini. Status kontrak tetap `DRAFT` sampai verifikasi runtime dan UAT Sandbox selesai.
 
 Contoh minimum body create:
 

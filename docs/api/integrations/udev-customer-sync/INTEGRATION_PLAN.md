@@ -94,7 +94,7 @@ Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arah
 - Paket, harga, durasi, mata uang, metode pembayaran, renewal, dan aturan masa aktif yang ditawarkan.
 - URL HTTPS webhook staging/produksi; allowlist egress bila UDEV memerlukannya.
 - Penyimpanan secret server-side, queue/worker, pemrosesan event idempoten, rekonsiliasi, monitoring dan dukungan operator.
-- Secret backend khusus `UDEV_SUBSCRIPTION_PLANS_TOKEN` dengan scope `subscription-plans:read`; jangan mengirim token ke browser atau menyimpannya bersama frontend.
+- Satu token server-to-server `UDEV_CUSTOMERS_TOKEN` untuk customer sync dan katalog paket, dengan scope `customers:write` serta `subscription-plans:read`; jangan mengirim token ke browser atau menyimpannya bersama frontend.
 - Return URL frontend untuk UX saja; status akses hanya berubah setelah konfirmasi backend.
 
 ## Kebijakan akses yang direkomendasikan

@@ -749,7 +749,7 @@ paths:
       summary: Baca katalog paket dan harga dari UDEV
       description: Owner warung aktif membaca paket aktif untuk aplikasi Larissama langsung dari katalog UDEV. Harga dan mata uang berasal dari UDEV. Operasi ini hanya baca katalog; tidak membuat invoice, checkout, pembayaran, atau entitlement. Owner yang masa aksesnya berakhir tetap tidak dapat login sampai grace/payment-only ditetapkan.
       x-contract-status: DRAFT
-      x-deferred-verification: Scope token read-only, kontrak response UDEV, kegagalan upstream, serta Sandbox UAT belum diverifikasi.
+      x-deferred-verification: Scope subscription-plans:read pada token UDEV bersama, kontrak response, kegagalan upstream, serta Sandbox UAT belum diverifikasi.
       x-implementation-status: DONE
       x-candidate-roles:
       - owner

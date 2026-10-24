@@ -27,7 +27,7 @@ class UdevSubscriptionPlanClient
     public function list(): array
     {
         $baseUrl = config('services.udev.base_url');
-        $token = config('services.udev.subscription_plans_token');
+        $token = config('services.udev.token');
         $parts = is_string($baseUrl) ? parse_url($baseUrl) : false;
 
         if (! is_array($parts)
