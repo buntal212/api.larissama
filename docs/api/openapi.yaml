@@ -275,8 +275,7 @@ paths:
       tags:
       - Admin
       summary: Daftar warung untuk superadmin
-      description: 'READY_FOR_FRONTEND (core path): ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
-      description: 'Daftar warung superadmin menyertakan ringkasan owner (semua user ber-role owner) dan status sinkronisasi UDEV. Contract response tambahan ini belum melalui conformance; query invalid/unknown lain, status lain, dan conformance seluruh operasi juga belum diuji.'
+      description: 'ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 telah menguji list/search/filter/sort/pagination dan ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response sebelum ringkasan tambahan untuk status 200/403/422. Daftar warung kini menyertakan ringkasan owner (semua user ber-role owner) dan status sinkronisasi UDEV; field tambahan ini belum melalui conformance. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
       x-contract-status: DRAFT
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
