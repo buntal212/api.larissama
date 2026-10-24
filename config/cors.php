@@ -2,7 +2,7 @@
 
 $allowedOrigins = array_filter(array_map(
     static fn (string $origin): string => trim($origin),
-    explode(',', (string) env('LARISSAMA_CORS_ALLOWED_ORIGINS', 'http://localhost:9000')),
+    explode(',', (string) env('LARISSAMA_CORS_ALLOWED_ORIGINS', 'http://localhost:9000,http://localhost:9201')),
 ));
 
 return [

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.11-draft
+  version: 0.1.12-draft
   description: >-
     Status handoff 2026-10-12: 43 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
@@ -70,7 +70,7 @@ paths:
       tags:
       - Auth
       summary: Daftarkan owner dan warung baru
-      description: Pendaftaran publik membuat akun owner dan warung secara atomik. Warung mulai nonaktif dengan status menunggu_persetujuan; owner belum dapat login sampai admin menyetujui. Username/email harus unik global dan huruf kecil. Maksimal 5 pendaftaran per menit per IP.
+      description: Pendaftaran publik membuat akun owner dan warung secara atomik, menyimpan persetujuan data, lalu mengantrekan customer UDEV setelah commit. Warung mulai nonaktif dengan status menunggu_persetujuan; owner belum dapat login sampai admin menyetujui. Status customer UDEV active bukan bukti pembayaran. Username/email harus unik global dan huruf kecil. Maksimal 5 pendaftaran per menit per IP.
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: Rate limit/perilaku abuse dan variasi validasi edge-case dapat dilengkapi bersama feedback frontend.
       x-implementation-status: DONE
@@ -99,6 +99,8 @@ paths:
             example:
               nama: Warung A
               timezone: Asia/Jakarta
+              data_consent: true
+              data_notice_version: 2026-10-24.v1
               owner:
                 nama: Pemilik A
                 username: pemilik_a
@@ -599,6 +601,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WarungResponse'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /admin/warungs/{id}/udev-customer-sync:
+    get:
+      operationId: getWarungUdevCustomerSync
+      tags:
+      - Admin
+      summary: Lihat status dan audit customer sync UDEV
+      description: Hanya superadmin; data teknis tidak tersedia bagi tenant user.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles:
+      - superadmin
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Metadata sinkronisasi dan 20 event terakhir.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UdevCustomerSyncResponse'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+  /admin/warungs/{id}/udev-customer-sync/retry:
+    post:
+      operationId: retryWarungUdevCustomerSync
+      tags:
+      - Admin
+      summary: Antrekan ulang customer sync UDEV
+      description: Hanya superadmin. Diterima untuk status failed, blocked, atau retry_wait; aksi dicatat dengan identitas aktor.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles:
+      - superadmin
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '202':
+          description: Permintaan retry dicatat dan diantrekan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UdevCustomerSyncResponse'
         '401':
           $ref: '#/components/responses/Error401'
         '403':
@@ -3211,11 +3267,82 @@ components:
           - type: 'null'
         owner:
           $ref: '#/components/schemas/OwnerCreate'
+        data_consent:
+          type: boolean
+          const: true
+          description: Persetujuan penggunaan data akun dan pengiriman profil customer ke UDEV.
+        data_notice_version:
+          type: string
+          const: 2026-10-24.v1
+          description: Versi pemberitahuan data yang ditampilkan pada pendaftaran.
       required:
       - nama
       - timezone
       - owner
-      description: Pendaftaran publik warung dan owner. Backend membuat warung nonaktif dan menunggu persetujuan admin.
+      - data_consent
+      - data_notice_version
+      description: Pendaftaran publik warung dan owner. Backend membuat warung nonaktif menunggu persetujuan admin dan mengantrekan customer UDEV setelah commit.
+    UdevCustomerSyncResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [warung_id, external_customer_id, udev_customer_id, status, attempt_count, last_http_status, last_request_id, last_error_code, last_attempt_at, last_success_at, next_attempt_at, notice_version, consented_at, events]
+          properties:
+            warung_id:
+              type: integer
+            external_customer_id:
+              type: string
+            udev_customer_id:
+              type: [integer, 'null']
+            status:
+              type: string
+              enum: [pending, retry_wait, synced, failed, blocked]
+            attempt_count:
+              type: integer
+            last_http_status:
+              type: [integer, 'null']
+            last_request_id:
+              type: [string, 'null']
+            last_error_code:
+              type: [string, 'null']
+            last_attempt_at:
+              type: [string, 'null']
+              format: date-time
+            last_success_at:
+              type: [string, 'null']
+              format: date-time
+            next_attempt_at:
+              type: [string, 'null']
+              format: date-time
+            notice_version:
+              type: string
+            consented_at:
+              type: string
+              format: date-time
+            events:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [id, actor_user_id, event, http_status, error_code, created_at]
+                properties:
+                  id:
+                    type: integer
+                  actor_user_id:
+                    type: [integer, 'null']
+                  event:
+                    type: string
+                  http_status:
+                    type: [integer, 'null']
+                  error_code:
+                    type: [string, 'null']
+                  created_at:
+                    type: string
+                    format: date-time
     WarungUpdate:
       type: object
       additionalProperties: false

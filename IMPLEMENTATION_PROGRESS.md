@@ -1,5 +1,9 @@
 # Tracker Implementasi Backend LarisSama
 
+## UDEV customer sync Tahap 1 — 2026-10-24
+
+Pendaftaran publik menyimpan persetujuan data dan satu row sinkronisasi per warung bersama owner pendaftar, lalu mengantrekan upsert UDEV setelah commit. Worker mengirim `name` warung, `owner_name` owner, email, telepon, `status=active` sementara, dan ID eksternal stabil; password tidak dikirim. Retry otomatis dibatasi lima percobaan dan menghormati `Retry-After`. Scheduler memulihkan row pending/retry yang job-nya hilang. Status, kode error aman, event audit, dan retry manual hanya dapat diakses superadmin melalui API internal. Form pendaftaran dan kontrak OpenAPI diperbarui. Tes terarah pada MySQL 8.0.40 disposable lulus 14 test/663 assertion, Pint PASS, validator OpenAPI PASS, Compose profile PASS, dan rollback migration baru diuji. Migration baru diterapkan terarah ke database development; dua migration lama yang masih pending tidak ikut dijalankan. Build frontend belum terverifikasi karena dependency terkunci tidak tersedia di cache lokal dan pemasangan dari registry tidak selesai. UAT live Sandbox belum bisa dinyatakan lulus sebelum base URL/token UDEV tersedia. Trial tiga hari, billing, pembayaran, serta perubahan akses tetap pending sesuai [rencana integrasi](docs/api/integrations/udev-customer-sync/INTEGRATION_PLAN.md).
+
 Riwayat slice di bawah ini menyimpan hasil pada saat dicatat. Jika catatan historis menyebut seluruh API `DRAFT`, acuan terkini adalah ringkasan pelaksanaan, tabel status handoff, dan `x-contract-status` pada OpenAPI.
 
 ## Perbaikan edit pengguna — 2026-10-22

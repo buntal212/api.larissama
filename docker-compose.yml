@@ -16,7 +16,7 @@ services:
       APP_DEBUG: "true"
       APP_KEY: ${LARISSAMA_APP_KEY:-}
       APP_URL: "http://localhost:${LARISSAMA_API_PORT:-8010}"
-      LARISSAMA_CORS_ALLOWED_ORIGINS: ${LARISSAMA_CORS_ALLOWED_ORIGINS:-http://localhost:9000}
+      LARISSAMA_CORS_ALLOWED_ORIGINS: ${LARISSAMA_CORS_ALLOWED_ORIGINS:-http://localhost:9000,http://localhost:9201}
       DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: "3306"
@@ -25,10 +25,12 @@ services:
       DB_PASSWORD: ${LARISSAMA_DB_PASSWORD:-larissama-local-only}
       DB_URL: ""
       COMPOSER_HOME: /tmp/composer
+      UDEV_BASE_URL: ${UDEV_BASE_URL:-}
+      UDEV_CUSTOMERS_TOKEN: ${UDEV_CUSTOMERS_TOKEN:-}
     command:
       - sh
       - -lc
-      - composer install --no-interaction && if [ -z "$$APP_KEY" ]; then export APP_KEY="$$(php artisan key:generate --show)"; fi && php artisan serve --host=0.0.0.0 --port=8000
+      - composer install --no-interaction && if [ -z "$$APP_KEY" ]; then export APP_KEY="$$(php artisan key:generate --show)"; fi && php artisan serve --no-reload --host=0.0.0.0 --port=8000
     healthcheck:
       test:
         - CMD
@@ -39,6 +41,62 @@ services:
       timeout: 3s
       retries: 10
       start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+
+  udev-worker:
+    profiles: [udev]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    user: "${LARISSAMA_UID:-1000}:${LARISSAMA_GID:-1000}"
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: local
+      APP_KEY: ${LARISSAMA_APP_KEY:-}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: ${LARISSAMA_DB_DATABASE:-larissama_dev}
+      DB_USERNAME: ${LARISSAMA_DB_USERNAME:-larissama_local}
+      DB_PASSWORD: ${LARISSAMA_DB_PASSWORD:-larissama-local-only}
+      DB_URL: ""
+      QUEUE_CONNECTION: database
+      CACHE_STORE: database
+      UDEV_BASE_URL: ${UDEV_BASE_URL:-}
+      UDEV_CUSTOMERS_TOKEN: ${UDEV_CUSTOMERS_TOKEN:-}
+    command: ["sh", "-lc", "if [ -z \"$$APP_KEY\" ]; then export APP_KEY=$$(php artisan key:generate --show); fi; php artisan queue:work database --queue=udev-customers --sleep=3 --tries=15 --timeout=30"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  scheduler:
+    profiles: [udev]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www/html
+    user: "${LARISSAMA_UID:-1000}:${LARISSAMA_GID:-1000}"
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: local
+      APP_KEY: ${LARISSAMA_APP_KEY:-}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: ${LARISSAMA_DB_DATABASE:-larissama_dev}
+      DB_USERNAME: ${LARISSAMA_DB_USERNAME:-larissama_local}
+      DB_PASSWORD: ${LARISSAMA_DB_PASSWORD:-larissama-local-only}
+      DB_URL: ""
+      QUEUE_CONNECTION: database
+      CACHE_STORE: database
+      UDEV_BASE_URL: ${UDEV_BASE_URL:-}
+      UDEV_CUSTOMERS_TOKEN: ${UDEV_CUSTOMERS_TOKEN:-}
+    command: ["sh", "-lc", "if [ -z \"$$APP_KEY\" ]; then export APP_KEY=$$(php artisan key:generate --show); fi; php artisan schedule:work"]
     depends_on:
       db:
         condition: service_healthy

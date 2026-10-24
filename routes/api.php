@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AdminWarungController;
+use App\Http\Controllers\Api\V1\AdminWarungCustomerSyncController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CurrentWarungController;
 use App\Http\Controllers\Api\V1\KategoriMenuController;
@@ -34,6 +35,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::patch('{id}', [AdminWarungController::class, 'update'])->where('id', '[1-9][0-9]*')->name('update');
             Route::post('{id}/persetujuan', [AdminWarungController::class, 'approve'])->where('id', '[1-9][0-9]*')->name('approve');
             Route::post('{id}/langganan/perpanjangan', [AdminWarungController::class, 'extendSubscription'])->where('id', '[1-9][0-9]*')->name('subscription.extend');
+            Route::get('{id}/udev-customer-sync', [AdminWarungCustomerSyncController::class, 'show'])->where('id', '[1-9][0-9]*')->name('udev-customer-sync.show');
+            Route::post('{id}/udev-customer-sync/retry', [AdminWarungCustomerSyncController::class, 'retry'])->where('id', '[1-9][0-9]*')->name('udev-customer-sync.retry');
         });
 
         Route::get('warung', [CurrentWarungController::class, 'show'])->name('warung.current');

@@ -4,7 +4,7 @@ Status: **MASTER PLAN BERTAHAP — Tahap 1 disetujui; Tahap 2 dan seterusnya pen
 Tanggal: 2026-10-24
 Scope master: pendaftaran warung, customer sync, trial, billing UDEV, dan aturan akses Larissama. Pekerjaan awal hanya Tahap 1: customer sync saat pendaftaran.
 
-Dokumen ini adalah rencana, bukan bukti implementasi. Kontrak sumber UDEV yang tersimpan di folder ini menjadi referensi untuk customer sync saja; kontrak tersebut belum mendefinisikan pembuatan invoice, pembayaran, subscription, atau webhook billing.
+Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu base URL/token yang dikelola sebagai secret serta review UDEV. Tahap 2 dan seterusnya tetap pending. Kontrak sumber UDEV yang tersimpan di folder ini menjadi referensi untuk customer sync saja; kontrak tersebut belum mendefinisikan pembuatan invoice, pembayaran, subscription, atau webhook billing.
 
 ## Tujuan
 

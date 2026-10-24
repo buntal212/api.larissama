@@ -182,6 +182,8 @@ class WarungRegistrationAndSubscriptionApiTest extends TestCase
             'timezone' => 'Asia/Jakarta',
             'alamat' => null,
             'telepon' => null,
+            'data_consent' => true,
+            'data_notice_version' => '2026-10-24.v1',
             'owner' => [
                 'nama' => 'Pemilik Baru',
                 'username' => 'pemilik_baru',

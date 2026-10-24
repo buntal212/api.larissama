@@ -16,6 +16,8 @@ Rancangan ini mencakup delapan tabel bisnis: `warungs`, `users`, `kategori_menus
 
 Skema audit memperluasnya menjadi sebelas tabel bisnis fisik: `pembelian_koreksis`, `penjualan_koreksis`, dan `penjualan_returs` menyimpan perubahan/pengembalian transaksi sebagai riwayat terpisah.
 
+Integrasi customer UDEV Tahap 1 menambah `warung_customer_syncs` dan `warung_customer_sync_events` sebagai tabel operasional di luar tabel transaksi bisnis. Satu warung pendaftar memiliki paling banyak satu sync row. `external_customer_id` dibuat acak dan unik, tetap dipakai pada setiap upsert/retry, serta tidak bergantung pada `warungs.kode`. `owner_user_id` menunjuk owner pendaftar; FK gabungan `(warung_id, owner_user_id)` menolak hubungan lintas warung. Row menyimpan versi pemberitahuan dan waktu persetujuan, status, ID UDEV, jumlah/waktu percobaan, HTTP status/request ID/kode error aman, dan jadwal retry. Event append-only menyimpan hasil serta aktor superadmin saat retry manual. Semua FK memakai RESTRICT; password/token/payload UDEV tidak disimpan. Migrasi hanya membuat tabel baru dan tidak melakukan backfill warung lama. Pendaftaran admin dan warung lama tetap di luar sinkronisasi Tahap 1.
+
 ## Aturan inti
 
 - Satu aplikasi mengelola banyak warung.

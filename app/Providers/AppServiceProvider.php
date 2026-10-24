@@ -53,5 +53,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', static function (Request $request): Limit {
             return Limit::perMinute(5)->by((string) $request->ip());
         });
+
+        RateLimiter::for('udev-customers', static function (): Limit {
+            return Limit::perMinute(55)->by('larissama-udev-customer-token');
+        });
     }
 }
