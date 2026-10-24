@@ -40,7 +40,7 @@ class UdevSubscriptionPlanClient
             || isset($parts['fragment'])
             || ! is_string($token)
             || $token === '') {
-            throw new UdevSubscriptionPlanRequestException();
+            throw new UdevSubscriptionPlanRequestException;
         }
 
         $request = Http::baseUrl(rtrim($baseUrl, '/'))
