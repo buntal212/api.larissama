@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\PembelianController;
 use App\Http\Controllers\Api\V1\PenjualanController;
 use App\Http\Controllers\Api\V1\RegistrationController;
+use App\Http\Controllers\Api\V1\SubscriptionPlanController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureValidJsonApiBody;
@@ -45,6 +46,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::patch('warung', [CurrentWarungController::class, 'update'])->name('warung.update');
         Route::post('warung/logo', [CurrentWarungController::class, 'storeLogo'])->name('warung.logo.store');
         Route::delete('warung/logo', [CurrentWarungController::class, 'deleteLogo'])->name('warung.logo.delete');
+
+        Route::get('subscription-plans', [SubscriptionPlanController::class, 'index'])
+            ->middleware('throttle:udev-subscription-plans')
+            ->name('subscription-plans.index');
 
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::post('users', [UserController::class, 'store'])->name('users.store');

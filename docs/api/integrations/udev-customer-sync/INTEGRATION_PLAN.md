@@ -1,8 +1,8 @@
 # Rencana Integrasi Larissama–UDEV: Pelanggan, Langganan, dan Pembayaran
 
-Status: **MASTER PLAN BERTAHAP — customer sync disetujui; trial lokal diarahkan; billing/grace pending**
+Status: **MASTER PLAN BERTAHAP — customer sync dan katalog read-only disetujui; invoice/payment/grace pending**
 Tanggal: 2026-10-25
-Scope master: pendaftaran warung, customer sync, trial, billing UDEV, dan aturan akses Larissama. Pekerjaan awal hanya Tahap 1: customer sync saat pendaftaran.
+Scope master: pendaftaran warung, customer sync, trial, billing UDEV, dan aturan akses Larissama. Tahap 1 customer sync tetap diimplementasikan terpisah; pada 2026-10-25 user juga mengizinkan slice baca katalog paket read-only. Invoice dan pembayaran tetap pending.
 
 Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu review UDEV. Atas instruksi lanjutan 2026-10-24, trial lokal tiga tanggal dan aktivasi tiga hari oleh superadmin dikerjakan sebagai bagian backend sambil menunggu frontend; grace/payment enforcement serta billing UDEV tetap pending. Revisi kontrak UDEV yang diterima 2026-10-25 mencakup customer sync dan endpoint baca katalog paket aktif. Endpoint katalog tersebut belum diintegrasikan dan tidak membuat invoice atau subscription; pembuatan invoice, pembayaran, subscription berbayar, dan webhook billing tetap belum tercakup.
 
@@ -15,7 +15,7 @@ Master plan ini menghubungkan pendaftaran customer saat ini dengan rencana billi
 - Setelah revisi 2026-10-24, pendaftaran publik langsung membuat warung aktif selama trial tiga tanggal lokal. Provisioning manual superadmin tetap menunggu persetujuan 30 hari; aktivasi trial tiga hari tersedia sebagai aksi terpisah.
 - Login dan request tenant bergantung pada status user, status warung, persetujuan, dan tanggal langganan.
 - Dokumen customer UDEV yang tersedia mengusulkan upsert `POST /api/v1/integrations/customers` dengan ID eksternal stabil. Dokumen tersebut tidak mencakup invoice atau pembayaran.
-- Implementasi UDEV di Larissama belum ditemukan. Endpoint di dokumen perlu dikonfirmasi pada Sandbox dan tidak dianggap sudah tersedia.
+- Larissama sudah memiliki customer sync dan endpoint baca katalog paket aktif. Pemanggilan live ke Sandbox UDEV dan kecocokan token/scope belum diverifikasi; endpoint invoice atau pembayaran belum tersedia pada kontrak.
 
 ## Status tahapan dan alur produk
 
@@ -30,7 +30,7 @@ Master plan ini menghubungkan pendaftaran customer saat ini dengan rencana billi
 
 ### Tahap 2 — Billing dan entitlement (pending)
 
-1. Kontrak UDEV kini mendokumentasikan pembacaan katalog paket aktif per aplikasi; integrasi katalog, pemilihan paket, invoice, checkout, pembayaran, settlement, subscription, status final, dan `paid_until` masih perlu ditetapkan untuk tahap berikutnya.
+1. Kontrak UDEV mendokumentasikan pembacaan katalog paket aktif per aplikasi dan D20 mengizinkan implementasi read-only untuk owner; Sandbox UAT katalog, pemilihan paket, invoice, checkout, pembayaran, settlement, subscription, status final, dan `paid_until` belum selesai.
 2. Tetapkan sumber kebenaran pembayaran dan mekanisme webhook/status API serta rekonsiliasi.
 3. Trial tiga tanggal lokal dengan akses penuh sudah diarahkan untuk pendaftaran; akses kedaluwarsa mengikuti guard tanggal yang ada. Grace 30 hari, payment-only, penagihan, serta penguncian/pemulihan di luar expiry tetap menunggu keputusan dan kontrak billing.
 4. Implementasikan invoice/payment UI dan access gate hanya setelah kontrak dan keputusan tahap ini disetujui.
@@ -94,6 +94,7 @@ Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arah
 - Paket, harga, durasi, mata uang, metode pembayaran, renewal, dan aturan masa aktif yang ditawarkan.
 - URL HTTPS webhook staging/produksi; allowlist egress bila UDEV memerlukannya.
 - Penyimpanan secret server-side, queue/worker, pemrosesan event idempoten, rekonsiliasi, monitoring dan dukungan operator.
+- Secret backend khusus `UDEV_SUBSCRIPTION_PLANS_TOKEN` dengan scope `subscription-plans:read`; jangan mengirim token ke browser atau menyimpannya bersama frontend.
 - Return URL frontend untuk UX saja; status akses hanya berubah setelah konfirmasi backend.
 
 ## Kebijakan akses yang direkomendasikan
@@ -111,8 +112,8 @@ Keputusan yang masih perlu ditetapkan: kapan grace 30 hari dimulai; lama paket; 
 
 ## Rencana pelaksanaan bertahap
 
-1. **Tahap 1 — Pendaftaran/customer sync:** finalisasi customer endpoint dan field/status pada review UDEV; siapkan persetujuan data, ID eksternal, status sync, queue, retry, akses log, dan UAT customer. Ini tetap satu-satunya tahap integrasi UDEV yang disetujui.
-2. **Tahap 2 — Billing:** setelah UDEV mengeluarkan rancangan, sepakati paket/nominal, invoice/checkout, status pembayaran, source of truth, webhook, dan rekonsiliasi. Tahap ini pending.
+1. **Tahap 1 — Pendaftaran/customer sync:** finalisasi customer endpoint dan field/status pada review UDEV; siapkan persetujuan data, ID eksternal, status sync, queue, retry, akses log, dan UAT customer.
+2. **Tahap 2 — Katalog dan billing:** katalog paket read-only untuk owner diizinkan pada 2026-10-25; verifikasi Sandbox tetap terbuka. Pemilihan paket, invoice/checkout, status pembayaran, source of truth, webhook, dan rekonsiliasi tetap pending.
 3. **Tahap 3 — Trial dan access gate:** trial tiga tanggal lokal sudah diinstruksikan untuk aktif otomatis dan aksi superadmin tiga hari disiapkan pada backend. Implementasi grace, payment-only, lock/login pasca-grace, admin recovery, migrasi legacy, serta UI tahap lanjut masih pending.
 4. **Tahap 4 — UAT dan rilis:** uji semua slice pada Sandbox, siapkan worker/monitoring/runbook, lalu rencanakan cutover produksi dengan persetujuan dan secret produksi terpisah.
 

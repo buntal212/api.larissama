@@ -1,10 +1,10 @@
 # Keputusan dan Persetujuan Bertahap Integrasi Larissama–UDEV
 
-Status: **Tahap 1 UDEV disetujui; instruksi backend trial 3 hari diterima; billing/grace pending**
+Status: **Tahap 1 customer sync dan katalog paket read-only disetujui; invoice, pembayaran, dan grace pending**
 Tanggal keputusan Tahap 1: 2026-10-24
 Rencana master: [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md)
 
-Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan saat ini hanya mencakup pendaftaran customer baru di UDEV. Billing, trial/grace enforcement, dan perubahan akses tetap dicatat sebagai tahap berikutnya, bukan dihapus dari rencana dan bukan bagian implementasi Tahap 1.
+Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan mencakup pendaftaran customer baru di UDEV dan, melalui arahan terpisah 2026-10-25, pembacaan katalog paket aktif secara read-only. Billing, trial/grace enforcement, dan perubahan akses tetap dicatat sebagai pekerjaan berikutnya, bukan dihapus dari rencana atau dianggap selesai oleh dua slice tersebut.
 
 ## Tahap 1 — Keputusan yang sudah disetujui
 
@@ -36,9 +36,9 @@ Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan saat ini hanya menca
 
 ## Tahap 2 — Billing dan pembayaran (pending)
 
-Keputusan berikut belum diminta untuk implementasi Tahap 1. Kontrak terbaru UDEV sudah mendokumentasikan endpoint baca katalog paket aktif, tetapi integrasinya tetap menunggu persetujuan Tahap 2 dan konfirmasi Sandbox:
+Arahan user 2026-10-25 menyetujui slice katalog harga aktif read-only untuk owner menggunakan endpoint UDEV. Sandbox UAT tetap perlu dilakukan. Keputusan berikut masih menunggu kontrak dan persetujuan lanjutan:
 
-- API `GET /api/v1/integrations/subscription-plans` dengan scope `subscription-plans:read`; pemilihan paket dan kebijakan produk Larissama.
+- UAT Sandbox untuk API `GET /api/v1/integrations/subscription-plans` dengan scope `subscription-plans:read`; pemilihan paket dan kebijakan produk Larissama.
 - Pembuatan invoice, checkout URL, pembacaan invoice/payment/subscription, dan idempotency.
 - Mata uang, pajak/biaya, metode pembayaran, masa berlaku invoice, dan renewal.
 - Sumber kebenaran status invoice, payment, settlement, refund/chargeback, `paid_at`, dan `paid_until`.
@@ -56,4 +56,4 @@ Arah produk yang sudah disampaikan: warung langsung aktif selama trial tiga hari
 
 ## Batas persetujuan
 
-Persetujuan integrasi Tahap 1 tidak mencakup integrasi katalog paket, pemilihan paket, pembuatan invoice, pembayaran, subscription berbayar, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Kontrak baca katalog yang tersedia tidak berarti integrasi atau persetujuan Tahap 2. Trial lokal tiga hari dan aksi aktivasi superadmin adalah instruksi backend terpisah, tidak menetapkan kontrak billing UDEV. Setiap tahap billing tetap memerlukan keputusan/approval tahapnya sendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.
+Persetujuan Tahap 1 tidak mencakup invoice, checkout, pembayaran, subscription berbayar, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Slice katalog read-only disetujui terpisah pada 2026-10-25 dan tidak berarti billing disetujui. Trial lokal tiga hari dan aksi aktivasi superadmin adalah instruksi backend terpisah, tidak menetapkan kontrak billing UDEV. Tahap invoice/payment tetap memerlukan kontrak dan keputusan/approval tersendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.

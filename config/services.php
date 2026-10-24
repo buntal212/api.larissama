@@ -38,6 +38,7 @@ return [
     'udev' => [
         'base_url' => env('UDEV_BASE_URL'),
         'token' => env('UDEV_CUSTOMERS_TOKEN'),
+        'subscription_plans_token' => env('UDEV_SUBSCRIPTION_PLANS_TOKEN'),
     ],
 
 ];

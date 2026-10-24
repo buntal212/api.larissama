@@ -57,5 +57,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('udev-customers', static function (): Limit {
             return Limit::perMinute(55)->by('larissama-udev-customer-token');
         });
+
+        RateLimiter::for('udev-subscription-plans', static function (): Limit {
+            return Limit::perMinute(50)->by('larissama-udev-subscription-plans-token');
+        });
     }
 }
