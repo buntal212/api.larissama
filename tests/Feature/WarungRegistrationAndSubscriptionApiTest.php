@@ -12,7 +12,7 @@ class WarungRegistrationAndSubscriptionApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_registration_creates_pending_warung_and_owner_who_cannot_login_yet(): void
+    public function test_public_registration_starts_a_three_local_day_trial_and_owner_can_login(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-07T17:30:00Z'));
         $payload = $this->registrationPayload();
@@ -26,18 +26,19 @@ class WarungRegistrationAndSubscriptionApiTest extends TestCase
         $this->assertSame($warung->id, $owner->warung_id);
         $this->assertSame('owner', $owner->role);
         $this->assertTrue($owner->aktif);
-        $this->assertFalse($warung->aktif);
-        $this->assertNull($warung->tanggal_mulai);
-        $this->assertNull($warung->tanggal_berakhir);
-        $this->assertSame('menunggu_persetujuan', $response->json('data.status_pendaftaran'));
-        $this->assertSame('menunggu_persetujuan', $response->json('data.warung.status_langganan'));
+        $this->assertTrue($warung->aktif);
+        $this->assertTrue($warung->pendaftaran_disetujui);
+        $this->assertSame('2026-10-08', $warung->tanggal_mulai?->toDateString());
+        $this->assertSame('2026-10-10', $warung->tanggal_berakhir?->toDateString());
+        $this->assertSame('aktif_trial', $response->json('data.status_pendaftaran'));
+        $this->assertSame('aktif', $response->json('data.warung.status_langganan'));
 
         $login = $this->postJson('/api/v1/auth/login', [
             'username' => $owner->username,
             'password' => $payload['owner']['password'],
-        ])->assertForbidden();
+        ])->assertOk();
         $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
-        $this->assertSame(0, $owner->tokens()->count());
+        $this->assertSame(1, $owner->tokens()->count());
     }
 
     public function test_superadmin_approval_activates_a_thirty_day_subscription_using_local_dates(): void
