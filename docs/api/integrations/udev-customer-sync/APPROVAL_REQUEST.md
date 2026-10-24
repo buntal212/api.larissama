@@ -1,47 +1,59 @@
-# Persetujuan Scope Sinkronisasi Pendaftaran Customer ke UDEV
+# Keputusan dan Persetujuan Bertahap Integrasi Larissama–UDEV
 
-Status: **keputusan pengguna disetujui untuk scope awal; review teknis UDEV menunggu**
-Tanggal keputusan: 2026-10-24
-Rencana: [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md)
+Status: **Tahap 1 disetujui pengguna; Tahap 2 dan seterusnya pending**
+Tanggal keputusan Tahap 1: 2026-10-24
+Rencana master: [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md)
 
-## Scope yang disetujui
+Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan saat ini hanya mencakup pendaftaran customer baru di UDEV. Billing, trial/grace enforcement, dan perubahan akses tetap dicatat sebagai tahap berikutnya, bukan dihapus dari rencana dan bukan bagian implementasi Tahap 1.
 
-Persetujuan ini hanya untuk pendaftaran customer baru di UDEV dari backend Larissama. Billing/invoice, pembayaran, subscription, webhook billing, trial/grace entitlement, dan pembatasan akses karena pembayaran tetap menjadi pembahasan dan persetujuan tahap berikutnya.
-
-Keputusan yang dicatat dari arahan pengguna:
+## Tahap 1 — Keputusan yang sudah disetujui
 
 1. Satu warung Larissama bersama owner pendaftarnya menjadi satu customer UDEV.
-2. Kirim setelah registrasi berhasil tersimpan, tanpa menunggu approval admin atau pembayaran.
-3. Field mapping: `name` dari `warungs.nama`; `owner_name` dari `users.nama` owner pendaftar; email dari akun owner; telepon dari data warung.
-4. Larissama membuat `external_customer_id` stabil per warung dan menggunakannya pada retry.
-5. Kirim status customer `active` untuk saat ini, mengikuti arahan UDEV agar data dikirim terlebih dahulu. Minta review UDEV; status tersebut bukan pernyataan bahwa customer telah membayar.
-6. Kegagalan sementara dicoba ulang otomatis secara terbatas. Retry manual dan log detail dibatasi ke superadmin/operator internal berwenang serta diaudit; tenant user tidak melihat detail teknis.
-7. Form pendaftaran menjelaskan penggunaan data owner untuk membuat akun Larissama dan mengirim field kontak yang diperlukan ke UDEV. Simpan versi pemberitahuan dan waktu persetujuan. Password tidak dikirim ke UDEV.
+2. Kirim setelah pendaftaran berhasil tersimpan, tanpa menunggu approval admin atau pembayaran.
+3. Mapping: `name` dari `warungs.nama`; `owner_name` dari `users.nama` owner pendaftar; email dari akun owner; telepon dari data warung.
+4. Larissama membuat `external_customer_id` stabil per warung dan memakai ID yang sama saat retry.
+5. Kirim `status=active` sementara mengikuti arahan UDEV untuk mengirim lebih dahulu dan melakukan review. Status customer ini bukan bukti pembayaran; ubah mapping bila review UDEV meminta koreksi.
+6. Gunakan retry otomatis terbatas untuk gangguan sementara. Retry manual dan log detail hanya untuk superadmin/operator internal berwenang serta diaudit; tenant user tidak melihat detail teknis.
+7. Pendaftaran menjelaskan penggunaan data owner untuk akun Larissama dan pengiriman field kontak yang diperlukan ke UDEV. Simpan versi pemberitahuan dan waktu persetujuan. Password tidak dikirim ke UDEV.
 
-Warung baru langsung aktif selama trial tiga hari di Larissama. Itu status akses lokal dan terpisah dari arti status customer UDEV; mapping `active` di UDEV dikirim sementara untuk review.
+## Konfirmasi teknis UDEV untuk Tahap 1
 
-## Hal yang harus dikonfirmasi UDEV
+- Endpoint customer Sandbox dan token server-to-server Larissama dengan scope minimum `customers:write`.
+- Konfirmasi endpoint menerima pendaftaran sebelum ada pembayaran.
+- Review arti `status=active`, serta mapping `name` = nama warung dan `owner_name` = nama owner.
+- Konfirmasi schema field, respons sukses/error, idempotency, konflik customer manual, rate limit, dan `Retry-After`.
+- Review data uji nama warung, owner, email, dan telepon; sampaikan koreksi field/status bila diperlukan.
+- Berikan mekanisme aman untuk pengelolaan token dan rotasi/revoke. Secret tidak dikirim melalui chat atau frontend.
 
-Sebelum UAT, UDEV perlu memastikan:
+## Yang Larissama siapkan untuk Tahap 1
 
-- Endpoint Sandbox customer aktif untuk pendaftaran sebelum ada pembayaran.
-- Token server-to-server Larissama memiliki scope minimum `customers:write`.
-- `status=active` berarti record customer aktif, bukan bukti pembayaran atau subscription.
-- `name` dapat memuat nama warung dan `owner_name` nama pemilik sesuai mapping di atas.
-- Bentuk response sukses/error, customer conflict, idempotency, rate limit, dan `Retry-After`.
-- Data pendaftaran yang dikirim dapat direview dan dikoreksi jika UDEV memiliki kebutuhan field/status lain.
+- ID aplikasi dan `external_customer_id` stabil per warung.
+- Data warung dan owner pendaftar dengan relasi kontak yang eksplisit.
+- Pemberitahuan/persetujuan penggunaan data beserta versi dan waktu persetujuan.
+- Sandbox Base URL dan secret server-side.
+- Queue worker, metadata sync, retry terbatas, pemulihan manual, monitoring, dan akses log yang dibatasi.
+- UAT Bearer eksternal dari backend; panel admin internal UDEV saja bukan bukti autentikasi eksternal.
 
-Jika hasil review UDEV mengubah arti status atau mapping payload, hentikan konfigurasi produksi dan revisi kontrak/rencana sebelum cutover.
+## Tahap 2 — Billing dan pembayaran (pending)
 
-## Yang disiapkan Larissama
+Keputusan berikut belum diminta untuk implementasi Tahap 1 dan menunggu rancangan UDEV:
 
-- ID aplikasi dan ID eksternal stabil per warung.
-- Data warung serta owner utama yang sumbernya eksplisit.
-- Sandbox Base URL dan token yang disimpan hanya di secret manager/environment backend.
-- Queue worker, retry terbatas, metadata sync, pemulihan manual, dan log aman yang terbatas.
-- Pemberitahuan/persetujuan penggunaan data dan penyimpanan versi/waktu persetujuan.
-- UAT Bearer eksternal dari backend; panel admin internal UDEV saja tidak membuktikan token eksternal berfungsi.
+- Paket, harga, mata uang, durasi, pajak/biaya, metode pembayaran, masa berlaku invoice, dan renewal.
+- API katalog/pemilihan paket, pembuatan invoice, checkout URL, pembacaan invoice/payment/subscription, dan idempotency.
+- Sumber kebenaran status invoice, payment, settlement, refund/chargeback, `paid_at`, dan `paid_until`.
+- Webhook/event, signature, event ID, replay protection, urutan event, retry, serta API rekonsiliasi.
+- Apakah UDEV menyediakan entitlement/trial/grace atau Larissama mengelola kebijakannya sendiri.
 
-## Batas
+## Tahap 3 — Trial, akses, dan pemulihan (pending)
 
-Persetujuan ini tidak mencakup akses/pengiriman token melalui chat atau browser, invoice/payment/subscription, penghapusan customer UDEV otomatis, atau cutover produksi. Kredensial produksi dan keputusan billing memerlukan persetujuan tersendiri.
+Arah produk yang sudah disampaikan: warung langsung aktif selama trial tiga hari; setelah masa aktif berakhir dan belum membayar ada masa tenggang 30 hari; setelah itu login diblokir dan owner menghubungi admin. Detail berikut masih perlu dibekukan sebelum implementasi:
+
+- Apakah selama trial akses aplikasi penuh atau hanya menu pembayaran.
+- Apakah tiga hari dihitung sebagai 72 jam atau tanggal kalender, dan batas waktu tepatnya.
+- Kapan grace 30 hari dimulai dan bagaimana aturan untuk langganan berbayar yang diperpanjang.
+- Hak akses selama grace, jalur pembayaran setelah akun terkunci, dan aturan pemulihan admin.
+- Dampak pada warung legacy dan penangguhan manual.
+
+## Batas persetujuan
+
+Persetujuan Tahap 1 tidak mencakup pembuatan invoice, pembayaran, subscription, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Setiap tahap lanjutan memerlukan kontrak UDEV serta keputusan/approval tahapnya sendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.
