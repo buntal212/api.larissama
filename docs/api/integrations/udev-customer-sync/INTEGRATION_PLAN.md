@@ -1,10 +1,10 @@
 # Rencana Integrasi Larissama–UDEV: Pelanggan, Langganan, dan Pembayaran
 
 Status: **MASTER PLAN BERTAHAP — customer sync disetujui; trial lokal diarahkan; billing/grace pending**
-Tanggal: 2026-10-24
+Tanggal: 2026-10-25
 Scope master: pendaftaran warung, customer sync, trial, billing UDEV, dan aturan akses Larissama. Pekerjaan awal hanya Tahap 1: customer sync saat pendaftaran.
 
-Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu review UDEV. Atas instruksi lanjutan 2026-10-24, trial lokal tiga tanggal dan aktivasi tiga hari oleh superadmin dikerjakan sebagai bagian backend sambil menunggu frontend; grace/payment enforcement serta billing UDEV tetap pending. Kontrak sumber UDEV yang tersimpan di folder ini menjadi referensi untuk customer sync saja; kontrak tersebut belum mendefinisikan pembuatan invoice, pembayaran, subscription berbayar, atau webhook billing.
+Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu review UDEV. Atas instruksi lanjutan 2026-10-24, trial lokal tiga tanggal dan aktivasi tiga hari oleh superadmin dikerjakan sebagai bagian backend sambil menunggu frontend; grace/payment enforcement serta billing UDEV tetap pending. Revisi kontrak UDEV yang diterima 2026-10-25 mencakup customer sync dan endpoint baca katalog paket aktif. Endpoint katalog tersebut belum diintegrasikan dan tidak membuat invoice atau subscription; pembuatan invoice, pembayaran, subscription berbayar, dan webhook billing tetap belum tercakup.
 
 ## Tujuan
 
@@ -30,7 +30,7 @@ Master plan ini menghubungkan pendaftaran customer saat ini dengan rencana billi
 
 ### Tahap 2 — Billing dan entitlement (pending)
 
-1. UDEV dan Larissama menetapkan paket, harga, invoice, checkout, pembayaran, settlement, subscription, status final, dan `paid_until`.
+1. Kontrak UDEV kini mendokumentasikan pembacaan katalog paket aktif per aplikasi; integrasi katalog, pemilihan paket, invoice, checkout, pembayaran, settlement, subscription, status final, dan `paid_until` masih perlu ditetapkan untuk tahap berikutnya.
 2. Tetapkan sumber kebenaran pembayaran dan mekanisme webhook/status API serta rekonsiliasi.
 3. Trial tiga tanggal lokal dengan akses penuh sudah diarahkan untuk pendaftaran; akses kedaluwarsa mengikuti guard tanggal yang ada. Grace 30 hari, payment-only, penagihan, serta penguncian/pemulihan di luar expiry tetap menunggu keputusan dan kontrak billing.
 4. Implementasikan invoice/payment UI dan access gate hanya setelah kontrak dan keputusan tahap ini disetujui.
@@ -73,8 +73,8 @@ Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arah
 
 ### Paket, invoice, pembayaran
 
-1. Jelaskan apakah paket dan harga dikelola UDEV atau dikirim/dipilih Larissama.
-2. Sediakan endpoint membuat/membaca invoice, membuat checkout URL, dan membaca status invoice/payment/subscription.
+1. Kontrak terbaru mendokumentasikan `GET /api/v1/integrations/subscription-plans` dengan scope `subscription-plans:read` untuk membaca paket aktif milik aplikasi dari token. Konfirmasi ketersediaannya di Sandbox UDEV untuk aplikasi Larissama.
+2. Tetapkan proses pemilihan paket, lalu sediakan endpoint membuat/membaca invoice, membuat checkout URL, dan membaca status invoice/payment/subscription.
 3. Definisikan ID/reference, masa berlaku invoice, nominal/mata uang, fee/pajak, periode yang dibeli, renewal, dan idempotency.
 4. Jelaskan perilaku pembayaran ganda, invoice expired, refund, chargeback, dan pembayaran terlambat.
 5. Konfirmasi apakah UDEV menyediakan entitlement trial/grace; Larissama sementara menerapkan trial tiga tanggal lokal. Sepakati grace 30 hari dan siapa pemilik aturan entitlement berbayar.
@@ -128,4 +128,4 @@ Keputusan yang masih perlu ditetapkan: kapan grace 30 hari dimulai; lama paket; 
 
 ## Batas rencana
 
-Rencana ini tidak mengizinkan secret melalui chat, token di frontend, penghapusan customer UDEV otomatis, atau cutover produksi. Dokumen kontrak sumber `larissama-customer-sync.md` dan `customer-integration.yaml` tetap dipertahankan tanpa perubahan.
+Rencana ini tidak mengizinkan secret melalui chat, token di frontend, penghapusan customer UDEV otomatis, atau cutover produksi. Dokumen kontrak Markdown `larissama-customer-sync.md` mengikuti revisi yang diterima 2026-10-25; `customer-integration.yaml` tidak berubah dan tetap hanya mendefinisikan customer API. Kontrak katalog yang tersedia tidak mengubah batas persetujuan Tahap 1.

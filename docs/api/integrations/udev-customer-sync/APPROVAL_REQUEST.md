@@ -36,10 +36,11 @@ Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan saat ini hanya menca
 
 ## Tahap 2 — Billing dan pembayaran (pending)
 
-Keputusan berikut belum diminta untuk implementasi Tahap 1 dan menunggu rancangan UDEV:
+Keputusan berikut belum diminta untuk implementasi Tahap 1. Kontrak terbaru UDEV sudah mendokumentasikan endpoint baca katalog paket aktif, tetapi integrasinya tetap menunggu persetujuan Tahap 2 dan konfirmasi Sandbox:
 
-- Paket, harga, mata uang, durasi, pajak/biaya, metode pembayaran, masa berlaku invoice, dan renewal.
-- API katalog/pemilihan paket, pembuatan invoice, checkout URL, pembacaan invoice/payment/subscription, dan idempotency.
+- API `GET /api/v1/integrations/subscription-plans` dengan scope `subscription-plans:read`; pemilihan paket dan kebijakan produk Larissama.
+- Pembuatan invoice, checkout URL, pembacaan invoice/payment/subscription, dan idempotency.
+- Mata uang, pajak/biaya, metode pembayaran, masa berlaku invoice, dan renewal.
 - Sumber kebenaran status invoice, payment, settlement, refund/chargeback, `paid_at`, dan `paid_until`.
 - Webhook/event, signature, event ID, replay protection, urutan event, retry, serta API rekonsiliasi.
 - Apakah UDEV menyediakan entitlement/trial/grace atau Larissama mengelola kebijakannya sendiri.
@@ -55,4 +56,4 @@ Arah produk yang sudah disampaikan: warung langsung aktif selama trial tiga hari
 
 ## Batas persetujuan
 
-Persetujuan integrasi Tahap 1 tidak mencakup pembuatan invoice, pembayaran, subscription berbayar, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Trial lokal tiga hari dan aksi aktivasi superadmin adalah instruksi backend terpisah, tidak menetapkan kontrak billing UDEV. Setiap tahap billing tetap memerlukan kontrak UDEV serta keputusan/approval tahapnya sendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.
+Persetujuan integrasi Tahap 1 tidak mencakup integrasi katalog paket, pemilihan paket, pembuatan invoice, pembayaran, subscription berbayar, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Kontrak baca katalog yang tersedia tidak berarti integrasi atau persetujuan Tahap 2. Trial lokal tiga hari dan aksi aktivasi superadmin adalah instruksi backend terpisah, tidak menetapkan kontrak billing UDEV. Setiap tahap billing tetap memerlukan keputusan/approval tahapnya sendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.
