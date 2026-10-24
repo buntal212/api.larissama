@@ -8,6 +8,8 @@ Pembaruan 2026-10-25: daftar warung superadmin kini menerima ringkasan nama semu
 
 Commit slice: backend `e216dcf`, frontend `83eb644`. PHP lint, Pint, ESLint, dan `git diff --check` lulus; tes API dan build frontend belum dijalankan.
 
+Follow-up CI OpenAPI — commit `9c59500`: jumlah kontrak diperbarui menjadi 46 operasi/32 path/21 operasi ber-ID; dua test inventory route dan integritas lulus 23 test/1.732 assertion. Daftar ringkasan owner/UDEV belum mendapat conformance khusus. Pint tidak dijalankan ulang setelah Docker socket tidak dapat diakses; PHP host tidak tersedia.
+
 Riwayat slice di bawah ini menyimpan hasil pada saat dicatat. Jika catatan historis menyebut seluruh API `DRAFT`, acuan terkini adalah ringkasan pelaksanaan, tabel status handoff, dan `x-contract-status` pada OpenAPI.
 
 ## Perbaikan edit pengguna — 2026-10-22
