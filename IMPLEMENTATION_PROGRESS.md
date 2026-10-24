@@ -6,6 +6,8 @@ Pendaftaran publik menyimpan persetujuan data dan satu row sinkronisasi per waru
 
 Pembaruan 2026-10-25: daftar warung superadmin kini menerima ringkasan nama semua owner dan status UDEV yang di-eager-load; halaman kelola warung menampilkan status/error terakhir dan retry untuk `failed`, `blocked`, dan `retry_wait`. Tombol perbarui status disembunyikan setelah `synced`; tersedia pula aktivasi tiga hari dari superadmin. Contract response list berubah; conformance dan build frontend belum dijalankan.
 
+Commit slice: backend `e216dcf`, frontend `83eb644`. PHP lint, Pint, ESLint, dan `git diff --check` lulus; tes API dan build frontend belum dijalankan.
+
 Riwayat slice di bawah ini menyimpan hasil pada saat dicatat. Jika catatan historis menyebut seluruh API `DRAFT`, acuan terkini adalah ringkasan pelaksanaan, tabel status handoff, dan `x-contract-status` pada OpenAPI.
 
 ## Perbaikan edit pengguna — 2026-10-22
