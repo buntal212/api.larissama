@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.14-draft
+  version: 0.1.15-draft
   description: >-
-    Status handoff 2026-10-25: 44 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, dan daftar warung memuat ringkasan sync UDEV. Grace dan pembayaran belum diimplementasikan. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
+    Status handoff 2026-10-25: 47 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Sync warung lama mencatat pemberitahuan/persetujuan satu kali untuk invoice langganan berikutnya. Grace dan pembayaran belum diimplementasikan. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
@@ -23,7 +23,7 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 44 operationId tersedia; edge-case tertunda tercatat per operasi.
+    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 47 operationId tersedia; edge-case tertunda tercatat per operasi.
     Revisi D17 2026-10-24: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; grace 30 hari serta pembayaran tetap pending.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
@@ -100,7 +100,7 @@ paths:
               nama: Warung A
               timezone: Asia/Jakarta
               data_consent: true
-              data_notice_version: 2026-10-24.v1
+              data_notice_version: 2026-10-25.v2
               owner:
                 nama: Pemilik A
                 username: pemilik_a
@@ -646,6 +646,47 @@ paths:
         '409':
           $ref: '#/components/responses/Error409'
   /admin/warungs/{id}/udev-customer-sync:
+    post:
+      operationId: initiateWarungUdevCustomerSync
+      tags:
+      - Admin
+      summary: Catat persetujuan dan mulai sync customer UDEV
+      description: Hanya superadmin untuk warung tanpa sync row. Superadmin memilih owner dan menegaskan pemberitahuan/persetujuan sudah disampaikan (termasuk secara verbal); versi, waktu persetujuan, dan aktor dicatat. Satu kali persetujuan mencakup invoice paket langganan berikutnya.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles:
+      - superadmin
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminInitiateUdevCustomerSyncCreate'
+            example:
+              owner_user_id: 51
+      responses:
+        '202':
+          description: Persetujuan tercatat dan sync masuk antrean.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UdevCustomerSyncResponse'
+        '200':
+          description: Permintaan duplikat mengembalikan sync row yang sudah ada tanpa mengulang persetujuan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UdevCustomerSyncResponse'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '422':
+          $ref: '#/components/responses/Error422'
     get:
       operationId: getWarungUdevCustomerSync
       tags:
@@ -3327,11 +3368,11 @@ components:
         data_consent:
           type: boolean
           const: true
-          description: Persetujuan penggunaan data akun dan pengiriman profil customer ke UDEV.
+          description: Persetujuan penggunaan data akun dan pengiriman profil customer ke UDEV untuk customer dan invoice paket langganan.
         data_notice_version:
           type: string
-          const: 2026-10-24.v1
-          description: Versi pemberitahuan data yang ditampilkan pada pendaftaran.
+          enum: [2026-10-24.v1, 2026-10-25.v2]
+          description: Versi pemberitahuan penggunaan data akun, customer, dan invoice langganan UDEV. Versi lama tetap diterima selama rollout frontend/backend.
       required:
       - nama
       - timezone
@@ -3339,6 +3380,16 @@ components:
       - data_consent
       - data_notice_version
       description: Pendaftaran publik warung dan owner. Backend langsung mengaktifkan trial tiga tanggal lokal inklusif dan mengantrekan customer UDEV setelah commit.
+    AdminInitiateUdevCustomerSyncCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        owner_user_id:
+          type: integer
+          minimum: 1
+          description: ID owner pada warung tersebut yang didaftarkan sebagai customer UDEV.
+      required: [owner_user_id]
+      description: Superadmin menegaskan pemberitahuan/persetujuan telah disampaikan kepada owner; verbal diperbolehkan. Aksi ini dicatat sebagai waktu persetujuan dan aktor.
     UdevCustomerSyncResponse:
       type: object
       additionalProperties: false
@@ -3347,9 +3398,11 @@ components:
         data:
           type: object
           additionalProperties: false
-          required: [warung_id, external_customer_id, udev_customer_id, status, attempt_count, last_http_status, last_request_id, last_error_code, last_attempt_at, last_success_at, next_attempt_at, notice_version, consented_at, events]
+          required: [warung_id, owner_user_id, external_customer_id, udev_customer_id, status, attempt_count, last_http_status, last_request_id, last_error_code, last_attempt_at, last_success_at, next_attempt_at, notice_version, consented_at, events]
           properties:
             warung_id:
+              type: integer
+            owner_user_id:
               type: integer
             external_customer_id:
               type: string

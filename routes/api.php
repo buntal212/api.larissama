@@ -36,6 +36,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             Route::post('{id}/persetujuan', [AdminWarungController::class, 'approve'])->where('id', '[1-9][0-9]*')->name('approve');
             Route::post('{id}/langganan/aktivasi-tiga-hari', [AdminWarungController::class, 'activateForThreeDays'])->where('id', '[1-9][0-9]*')->name('subscription.activate-three-days');
             Route::post('{id}/langganan/perpanjangan', [AdminWarungController::class, 'extendSubscription'])->where('id', '[1-9][0-9]*')->name('subscription.extend');
+            Route::post('{id}/udev-customer-sync', [AdminWarungCustomerSyncController::class, 'initiate'])->where('id', '[1-9][0-9]*')->name('udev-customer-sync.initiate');
             Route::get('{id}/udev-customer-sync', [AdminWarungCustomerSyncController::class, 'show'])->where('id', '[1-9][0-9]*')->name('udev-customer-sync.show');
             Route::post('{id}/udev-customer-sync/retry', [AdminWarungCustomerSyncController::class, 'retry'])->where('id', '[1-9][0-9]*')->name('udev-customer-sync.retry');
         });

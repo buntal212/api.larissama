@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Udev\InitiateLegacyUdevCustomerSync;
 use App\Actions\Udev\SyncCustomerJob;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\AdminInitiateUdevCustomerSyncRequest;
 use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +14,22 @@ use Illuminate\Support\Facades\Log;
 
 class AdminWarungCustomerSyncController extends Controller
 {
+    public function initiate(
+        AdminInitiateUdevCustomerSyncRequest $request,
+        int $id,
+        InitiateLegacyUdevCustomerSync $initiate,
+    ): JsonResponse {
+        $warung = Warung::query()->findOrFail($id);
+        Gate::authorize('update', $warung);
+        $owner = $warung->users()
+            ->whereKey($request->validated('owner_user_id'))
+            ->where('role', 'owner')
+            ->firstOrFail();
+        $result = $initiate->execute($warung, $owner, $request->user());
+
+        return response()->json(['data' => $this->data($result['sync'])], $result['created'] ? 202 : 200);
+    }
+
     public function show(int $id): JsonResponse
     {
         $warung = Warung::query()->findOrFail($id);
@@ -59,6 +77,7 @@ class AdminWarungCustomerSyncController extends Controller
     {
         return [
             'warung_id' => $sync->warung_id,
+            'owner_user_id' => $sync->owner_user_id,
             'external_customer_id' => $sync->external_customer_id,
             'udev_customer_id' => $sync->udev_customer_id,
             'status' => $sync->status,

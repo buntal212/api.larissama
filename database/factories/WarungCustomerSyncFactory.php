@@ -28,7 +28,7 @@ class WarungCustomerSyncFactory extends Factory
             'owner_user_id' => $owner->id,
             'external_customer_id' => 'larissama-'.Str::ulid(),
             'status' => 'pending',
-            'notice_version' => '2026-10-24.v1',
+            'notice_version' => '2026-10-25.v2',
             'consented_at' => now(),
         ];
     }

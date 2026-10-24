@@ -184,7 +184,7 @@ class WarungRegistrationAndSubscriptionApiTest extends TestCase
             'alamat' => null,
             'telepon' => null,
             'data_consent' => true,
-            'data_notice_version' => '2026-10-24.v1',
+            'data_notice_version' => '2026-10-25.v2',
             'owner' => [
                 'nama' => 'Pemilik Baru',
                 'username' => 'pemilik_baru',

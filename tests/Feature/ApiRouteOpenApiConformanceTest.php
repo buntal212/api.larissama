@@ -199,8 +199,8 @@ class ApiRouteOpenApiConformanceTest extends TestCase
             }
         }
 
-        if (count($operations) !== 21) {
-            throw new LogicException('Expected 21 OpenAPI operations with an {id} path parameter.');
+        if (count($operations) !== 22) {
+            throw new LogicException('Expected 22 OpenAPI operations with an {id} path parameter.');
         }
 
         return $operations;

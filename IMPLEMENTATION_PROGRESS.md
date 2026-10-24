@@ -6,6 +6,8 @@ Pendaftaran publik menyimpan persetujuan data dan satu row sinkronisasi per waru
 
 Pembaruan 2026-10-25: daftar warung superadmin kini menerima ringkasan nama semua owner dan status UDEV yang di-eager-load; halaman kelola warung menampilkan status/error terakhir dan retry untuk `failed`, `blocked`, dan `retry_wait`. Tombol perbarui status disembunyikan setelah `synced`; tersedia pula aktivasi tiga hari dari superadmin. Contract response list berubah; conformance dan build frontend belum dijalankan.
 
+Perubahan keputusan dan slice warung lama UDEV — 2026-10-25: atas arahan user, superadmin boleh memulai sync warung lama setelah menegaskan pemberitahuan/persetujuan owner sudah disampaikan, termasuk verbal. Dialog meminta owner eksplisit bila ada lebih dari satu; versi notice `2026-10-25.v2`, waktu persetujuan, dan aktor dicatat, dan persetujuan satu kali mencakup invoice paket langganan. Backend menambah endpoint POST initiate yang idempotent, UI menampilkan tombol pada status `Belum ada data`, serta notice registrasi/OpenAPI diperbarui. Pint dan ESLint file terkait lulus; test/API conformance, validator OpenAPI, dan build frontend belum dijalankan. Jangan dianggap siap deploy sebelum gate tersebut dilengkapi.
+
 Commit slice: backend `e216dcf`, frontend `83eb644`. PHP lint, Pint, ESLint, dan `git diff --check` lulus; tes API dan build frontend belum dijalankan.
 
 Follow-up CI OpenAPI — commit `9c59500`: jumlah kontrak diperbarui menjadi 46 operasi/32 path/21 operasi ber-ID; dua test inventory route dan integritas lulus 23 test/1.732 assertion. Daftar ringkasan owner/UDEV belum mendapat conformance khusus. Pint tidak dijalankan ulang setelah Docker socket tidak dapat diakses; PHP host tidak tersedia.
@@ -64,7 +66,7 @@ Slice D18 selesai pada commit `a29e2e75800a503a2564f4780eb413c97398f44e`: peruba
 | M5 Integrasi dan rilis | 4 | 0 | Belum terpenuhi |
 | Total | 35 | 26 | 74% task selesai |
 
-Status kontrak saat ini: **41/46 operasi `READY_FOR_FRONTEND` untuk alur utama** dan lima operasi `DRAFT`: pendaftaran trial, daftar warung superadmin (tambahan ringkasan sync), aktivasi tiga hari, serta detail/retry sync UDEV. Task implementasi yang tercatat: 26/35 selesai (74%); jumlah itu belum memasukkan slice trial ini maupun perubahan tampilan status/retry sync. Base URL Docker: `http://localhost:8010/api/v1`. Regression G3/G4 dan production deployment tetap terbuka.
+Status kontrak saat ini: **41/47 operasi `READY_FOR_FRONTEND` untuk alur utama** dan enam operasi `DRAFT`, termasuk inisiasi sync warung lama. Task implementasi yang tercatat: 26/35 selesai (74%); jumlah itu belum memasukkan slice trial maupun perubahan tampilan status/retry/initiate sync. Base URL Docker: `http://localhost:8010/api/v1`. Regression G3/G4 dan production deployment tetap terbuka.
 
 Persentase = jumlah task DONE / jumlah task implementasi aktif × 100. Semua task berbobot sama untuk tracking pekerjaan, bukan estimasi usaha. Dokumen perencanaan tidak masuk pembilang. Bila scope berubah, catat penambahan/pengurangan task dan sumber keputusan; jangan menghapus task gagal agar persentase naik.
 

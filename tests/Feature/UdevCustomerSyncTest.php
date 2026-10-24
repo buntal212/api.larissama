@@ -30,7 +30,7 @@ class UdevCustomerSyncTest extends TestCase
         $this->postJson('/api/v1/auth/register', $payload)->assertCreated();
         $sync = WarungCustomerSync::query()->firstOrFail();
         $this->assertSame('pending', $sync->status);
-        $this->assertSame('2026-10-24.v1', $sync->notice_version);
+        $this->assertSame('2026-10-25.v2', $sync->notice_version);
         $this->assertNotNull($sync->consented_at);
         $this->assertSame($sync->warung_id, $sync->owner->warung_id);
         Queue::assertPushed(SyncCustomerJob::class, 1);
@@ -170,7 +170,7 @@ class UdevCustomerSyncTest extends TestCase
             'timezone' => 'Asia/Jakarta',
             'telepon' => '081234567890',
             'data_consent' => true,
-            'data_notice_version' => '2026-10-24.v1',
+            'data_notice_version' => '2026-10-25.v2',
             'owner' => [
                 'nama' => 'Pemilik Baru',
                 'username' => 'pemilik_baru_udev',

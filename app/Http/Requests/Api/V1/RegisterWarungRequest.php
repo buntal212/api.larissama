@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Actions\Udev\UdevCustomerConsentNotice;
 use Illuminate\Foundation\Http\Attributes\FailOnUnknownFields;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -22,7 +23,7 @@ class RegisterWarungRequest extends FormRequest
             'alamat' => ['sometimes', 'nullable', 'string'],
             'telepon' => ['sometimes', 'nullable', 'string', 'min:1', 'max:30'],
             'data_consent' => ['required', 'accepted'],
-            'data_notice_version' => ['required', 'string', Rule::in(['2026-10-24.v1'])],
+            'data_notice_version' => ['required', 'string', Rule::in(['2026-10-24.v1', UdevCustomerConsentNotice::VERSION])],
             'owner' => ['required', 'array:nama,username,email,password'],
             'owner.nama' => ['required', 'string', 'min:1', 'max:150'],
             'owner.username' => ['required', 'string', 'min:1', 'max:100', 'lowercase', Rule::unique('users', 'username')],
