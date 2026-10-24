@@ -275,19 +275,20 @@ class AuthApiTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string, string|null, string|null, bool}>
+     * @return array<string, array{string, string|null, string|null, bool, string|null}>
      */
     public static function activeDateCases(): array
     {
         return [
-            'Jakarta start and end are inclusive' => ['Asia/Jakarta', '2026-10-04', '2026-10-04', true],
-            'Jakarta start date is in the future' => ['Asia/Jakarta', '2026-10-05', null, false],
-            'Jakarta end date has passed' => ['Asia/Jakarta', null, '2026-10-03', false],
-            'New York uses the previous local date' => ['America/New_York', '2026-10-04', null, false],
-            'New York local start and end are inclusive' => ['America/New_York', '2026-10-03', '2026-10-03', true],
-            'Null start leaves the end bound active' => ['Asia/Jakarta', null, '2026-10-04', true],
-            'Null end leaves the start bound active' => ['Asia/Jakarta', '2026-10-04', null, true],
-            'Both dates null have no date bound' => ['Asia/Jakarta', null, null, true],
+            'Jakarta start and end are inclusive' => ['Asia/Jakarta', '2026-10-04', '2026-10-04', true, null],
+            'Jakarta start date is in the future' => ['Asia/Jakarta', '2026-10-05', null, false, 'FORBIDDEN'],
+            'Jakarta expired date remains in grace' => ['Asia/Jakarta', null, '2026-10-03', true, null],
+            'Jakarta expired beyond grace is rejected' => ['Asia/Jakarta', null, '2026-09-03', false, 'SUBSCRIPTION_GRACE_EXPIRED'],
+            'New York uses the previous local date' => ['America/New_York', '2026-10-04', null, false, 'FORBIDDEN'],
+            'New York local start and end are inclusive' => ['America/New_York', '2026-10-03', '2026-10-03', true, null],
+            'Null start leaves the end bound active' => ['Asia/Jakarta', null, '2026-10-04', true, null],
+            'Null end leaves the start bound active' => ['Asia/Jakarta', '2026-10-04', null, true, null],
+            'Both dates null have no date bound' => ['Asia/Jakarta', null, null, true, null],
         ];
     }
 
@@ -297,6 +298,7 @@ class AuthApiTest extends TestCase
         ?string $startDate,
         ?string $endDate,
         bool $expectedAllowed,
+        ?string $expectedErrorCode,
     ): void {
         $this->travelTo(CarbonImmutable::parse('2026-10-04T00:30:00Z'));
 
@@ -305,7 +307,7 @@ class AuthApiTest extends TestCase
             'tanggal_mulai' => $startDate,
             'tanggal_berakhir' => $endDate,
         ]);
-        $user = User::factory()->create(['warung_id' => $warung->id]);
+        $user = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'username' => $user->username,
@@ -319,7 +321,7 @@ class AuthApiTest extends TestCase
         } else {
             $response->assertForbidden();
             $this->assertOperationResponseMatchesOpenApi($response, '/auth/login', 'post');
-            $this->assertD13ErrorEnvelope($response, 'FORBIDDEN');
+            $this->assertD13ErrorEnvelope($response, $expectedErrorCode);
             $this->assertSame(0, $user->tokens()->count());
         }
     }

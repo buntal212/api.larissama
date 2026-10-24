@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.16-draft
+  version: 0.1.17-draft
   description: >-
-    Status handoff 2026-10-25: 48 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog paket dan harga aktif dari UDEV melalui Larissama. Invoice, checkout, pembayaran, grace, dan payment gate belum diimplementasikan. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
+    Status handoff 2026-10-25: 48 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog paket dan harga aktif dari UDEV. Setelah masa aktif berakhir, owner dapat login selama 30 tanggal lokal dengan akses katalog saja; mulai hari ke-31 login dan token lama ditolak. Invoice, checkout, dan pembayaran belum tersedia. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
@@ -24,7 +24,7 @@ info:
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
     D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 48 operationId tersedia; edge-case tertunda tercatat per operasi.
-    Revisi D17 2026-10-24: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; grace 30 hari serta pembayaran tetap pending. D20 mengizinkan katalog harga UDEV read-only untuk owner; invoice/checkout belum tercakup.
+    Revisi D17 2026-10-25: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; owner mendapat akses katalog saja selama 30 tanggal lokal setelah expiry, lalu login ditolak. D20 mengizinkan katalog harga UDEV read-only untuk owner; invoice/checkout belum tercakup.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 sebelum endpoint katalog ditambahkan telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
     API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory sebelum revisi ini 43 operation pada 29 path dan telah dicocokkan oleh test route terdahulu;
@@ -113,7 +113,7 @@ paths:
       tags:
       - Auth
       summary: Login user
-      description: 'READY_FOR_FRONTEND (core path): AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Request/status lain dan conformance lengkap belum diverifikasi. Maksimum 5 percobaan login per menit untuk username lowercase dan IP; uppercase ditolak dan tidak dinormalisasi.'
+      description: 'READY_FOR_FRONTEND (core path): AUTH-API-ACCEPTANCE-001 menguji login, error, expiry, limiter, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime untuk status 200/401/403/422/429; AUTH-REQUEST-CONFORMANCE-001 mencocokkan body valid terpilih untuk sukses/401 dengan LoginRequest. Owner dapat login selama 30 tanggal lokal setelah masa aktif berakhir dengan akses terbatas ke katalog paket; mulai tanggal ke-31 login ditolak. Manager/kasir tidak dapat login selama masa tenggang. Request/status lain dan conformance lengkap belum diverifikasi. Maksimum 5 percobaan login per menit untuk username lowercase dan IP; uppercase ditolak dan tidak dinormalisasi.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -186,7 +186,7 @@ paths:
       tags:
       - Auth
       summary: Identitas dan konteks akses aktif
-      description: 'READY_FOR_FRONTEND (core path): AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Status 400/500 dan conformance lainnya belum diverifikasi; waktu transaksi tetap disimpan UTC dan ditampilkan menurut timezone warung.'
+      description: 'READY_FOR_FRONTEND (core path): AUTH-API-ACCEPTANCE-001 menguji identitas, konteks role, akun aktif, token expired, dan field set D13; AUTH-CONFORMANCE-001 mencocokkan response runtime dengan schema untuk status 200/401/403. Owner dalam masa tenggang menerima konteks warung dengan status_langganan kedaluwarsa; request tenant lainnya ditolak kecuali logout dan GET katalog paket. Akses berakhir pada tanggal lokal ke-31 setelah tanggal akhir langganan. Status 400/500 dan conformance lainnya belum diverifikasi; waktu transaksi tetap disimpan UTC dan ditampilkan menurut timezone warung.'
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
@@ -747,7 +747,7 @@ paths:
       tags:
       - Paket
       summary: Baca katalog paket dan harga dari UDEV
-      description: Owner warung aktif membaca paket aktif untuk aplikasi Larissama langsung dari katalog UDEV. Harga dan mata uang berasal dari UDEV. Operasi ini hanya baca katalog; tidak membuat invoice, checkout, pembayaran, atau entitlement. Owner yang masa aksesnya berakhir tetap tidak dapat login sampai grace/payment-only ditetapkan.
+      description: Owner warung aktif membaca paket aktif untuk aplikasi Larissama langsung dari katalog UDEV. Owner tetap dapat membaca katalog selama 30 tanggal lokal setelah masa aktif berakhir; sejak tanggal ke-31 akses ditolak. Harga dan mata uang berasal dari UDEV. Operasi ini hanya baca katalog; tidak membuat invoice, checkout, pembayaran, atau entitlement.
       x-contract-status: DRAFT
       x-deferred-verification: Scope subscription-plans:read pada token UDEV bersama, kontrak response, kegagalan upstream, serta Sandbox UAT belum diverifikasi.
       x-implementation-status: DONE
@@ -3017,7 +3017,7 @@ components:
             errors: {}
             request_id: req-contoh-001
     Error403:
-      description: Role tidak diizinkan; user/warung nonaktif atau masa aktif tidak memenuhi D03.
+      description: Role tidak diizinkan; user/warung nonaktif atau masa aktif tidak memenuhi D03. Saat masa tenggang, SUBSCRIPTION_PAYMENT_REQUIRED membatasi akses owner ke katalog paket; setelah masa tenggang, SUBSCRIPTION_GRACE_EXPIRED menolak request dan login.
       content:
         application/json:
           schema:

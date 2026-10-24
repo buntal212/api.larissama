@@ -1,6 +1,6 @@
 # Keputusan dan Persetujuan Bertahap Integrasi Larissama–UDEV
 
-Status: **Tahap 1 customer sync dan katalog paket read-only disetujui; invoice, pembayaran, dan grace pending**
+Status: **Tahap 1 customer sync, katalog paket read-only, dan aturan akses grace lokal disetujui; invoice/pembayaran UDEV pending**
 Tanggal keputusan Tahap 1: 2026-10-24
 Rencana master: [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md)
 
@@ -45,15 +45,15 @@ Arahan user 2026-10-25 menyetujui slice katalog harga aktif read-only untuk owne
 - Webhook/event, signature, event ID, replay protection, urutan event, retry, serta API rekonsiliasi.
 - Apakah UDEV menyediakan entitlement/trial/grace atau Larissama mengelola kebijakannya sendiri.
 
-## Tahap 3 — Trial, akses, dan pemulihan (trial backend diarahkan; billing/grace pending)
+## Tahap 3 — Trial, akses, dan pemulihan (aturan akses lokal disetujui; billing UDEV pending)
 
-Arah produk yang sudah disampaikan: warung langsung aktif selama trial tiga hari; setelah masa aktif berakhir dan belum membayar direncanakan ada masa tenggang 30 hari; setelah itu login diblokir dan owner menghubungi admin. Instruksi lanjutan 2026-10-24 mengizinkan backend menerapkan trial tiga tanggal lokal inklusif serta aksi superadmin memberi aktivasi tiga hari. Grace, billing, dan pembatasan setelah grace tetap belum dikerjakan. Detail berikut masih perlu dibekukan sebelum implementasi lanjutan:
+Aturan akses lokal yang disetujui: warung aktif selama trial tiga tanggal lokal; setelah `tanggal_berakhir`, owner dapat login selama 30 tanggal lokal inklusif dan hanya membuka katalog paket; mulai hari ke-31 login dan token lama ditolak. Manager/kasir tidak dapat login selama grace. Karena invoice/checkout belum tersedia, owner menghubungi admin untuk reaktivasi. Aturan ini tidak menetapkan sumber kebenaran pembayaran atau kontrak billing UDEV.
 
-- Akses trial lokal sudah diarahkan penuh selama tiga tanggal lokal inklusif, mulai tanggal pendaftaran.
-- Kapan grace 30 hari dimulai dan bagaimana aturan untuk langganan berbayar yang diperpanjang.
-- Hak akses selama grace, jalur pembayaran setelah akun terkunci, dan aturan pemulihan admin.
+- Masa grace dimulai pada hari lokal setelah tanggal akhir dan berakhir inklusif pada `tanggal_berakhir + 30 hari`.
+- Pemilihan paket, pembuatan invoice, pembayaran, perpanjangan berbayar, dan sumber kebenaran status pembayaran tetap memerlukan kontrak UDEV terpisah.
+- Pemulihan setelah grace dan pengaktifan kembali setelah suspend manual memerlukan tindakan admin.
 - Dampak pada warung legacy dan penangguhan manual.
 
 ## Batas persetujuan
 
-Persetujuan Tahap 1 tidak mencakup invoice, checkout, pembayaran, subscription berbayar, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Slice katalog read-only disetujui terpisah pada 2026-10-25 dan tidak berarti billing disetujui. Trial lokal tiga hari dan aksi aktivasi superadmin adalah instruksi backend terpisah, tidak menetapkan kontrak billing UDEV. Tahap invoice/payment tetap memerlukan kontrak dan keputusan/approval tersendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.
+Persetujuan Tahap 1 tidak mencakup invoice, checkout, pembayaran, subscription berbayar, webhook billing, access gate berdasarkan fakta pembayaran UDEV, penghapusan customer UDEV otomatis, atau cutover produksi. Slice katalog read-only dan kebijakan akses lokal selama grace disetujui terpisah pada 2026-10-25 dan tidak berarti billing disetujui. Trial lokal tiga hari, aktivasi superadmin tiga hari, dan pembatasan lokal pasca-expiry tidak menetapkan kontrak billing UDEV. Tahap invoice/payment tetap memerlukan kontrak dan keputusan/approval tersendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.

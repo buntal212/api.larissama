@@ -14,7 +14,7 @@ jobs:
   # ============================================================
   test:
     name: Backend CI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
@@ -109,6 +109,12 @@ jobs:
           echo "PHP"
           echo "========================================"
           php -v
+
+          larissama_php_version="$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')"
+          if [ "$larissama_php_version" != "8.3" ]; then
+            echo "PHP 8.3 is required to match the backend CI container; found $larissama_php_version."
+            exit 1
+          fi
 
           echo ""
           echo "========================================"

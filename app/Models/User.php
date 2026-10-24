@@ -43,7 +43,21 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->warung?->allowsAccessAt($instantUtc) ?? false;
+        $warung = $this->warung;
+
+        if ($warung?->allowsAccessAt($instantUtc)) {
+            return true;
+        }
+
+        return $this->role === 'owner'
+            && ($warung?->allowsSubscriptionPaymentAccessAt($instantUtc) ?? false);
+    }
+
+    public function hasSubscriptionPaymentOnlyAccessAt(CarbonImmutable $instantUtc): bool
+    {
+        return $this->aktif
+            && $this->role === 'owner'
+            && $this->warung?->allowsSubscriptionPaymentAccessAt($instantUtc) === true;
     }
 
     /**

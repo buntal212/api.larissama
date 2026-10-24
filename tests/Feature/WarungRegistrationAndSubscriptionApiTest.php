@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Warung;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class WarungRegistrationAndSubscriptionApiTest extends TestCase
@@ -132,7 +134,7 @@ class WarungRegistrationAndSubscriptionApiTest extends TestCase
         $this->assertSame('aktif', $response->json('data.status_langganan'));
     }
 
-    public function test_subscription_status_and_access_expire_automatically_on_local_day_after_end_date(): void
+    public function test_expired_owner_can_login_and_only_read_subscription_plans_during_grace(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-07T17:30:00Z'));
         $warung = Warung::factory()->create([
@@ -146,10 +148,85 @@ class WarungRegistrationAndSubscriptionApiTest extends TestCase
 
         $this->assertOperationResponseMatchesOpenApi($detail, '/admin/warungs/{id}', 'get');
         $this->assertSame('kedaluwarsa', $detail->json('data.status_langganan'));
+
         $login = $this->postJson('/api/v1/auth/login', [
             'username' => $owner->username,
             'password' => 'password',
+        ])->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
+        $this->assertSame('kedaluwarsa', $login->json('data.warung.status_langganan'));
+
+        $ownerToken = $login->json('data.access_token');
+        Auth::forgetGuards();
+        $me = $this->withToken($ownerToken)->getJson('/api/v1/auth/me')->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($me, '/auth/me', 'get');
+        $this->assertSame('kedaluwarsa', $me->json('data.warung.status_langganan'), json_encode($me->json()));
+
+        $blocked = $this->withToken($ownerToken)->getJson('/api/v1/warung')->assertForbidden();
+        $this->assertSame('SUBSCRIPTION_PAYMENT_REQUIRED', $blocked->json('code'));
+        $this->assertOperationResponseMatchesOpenApi($blocked, '/warung', 'get');
+
+        config([
+            'services.udev.base_url' => 'https://udev.example.test',
+            'services.udev.token' => 'test-token',
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://udev.example.test/api/v1/integrations/subscription-plans*' => Http::response([
+                'data' => [],
+            ], 200),
+        ]);
+
+        $plans = $this->withToken($ownerToken)->getJson('/api/v1/subscription-plans')->assertOk();
+        $this->assertOperationResponseMatchesOpenApi($plans, '/subscription-plans', 'get');
+    }
+
+    public function test_subscription_grace_allows_owner_through_day_thirty_and_rejects_day_thirty_one(): void
+    {
+        $warung = Warung::factory()->create([
+            'timezone' => 'Asia/Jakarta',
+            'tanggal_mulai' => '2026-10-01',
+            'tanggal_berakhir' => '2026-10-07',
+        ]);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-05T17:00:00Z'));
+        $dayThirty = $this->postJson('/api/v1/auth/login', [
+            'username' => $owner->username,
+            'password' => 'password',
+        ])->assertOk();
+        $ownerToken = $dayThirty->json('data.access_token');
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-06T17:00:00Z'));
+        $dayThirtyOneLogin = $this->postJson('/api/v1/auth/login', [
+            'username' => $owner->username,
+            'password' => 'password',
         ])->assertForbidden();
+        $this->assertSame('SUBSCRIPTION_GRACE_EXPIRED', $dayThirtyOneLogin->json('code'));
+        $this->assertOperationResponseMatchesOpenApi($dayThirtyOneLogin, '/auth/login', 'post');
+
+        $dayThirtyOneRequest = $this->withToken($ownerToken)->getJson('/api/v1/auth/me')->assertForbidden();
+        $this->assertSame('SUBSCRIPTION_GRACE_EXPIRED', $dayThirtyOneRequest->json('code'));
+        $this->assertOperationResponseMatchesOpenApi($dayThirtyOneRequest, '/auth/me', 'get');
+    }
+
+    public function test_manager_cannot_login_during_subscription_payment_grace(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-07T17:30:00Z'));
+        $warung = Warung::factory()->create([
+            'timezone' => 'Asia/Jakarta',
+            'tanggal_mulai' => '2026-10-01',
+            'tanggal_berakhir' => '2026-10-07',
+        ]);
+        $manager = User::factory()->create(['warung_id' => $warung->id, 'role' => 'manager']);
+
+        $login = $this->postJson('/api/v1/auth/login', [
+            'username' => $manager->username,
+            'password' => 'password',
+        ])->assertForbidden();
+
+        $this->assertSame('SUBSCRIPTION_PAYMENT_REQUIRED', $login->json('code'));
+        $this->assertSame(0, $manager->tokens()->count());
         $this->assertOperationResponseMatchesOpenApi($login, '/auth/login', 'post');
     }
 

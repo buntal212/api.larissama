@@ -1,10 +1,10 @@
 # Rencana Integrasi Larissama–UDEV: Pelanggan, Langganan, dan Pembayaran
 
-Status: **MASTER PLAN BERTAHAP — customer sync dan katalog read-only disetujui; invoice/payment/grace pending**
+Status: **MASTER PLAN BERTAHAP — customer sync, katalog read-only, dan aturan akses grace lokal disetujui; billing UDEV pending**
 Tanggal: 2026-10-25
 Scope master: pendaftaran warung, customer sync, trial, billing UDEV, dan aturan akses Larissama. Tahap 1 customer sync tetap diimplementasikan terpisah; pada 2026-10-25 user juga mengizinkan slice baca katalog paket read-only. Invoice dan pembayaran tetap pending.
 
-Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu review UDEV. Atas instruksi lanjutan 2026-10-24, trial lokal tiga tanggal dan aktivasi tiga hari oleh superadmin dikerjakan sebagai bagian backend sambil menunggu frontend; grace/payment enforcement serta billing UDEV tetap pending. Revisi kontrak UDEV yang diterima 2026-10-25 mencakup customer sync dan endpoint baca katalog paket aktif. Endpoint katalog tersebut belum diintegrasikan dan tidak membuat invoice atau subscription; pembuatan invoice, pembayaran, subscription berbayar, dan webhook billing tetap belum tercakup.
+Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu review UDEV. Trial lokal tiga tanggal dan aktivasi tiga hari oleh superadmin telah diarahkan sebelumnya. Pada 2026-10-25 user menetapkan owner boleh login selama 30 tanggal lokal setelah tanggal akhir dengan akses hanya ke katalog paket, lalu login ditolak mulai hari ke-31; billing UDEV dan pembayaran tetap pending. Revisi kontrak UDEV yang diterima 2026-10-25 mencakup customer sync dan endpoint baca katalog paket aktif. Katalog tersebut read-only dan tidak membuat invoice atau subscription berbayar; invoice, checkout, settlement, dan webhook billing tetap belum tercakup.
 
 ## Tujuan
 
@@ -102,19 +102,19 @@ Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arah
 | Keadaan | Login | Hak akses |
 | --- | --- | --- |
 | Trial 3 hari, belum membayar | Boleh | Fitur aplikasi penuh selama tiga tanggal lokal inklusif. |
-| Trial/periode berbayar berakhir, masih dalam grace 30 hari | Boleh | Halaman/status pembayaran saja; API bisnis lain ditolak backend. |
+| Trial/periode saat ini berakhir, masih dalam grace 30 hari | Boleh untuk owner | Hanya katalog paket dapat diakses; API bisnis lain ditolak backend. Invoice/checkout belum tersedia. |
 | Pembayaran belum terverifikasi | Mengikuti status trial/grace yang berlaku | Redirect, screenshot, atau parameter browser tidak membuka akses. |
 | Pembayaran terverifikasi dan periode valid | Boleh | Akses sesuai role/tenant. |
 | Grace habis tanpa entitlement valid | Ditolak | Tidak bisa login; owner menghubungi admin untuk pemulihan. |
 | Penangguhan manual admin | Sesuai tindakan admin | Pembayaran tidak menghapus suspension manual secara otomatis. |
 
-Keputusan yang masih perlu ditetapkan: kapan grace 30 hari dimulai; lama paket; siapa yang boleh membayar; akses superadmin ke tenant terkunci; dan prosedur reaktivasi admin. Batas trial ditetapkan tiga tanggal lokal inklusif agar selaras dengan field tanggal langganan yang ada.
+Aturan grace lokal ditetapkan: mulai sehari setelah tanggal akhir, owner dapat login sampai tanggal akhir +30 secara inklusif dan hanya mengakses katalog paket; setelahnya akses perlu dibuka kembali admin. Keputusan billing yang masih perlu ditetapkan: lama paket, siapa yang boleh memulai pembayaran, akses superadmin ke tenant terkunci, integrasi reaktivasi, serta source of truth entitlement UDEV. Batas trial ditetapkan tiga tanggal lokal inklusif agar selaras dengan field tanggal langganan yang ada.
 
 ## Rencana pelaksanaan bertahap
 
 1. **Tahap 1 — Pendaftaran/customer sync:** finalisasi customer endpoint dan field/status pada review UDEV; siapkan persetujuan data, ID eksternal, status sync, queue, retry, akses log, dan UAT customer.
 2. **Tahap 2 — Katalog dan billing:** katalog paket read-only untuk owner diizinkan pada 2026-10-25; verifikasi Sandbox tetap terbuka. Pemilihan paket, invoice/checkout, status pembayaran, source of truth, webhook, dan rekonsiliasi tetap pending.
-3. **Tahap 3 — Trial dan access gate:** trial tiga tanggal lokal sudah diinstruksikan untuk aktif otomatis dan aksi superadmin tiga hari disiapkan pada backend. Implementasi grace, payment-only, lock/login pasca-grace, admin recovery, migrasi legacy, serta UI tahap lanjut masih pending.
+3. **Tahap 3 — Trial dan access gate:** trial tiga tanggal lokal, aktivasi superadmin tiga hari, masa tenggang owner 30 tanggal lokal dengan akses katalog saja, dan penolakan login mulai hari ke-31 sudah diarahkan user. Invoice/payment UDEV, pemulihan admin, migrasi legacy, dan UAT masih pending.
 4. **Tahap 4 — UAT dan rilis:** uji semua slice pada Sandbox, siapkan worker/monitoring/runbook, lalu rencanakan cutover produksi dengan persetujuan dan secret produksi terpisah.
 
 ## Keamanan dan penerimaan

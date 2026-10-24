@@ -34,9 +34,18 @@ class AuthController extends Controller
         $issuedAt = CarbonImmutable::now('UTC');
 
         if (! $user->allowsApplicationAccessAt($issuedAt)) {
+            $graceExpired = $user->warung?->isBeyondSubscriptionPaymentAccessAt($issuedAt) ?? false;
+            $paymentGrace = $user->warung?->allowsSubscriptionPaymentAccessAt($issuedAt) ?? false;
+
             return ApiErrorResponse::make(
-                'FORBIDDEN',
-                'Akun tidak memiliki akses aktif ke aplikasi.',
+                $graceExpired
+                    ? 'SUBSCRIPTION_GRACE_EXPIRED'
+                    : ($paymentGrace ? 'SUBSCRIPTION_PAYMENT_REQUIRED' : 'FORBIDDEN'),
+                $graceExpired
+                    ? 'Masa tenggang langganan telah berakhir. Hubungi admin untuk mengaktifkan kembali akun.'
+                    : ($paymentGrace
+                        ? 'Hanya pemilik warung yang dapat login selama masa tenggang langganan.'
+                        : 'Akun tidak memiliki akses aktif ke aplikasi.'),
                 403,
             );
         }

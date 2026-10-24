@@ -68,6 +68,43 @@ class Warung extends Model
             && ($this->tanggal_berakhir === null || $this->tanggal_berakhir->toDateString() >= $date);
     }
 
+    public function allowsSubscriptionPaymentAccessAt(CarbonImmutable $instantUtc): bool
+    {
+        if (! $this->aktif || ! $this->pendaftaran_disetujui || $this->tanggal_berakhir === null
+            || ! is_string($this->timezone)
+            || ! in_array($this->timezone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
+            return false;
+        }
+
+        $date = $instantUtc->setTimezone($this->timezone)->toDateString();
+        $endDate = $this->tanggal_berakhir->toDateString();
+        $startDate = $this->tanggal_mulai?->toDateString();
+
+        if (($startDate !== null && $date < $startDate) || $date <= $endDate) {
+            return false;
+        }
+
+        $lastPaymentAccessDate = CarbonImmutable::parse($endDate, $this->timezone)
+            ->addDays(30)
+            ->toDateString();
+
+        return $date <= $lastPaymentAccessDate;
+    }
+
+    public function isBeyondSubscriptionPaymentAccessAt(CarbonImmutable $instantUtc): bool
+    {
+        if (! $this->aktif || ! $this->pendaftaran_disetujui || $this->tanggal_berakhir === null
+            || ! is_string($this->timezone)
+            || ! in_array($this->timezone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
+            return false;
+        }
+
+        $date = $instantUtc->setTimezone($this->timezone)->toDateString();
+        $endDate = $this->tanggal_berakhir->toDateString();
+
+        return $date > CarbonImmutable::parse($endDate, $this->timezone)->addDays(30)->toDateString();
+    }
+
     public function subscriptionStatusAt(CarbonImmutable $instantUtc): string
     {
         if (! is_string($this->timezone)
