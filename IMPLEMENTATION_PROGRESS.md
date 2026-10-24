@@ -8,6 +8,8 @@ Pembaruan 2026-10-25: daftar warung superadmin kini menerima ringkasan nama semu
 
 Perubahan keputusan dan slice warung lama UDEV — 2026-10-25: atas arahan user, superadmin boleh memulai sync warung lama setelah menegaskan pemberitahuan/persetujuan owner sudah disampaikan, termasuk verbal. Dialog meminta owner eksplisit bila ada lebih dari satu; versi notice `2026-10-25.v2`, waktu persetujuan, dan aktor dicatat, dan persetujuan satu kali mencakup invoice paket langganan. Backend menambah endpoint POST initiate yang idempotent, UI menampilkan tombol pada status `Belum ada data`, serta notice registrasi/OpenAPI diperbarui. Implementasi: backend `9489c7e`, frontend `8eb585b`. Pint dan ESLint file terkait lulus; test/API conformance, validator OpenAPI, dan build frontend belum dijalankan. Jangan dianggap siap deploy sebelum gate tersebut dilengkapi.
 
+Follow-up CI — 2026-10-25: dari 598 test, 597 lulus dan satu gagal karena assertion jumlah operation OpenAPI di `ApiRouteOpenApiConformanceTest` masih 46 setelah endpoint sync warung lama menambah total menjadi 47. Ekspektasi assertion diperbarui; suite tidak dijalankan ulang lokal.
+
 Commit slice: backend `e216dcf`, frontend `83eb644`. PHP lint, Pint, ESLint, dan `git diff --check` lulus; tes API dan build frontend belum dijalankan.
 
 Follow-up CI OpenAPI — commit `9c59500`: jumlah kontrak diperbarui menjadi 46 operasi/32 path/21 operasi ber-ID; dua test inventory route dan integritas lulus 23 test/1.732 assertion. Daftar ringkasan owner/UDEV belum mendapat conformance khusus. Pint tidak dijalankan ulang setelah Docker socket tidak dapat diakses; PHP host tidak tersedia.
