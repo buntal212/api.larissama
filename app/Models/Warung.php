@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'kode',
@@ -31,6 +32,11 @@ class Warung extends Model
         return $this->hasMany(User::class);
     }
 
+    public function owners(): HasMany
+    {
+        return $this->users()->where('role', 'owner')->orderBy('id');
+    }
+
     public function kategoriMenus(): HasMany
     {
         return $this->hasMany(KategoriMenu::class);
@@ -39,6 +45,11 @@ class Warung extends Model
     public function menus(): HasMany
     {
         return $this->hasMany(Menu::class);
+    }
+
+    public function customerSync(): HasOne
+    {
+        return $this->hasOne(WarungCustomerSync::class);
     }
 
     public function allowsAccessAt(CarbonImmutable $instantUtc): bool

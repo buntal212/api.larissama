@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.12-draft
+  version: 0.1.14-draft
   description: >-
-    Status handoff 2026-10-12: 43 operationId tersedia untuk integrasi alur utama; GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
+    Status handoff 2026-10-25: 44 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, dan daftar warung memuat ringkasan sync UDEV. Grace dan pembayaran belum diimplementasikan. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
@@ -23,11 +23,11 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 43 operationId tersedia untuk alur utama; edge-case tertunda tercatat per operasi.
-    D17 menambah pendaftaran owner publik yang menunggu persetujuan admin, aktivasi awal 30 tanggal lokal, perpanjangan 30 hari, dan status kedaluwarsa otomatis dari tanggal akhir.
+    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 44 operationId tersedia; edge-case tertunda tercatat per operasi.
+    Revisi D17 2026-10-24: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; grace 30 hari serta pembayaran tetap pending.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
-    API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory terkini 43 operation pada 29 path dan telah dicocokkan oleh test route terkini;
+    API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory sebelum revisi ini 43 operation pada 29 path dan telah dicocokkan oleh test route terdahulu;
     pemeriksaan ini adalah inventory terkini; bukti conformance request/response dan kesiapan integrasi tetap per operationId.
     API-PATH-ID-POSITIVE-CONFORMANCE-001 membuktikan seluruh sepuluh operasi ber-parameter {id} memakai
     pola string positif OpenAPI dan menolak 0, nol di depan, serta teks dengan response 404 schema-conformant.
@@ -70,8 +70,8 @@ paths:
       tags:
       - Auth
       summary: Daftarkan owner dan warung baru
-      description: Pendaftaran publik membuat akun owner dan warung secara atomik, menyimpan persetujuan data, lalu mengantrekan customer UDEV setelah commit. Warung mulai nonaktif dengan status menunggu_persetujuan; owner belum dapat login sampai admin menyetujui. Status customer UDEV active bukan bukti pembayaran. Username/email harus unik global dan huruf kecil. Maksimal 5 pendaftaran per menit per IP.
-      x-contract-status: READY_FOR_FRONTEND
+      description: Pendaftaran publik membuat owner dan warung secara atomik, memberi trial tiga tanggal lokal inklusif mulai hari pendaftaran, menyimpan persetujuan data, lalu mengantrekan customer UDEV setelah commit. Owner dapat login selama masa trial. Status customer UDEV active bukan bukti pembayaran. Username/email harus unik global dan huruf kecil. Maksimal 5 pendaftaran per menit per IP.
+      x-contract-status: DRAFT
       x-deferred-verification: Rate limit/perilaku abuse dan variasi validasi edge-case dapat dilengkapi bersama feedback frontend.
       x-implementation-status: DONE
       x-candidate-roles: []
@@ -81,7 +81,7 @@ paths:
       security: []
       responses:
         '201':
-          description: Pendaftaran tersimpan dan menunggu persetujuan.
+          description: Pendaftaran tersimpan dan trial tiga hari lokal dimulai.
           content:
             application/json:
               schema:
@@ -276,7 +276,8 @@ paths:
       - Admin
       summary: Daftar warung untuk superadmin
       description: 'READY_FOR_FRONTEND (core path): ADMIN-API-ACCEPTANCE-001 menguji POST provisioning; ADMIN-WARUNG-MANAGEMENT-ACCEPTANCE-001 menguji list/search/filter/sort/pagination; ADMIN-WARUNG-CONFORMANCE-001 memvalidasi response aktual terhadap schema untuk status 200/403/422. ACCESS-CATALOG-QUERY-CONFORMANCE-001 mencocokkan query fixture terpilih page/per_page/sort/q/aktif dengan parameter OpenAPI; ACCESS-PAGINATION-MAX-CONFORMANCE-001 menguji per_page=100 lewat HTTP dan memeriksa meta response; ACCESS-PAGINATION-OVERFLOW-CONFORMANCE-001 menguji per_page=101 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-LOWER-BOUND-CONFORMANCE-001 menguji page=0 dan per_page=0 ditolak dengan HTTP/schema 422; ACCESS-PAGINATION-TYPE-CONFORMANCE-001 menguji page=abc dan per_page=abc ditolak dengan HTTP/schema 422 serta error field terkait. Query invalid/unknown lain, status lain, dan conformance seluruh operasi belum diuji.'
-      x-contract-status: READY_FOR_FRONTEND
+      description: 'Daftar warung superadmin menyertakan ringkasan owner (semua user ber-role owner) dan status sinkronisasi UDEV. Contract response tambahan ini belum melalui conformance; query invalid/unknown lain, status lain, dan conformance seluruh operasi juga belum diuji.'
+      x-contract-status: DRAFT
       x-deferred-verification: "Extended error/status and edge-case conformance will be completed after frontend integration begins; see docs/api/README.md."
       x-implementation-status: DONE
       x-candidate-roles:
@@ -302,6 +303,10 @@ paths:
                   timezone: Asia/Jakarta
                   tanggal_mulai: '2026-10-01'
                   tanggal_berakhir: '2026-10-31'
+                  owners:
+                  - id: '2'
+                    nama: Pemilik Warung A
+                  udev_customer_sync: null
                   status_langganan: aktif
                   aktif: true
                   created_at: '2026-10-04T03:00:00Z'
@@ -550,8 +555,8 @@ paths:
       operationId: approveWarungRegistration
       tags:
       - Admin
-      summary: Setujui pendaftaran warung dan mulai masa aktif 30 hari
-      description: Superadmin hanya dapat menyetujui warung berstatus menunggu_persetujuan. Tanggal mulai adalah hari lokal warung saat aksi; tanggal berakhir inklusif pada hari ke-30. Login dan request tenant langsung mengikuti masa aktif ini.
+      summary: Setujui warung yang diprovisikan admin dan mulai masa aktif 30 hari
+      description: Superadmin hanya dapat menyetujui warung berstatus menunggu_persetujuan, misalnya warung yang dibuat melalui provisioning admin. Pendaftaran publik langsung mendapat trial tiga hari. Tanggal mulai adalah hari lokal warung saat aksi; tanggal berakhir inklusif pada hari ke-30.
       x-contract-status: READY_FOR_FRONTEND
       x-deferred-verification: Race multi-admin dan variasi kalender/timezone edge-case dapat dilengkapi setelah integrasi frontend dimulai.
       x-implementation-status: DONE
@@ -565,6 +570,38 @@ paths:
       responses:
         '200':
           description: Warung disetujui dan langganan 30 hari dimulai.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarungResponse'
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          $ref: '#/components/responses/Error409'
+  /admin/warungs/{id}/langganan/aktivasi-tiga-hari:
+    post:
+      operationId: activateWarungForThreeDays
+      tags:
+      - Admin
+      summary: Beri aktivasi tiga hari kepada warung
+      description: Superadmin mengaktifkan warung selama tiga tanggal lokal inklusif jika masa sebelumnya sudah habis atau belum ada. Jika masa aktif masih berjalan, tiga hari ditambahkan setelah tanggal akhir saat ini. Warung diaktifkan kembali. Konflik terjadi untuk langganan tanpa tanggal akhir.
+      x-contract-status: DRAFT
+      x-deferred-verification: Belum diuji runtime; frontend dapat mengintegrasikan setelah acceptance backend.
+      x-implementation-status: DONE
+      x-candidate-roles:
+      - superadmin
+      x-blocked-by:
+      - D02
+      - D13
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Aktivasi tiga hari berhasil diberikan.
           content:
             application/json:
               schema:
@@ -3072,6 +3109,16 @@ components:
           - dinonaktifkan
           - konfigurasi_tidak_valid
           description: Status turunan dari aktif dan tanggal langganan menurut tanggal lokal warung.
+        owners:
+          type: array
+          items:
+            $ref: '#/components/schemas/WarungOwnerSummary'
+          description: Ringkasan seluruh user ber-role owner; disertakan pada daftar warung superadmin.
+        udev_customer_sync:
+          anyOf:
+          - $ref: '#/components/schemas/UdevCustomerSyncSummary'
+          - type: 'null'
+          description: Ringkasan sinkronisasi pada daftar warung superadmin; null bila tidak ada record sinkronisasi.
         created_at:
           $ref: '#/components/schemas/Timestamp'
         updated_at:
@@ -3090,6 +3137,17 @@ components:
       - status_langganan
       - created_at
       - updated_at
+    WarungOwnerSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/Id'
+        nama:
+          type: string
+          minLength: 1
+          maxLength: 150
+      required: [id, nama]
     User:
       type: object
       additionalProperties: false
@@ -3281,7 +3339,7 @@ components:
       - owner
       - data_consent
       - data_notice_version
-      description: Pendaftaran publik warung dan owner. Backend membuat warung nonaktif menunggu persetujuan admin dan mengantrekan customer UDEV setelah commit.
+      description: Pendaftaran publik warung dan owner. Backend langsung mengaktifkan trial tiga tanggal lokal inklusif dan mengantrekan customer UDEV setelah commit.
     UdevCustomerSyncResponse:
       type: object
       additionalProperties: false
@@ -3343,6 +3401,32 @@ components:
                   created_at:
                     type: string
                     format: date-time
+    UdevCustomerSyncSummary:
+      type: object
+      additionalProperties: false
+      required: [status, attempt_count, last_http_status, last_error_code, last_attempt_at, last_success_at, next_attempt_at]
+      properties:
+        status:
+          type: string
+          enum: [pending, retry_wait, synced, failed, blocked]
+        attempt_count:
+          type: integer
+        last_http_status:
+          type: [integer, 'null']
+        last_error_code:
+          type: [string, 'null']
+        last_attempt_at:
+          anyOf:
+          - $ref: '#/components/schemas/Timestamp'
+          - type: 'null'
+        last_success_at:
+          anyOf:
+          - $ref: '#/components/schemas/Timestamp'
+          - type: 'null'
+        next_attempt_at:
+          anyOf:
+          - $ref: '#/components/schemas/Timestamp'
+          - type: 'null'
     WarungUpdate:
       type: object
       additionalProperties: false
@@ -3421,7 +3505,7 @@ components:
           $ref: '#/components/schemas/User'
         status_pendaftaran:
           type: string
-          const: menunggu_persetujuan
+          const: aktif_trial
       required:
       - warung
       - owner

@@ -6,6 +6,7 @@ use App\Actions\Udev\SyncCustomerJob;
 use App\Models\User;
 use App\Models\Warung;
 use App\Models\WarungCustomerSync;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -22,22 +23,23 @@ class RegisterWarung
      *     data_notice_version:string,
      *     owner:array{nama:string,username:string,email?:?string,password:string}
      * }  $attributes
-     * @return array{warung: Warung, owner: User}
+     * @return array{warung: Warung, owner: User, sync: WarungCustomerSync}
      */
     public function execute(array $attributes): array
     {
         $result = DB::transaction(function () use ($attributes): array {
             $ownerAttributes = $attributes['owner'];
             $noticeVersion = $attributes['data_notice_version'];
+            $today = CarbonImmutable::now('UTC')->setTimezone($attributes['timezone'])->startOfDay();
             unset($attributes['owner'], $attributes['data_consent'], $attributes['data_notice_version']);
 
             $warung = Warung::query()->create([
                 ...$attributes,
                 'kode' => 'WRG-'.Str::ulid(),
-                'tanggal_mulai' => null,
-                'tanggal_berakhir' => null,
-                'aktif' => false,
-                'pendaftaran_disetujui' => false,
+                'tanggal_mulai' => $today->toDateString(),
+                'tanggal_berakhir' => $today->addDays(2)->toDateString(),
+                'aktif' => true,
+                'pendaftaran_disetujui' => true,
             ]);
 
             $owner = $warung->users()->create([

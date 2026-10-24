@@ -19,7 +19,7 @@ class RegistrationController extends Controller
             'data' => [
                 'warung' => (new WarungResource($result['warung']))->resolve($request),
                 'owner' => (new UserResource($result['owner']))->resolve($request),
-                'status_pendaftaran' => 'menunggu_persetujuan',
+                'status_pendaftaran' => 'aktif_trial',
             ],
         ], 201);
     }

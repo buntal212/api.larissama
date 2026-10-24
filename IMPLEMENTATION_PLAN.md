@@ -62,7 +62,7 @@ Urutan kerja default mengikuti M0 sampai M5. Pembelian tetap tidak memiliki rela
 
 Pilihan yang masih PROPOSED/OPEN tetap memerlukan keputusan sebelum task yang bergantung padanya. Pilihan MySQL 8.0.40, auth, baseline nominal, Idempotency-Key, dan FK tenant gabungan sudah dicatat; rincian tersisa tetap menjadi gate sebelum kontrak siap frontend. Pekerjaan yang tidak bergantung pada pilihan itu dapat diteruskan.
 
-5. D17: pendaftaran owner publik mulai nonaktif dan menunggu persetujuan; aksi admin menyetujui dengan langganan awal 30 hari, atau menambah 30 hari pada langganan yang sudah disetujui. Status kedaluwarsa dihitung pada tanggal lokal warung saat login, request tenant, dan serialisasi resource. Frontend memakai `status_langganan` dari response, bukan menghitungnya sendiri.
+5. D17 direvisi 2026-10-24: pendaftaran owner publik langsung mengaktifkan warung untuk trial tiga tanggal lokal inklusif; aksi superadmin dapat memberi aktivasi tiga hari. Provisioning manual superadmin tetap dapat menunggu approval 30 hari dan perpanjangan 30 hari. Expiry dihitung pada tanggal lokal warung saat login, request tenant, dan serialisasi resource; grace serta pembayaran masih pending. Frontend memakai `status_langganan` dan tanggal dari response.
 6. D18: POST penjualan tanpa pasangan metode/bayar membuat pesanan pending; kasir dapat melihat filter semua/lunas/belum lunas, mengubah pesanan pending dengan alasan, lalu melunasi dari endpoint pembayaran. Cetak `no_transaksi` pada nota pesanan dan bukti lunas. Laporan pendapatan memakai periode waktu pembayaran, retur tetap periode dicatat.
 
 ## Urutan kerja satu task

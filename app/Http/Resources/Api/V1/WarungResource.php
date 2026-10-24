@@ -28,6 +28,27 @@ class WarungResource extends JsonResource
             'tanggal_berakhir' => $this->tanggal_berakhir?->toDateString(),
             'aktif' => $this->aktif,
             'status_langganan' => $this->subscriptionStatusAt(CarbonImmutable::now('UTC')),
+            'owners' => $this->whenLoaded('owners', fn (): array => $this->owners
+                ->map(fn ($owner): array => [
+                    'id' => (string) $owner->getKey(),
+                    'nama' => $owner->nama,
+                ])
+                ->all()),
+            'udev_customer_sync' => $this->whenLoaded('customerSync', function (): ?array {
+                if ($this->customerSync === null) {
+                    return null;
+                }
+
+                return [
+                    'status' => $this->customerSync->status,
+                    'attempt_count' => $this->customerSync->attempt_count,
+                    'last_http_status' => $this->customerSync->last_http_status,
+                    'last_error_code' => $this->customerSync->last_error_code,
+                    'last_attempt_at' => $this->customerSync->last_attempt_at?->toISOString(),
+                    'last_success_at' => $this->customerSync->last_success_at?->toISOString(),
+                    'next_attempt_at' => $this->customerSync->next_attempt_at?->toISOString(),
+                ];
+            }),
             'created_at' => $this->created_at?->copy()->utc()->toISOString(),
             'updated_at' => $this->updated_at?->copy()->utc()->toISOString(),
         ];

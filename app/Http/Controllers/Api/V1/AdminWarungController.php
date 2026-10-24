@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Admin\ActivateWarungForThreeDays;
 use App\Actions\Admin\ApproveWarung;
 use App\Actions\Admin\ExtendWarungSubscription;
 use App\Actions\Admin\ProvisionWarung;
@@ -26,7 +27,10 @@ class AdminWarungController extends Controller
         Gate::authorize('viewAny', Warung::class);
 
         $filters = $request->validated();
-        $query = Warung::query();
+        $query = Warung::query()->with([
+            'customerSync',
+            'owners:id,warung_id,nama',
+        ]);
         $search = $filters['q'] ?? null;
 
         if (is_string($search) && $search !== '') {
@@ -114,6 +118,17 @@ class AdminWarungController extends Controller
         Gate::authorize('viewAny', Warung::class);
         $warung = Warung::query()->findOrFail($id);
         $warung = $extendWarungSubscription->execute($warung);
+
+        return response()->json([
+            'data' => (new WarungResource($warung))->resolve($request),
+        ]);
+    }
+
+    public function activateForThreeDays(Request $request, string $id, ActivateWarungForThreeDays $activateWarungForThreeDays): JsonResponse
+    {
+        Gate::authorize('viewAny', Warung::class);
+        $warung = Warung::query()->findOrFail($id);
+        $warung = $activateWarungForThreeDays->execute($warung);
 
         return response()->json([
             'data' => (new WarungResource($warung))->resolve($request),

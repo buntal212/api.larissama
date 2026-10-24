@@ -1,25 +1,25 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.11-draft**, 2026-10-12. [openapi.yaml](openapi.yaml) berisi 43 operasi pada 29 path. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.14-draft**, 2026-10-25. [openapi.yaml](openapi.yaml) berisi 46 operasi pada 32 path. Pendaftaran publik memberi trial tiga tanggal lokal; superadmin dapat memberi aktivasi tambahan tiga hari dan memantau/retry sinkronisasi UDEV. Grace dan pembayaran belum diimplementasikan. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
 
-`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Baseline 37 operasi kini ditambah tiga endpoint profil owner dan tiga endpoint laporan menjadi 43 operasi pada 29 path.
+`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Inventori sebelumnya berisi 43 operasi; revisi trial/aktivasi menambah satu operasi dan integrasi UDEV menambah dua operasi pada dua path.
 
 ## Implementasi backend dan status kontrak
 
-Frontend dapat mulai integrasi alur utama melalui 43 operasi: termasuk pendaftaran owner, pengelolaan langganan admin, profil owner, unggah/hapus logo, pesanan penjualan pending, pembayaran pesanan, filter status lunas, dan lima bentuk laporan. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
+Frontend dapat mulai integrasi alur utama melalui operasi berstatus `READY_FOR_FRONTEND`. Pendaftaran trial, daftar warung dengan ringkasan owner dan sync, endpoint aktivasi trial, dan endpoint sync UDEV berstatus `DRAFT` sampai acceptance backend dijalankan. Grace dan pembayaran belum tersedia. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
 
-`x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. Semua operasi saat ini `READY_FOR_FRONTEND`; `x-deferred-verification` menandai pemeriksaan edge-case yang masih dapat dilanjutkan.
+`x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. Pendaftaran trial dan aktivasi tiga hari masih `DRAFT` sampai acceptance backend dijalankan; `x-deferred-verification` menandai pemeriksaan yang belum selesai.
 
-Implementasi handler tersedia untuk seluruh 43 operationId:
+Implementasi handler tersedia untuk seluruh 46 operationId:
 
 - Auth: `registerWarungOwner`, `login`, `getCurrentUser`, `logout`.
-- Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `approveWarungRegistration`, `extendWarungSubscription`, `getCurrentWarung`, `updateCurrentWarung`, `uploadCurrentWarungLogo`, `deleteCurrentWarungLogo`.
+- Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `approveWarungRegistration`, `activateWarungForThreeDays`, `extendWarungSubscription`, `getWarungUdevCustomerSync`, `retryWarungUdevCustomerSync`, `getCurrentWarung`, `updateCurrentWarung`, `uploadCurrentWarungLogo`, `deleteCurrentWarungLogo`.
 - User: `listUsers`, `createUser`, `getUser`, `updateUser`.
 - Katalog: `listKategoriMenus`, `createKategoriMenu`, `getKategoriMenu`, `updateKategoriMenu`, `listMenus`, `createMenu`, `getMenu`, `updateMenu`.
 - Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `updatePenjualan`, `payPenjualan`, `cancelPenjualan`, `createPenjualanRetur`, `getLaporanPenjualan`, `getLaporanPenjualanHarian`, `getLaporanPenjualanItem`, `getLaporanPesananBelumLunas`.
 - Pembelian/laporan: `createPembelian`, `listPembelians`, `getPembelian`, `updatePembelian`, `cancelPembelian`, `getLaporanPembelian`.
 
-Semua 40 handler tersedia. Status kontrak per operationId pada OpenAPI menjadi acuan handoff; pendaftaran/langganan, alur pending-payment, dan profil owner memiliki test fokus. Status task/gate serta bukti test ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md).
+Status kontrak per operationId pada OpenAPI menjadi acuan handoff; pendaftaran/langganan, alur pending-payment, dan profil owner memiliki test fokus. Status task/gate serta bukti test ada di [tracker progres](../../IMPLEMENTATION_PROGRESS.md).
 
 ## Validasi spesifikasi
 
@@ -29,7 +29,7 @@ Seluruh contoh inline request/response diuji terhadap schema OpenAPI tiap operas
 
 ## Kode Warung dan Menu
 
-`POST /api/v1/admin/warungs` (superadmin) dan `POST /api/v1/auth/register` (owner publik) sama-sama membuat warung serta akun owner secara atomik dalam status menunggu persetujuan. Jangan kirim `kode`, tanggal langganan, atau flag aktif; backend membuat kode `WRG-<ULID>`. Owner yang mendaftar belum dapat login sampai admin menyetujui. Kode warung dikembalikan pada `data.warung.kode` dan unik global.
+`POST /api/v1/admin/warungs` (superadmin) membuat warung serta akun owner secara atomik dalam status menunggu persetujuan. `POST /api/v1/auth/register` (owner publik) langsung mengaktifkan warung selama trial tiga tanggal lokal inklusif. Jangan kirim `kode`, tanggal langganan, atau flag aktif; backend membuat kode `WRG-<ULID>`. Kode warung dikembalikan pada `data.warung.kode` dan unik global.
 
 ## Profil warung owner
 
@@ -48,12 +48,12 @@ Logo dikelola terpisah dengan `POST /api/v1/warung/logo` (multipart field `logo`
 ## Pendaftaran owner dan langganan warung
 
 1. Form pendaftaran frontend mengirim `POST /api/v1/auth/register` dengan profil warung (`nama`, `timezone`, opsional `alamat`/`telepon`), data owner (`nama`, `username`, opsional `email`, `password`), `data_consent: true`, dan `data_notice_version: 2026-10-24.v1`. Pemberitahuan menjelaskan penggunaan data akun/login dan pengiriman nama warung, nama owner, email, serta telepon ke UDEV. Username/email lowercase dan unik global; password minimal 8 karakter.
-2. Response `201` memuat `data.warung`, `data.owner`, dan `data.status_pendaftaran: menunggu_persetujuan`. Jangan mengirim user otomatis ke dashboard tenant; tampilkan bahwa pendaftaran menunggu admin. Login owner menghasilkan `403 FORBIDDEN` selama persetujuan belum diberikan.
-3. Dashboard admin memuat `GET /api/v1/admin/warungs?status_langganan=menunggu_persetujuan`. Setiap item menyediakan `status_langganan` dan tanggal masa aktif.
-4. Tombol setujui memanggil `POST /api/v1/admin/warungs/{id}/persetujuan`. Masa pertama adalah 30 tanggal lokal secara inklusif: mulai hari persetujuan, berakhir pada hari ke-30. Status menjadi `aktif`; owner dapat login.
+2. Response `201` memuat `data.warung`, `data.owner`, dan `data.status_pendaftaran: aktif_trial`. Warung aktif selama tiga tanggal lokal inklusif mulai hari pendaftaran; owner dapat login selama trial.
+3. Warung yang diprovisikan superadmin dan masih menunggu persetujuan tetap dapat dilihat melalui `GET /api/v1/admin/warungs?status_langganan=menunggu_persetujuan`.
+4. Superadmin dapat memberi aktivasi tiga hari melalui `POST /api/v1/admin/warungs/{id}/langganan/aktivasi-tiga-hari`. Jika masa aktif masih berjalan, tiga hari ditambahkan setelah tanggal akhir; jika sudah habis atau belum ada, masa dimulai hari lokal saat aksi. Approval 30 hari tetap tersedia untuk warung yang diprovisikan admin.
 
-Tahap 1 UDEV mengantrekan upsert customer segera setelah pendaftaran lokal berhasil, tanpa menunggu persetujuan admin. Satu warung dan owner pendaftarnya menjadi satu customer UDEV; ID eksternal stabil disimpan lokal. `status=active` pada payload customer UDEV bersifat sementara untuk review UDEV dan bukan bukti pembayaran. Hanya superadmin dapat membaca `GET /api/v1/admin/warungs/{id}/udev-customer-sync` atau meminta `POST /api/v1/admin/warungs/{id}/udev-customer-sync/retry` bila status `failed`, `blocked`, atau `retry_wait`. Endpoint retry mengembalikan 202 dan menyimpan identitas aktor pada audit. Kedua endpoint masih berstatus kontrak DRAFT; tidak ada UI admin baru pada Tahap 1.
-5. Tombol tambah 30 hari memanggil `POST /api/v1/admin/warungs/{id}/langganan/perpanjangan`. Jika belum kedaluwarsa, tanggal akhir bertambah 30 hari setelah tanggal akhir lama. Jika sudah lewat, langganan mulai hari lokal saat aksi dan berlaku 30 tanggal inklusif.
+Tahap 1 UDEV mengantrekan upsert customer segera setelah pendaftaran lokal berhasil, tanpa menunggu persetujuan admin. Satu warung dan owner pendaftarnya menjadi satu customer UDEV; ID eksternal stabil disimpan lokal. `status=active` pada payload customer UDEV bersifat sementara untuk review UDEV dan bukan bukti pembayaran. Daftar warung superadmin menampilkan ringkasan sync; superadmin dapat membaca audit lengkap melalui `GET /api/v1/admin/warungs/{id}/udev-customer-sync` dan meminta retry melalui `POST /api/v1/admin/warungs/{id}/udev-customer-sync/retry` bila status `failed`, `blocked`, atau `retry_wait`. Endpoint retry mengembalikan 202 dan menyimpan identitas aktor pada audit. Kontrak endpoint detail/retry tetap `DRAFT` sampai conformance lengkap.
+5. Aksi tambah 30 hari tetap memanggil `POST /api/v1/admin/warungs/{id}/langganan/perpanjangan`. Jika belum kedaluwarsa, tanggal akhir bertambah 30 hari setelah tanggal akhir lama. Jika sudah lewat, langganan mulai hari lokal saat aksi dan berlaku 30 tanggal inklusif.
 6. Backend menghitung `status_langganan` otomatis saat response dibentuk. Lewat tanggal akhir lokal, status menjadi `kedaluwarsa`; login dan request tenant ditolak tanpa job terjadwal. `PATCH /admin/warungs/{id}` tetap boleh mengatur `aktif: false` untuk menonaktifkan manual, tetapi aktivasi dan tanggal langganan harus melalui endpoint khusus.
 
 Contoh minimum body create:
@@ -172,20 +172,23 @@ Keputusan D04/D18: untuk setiap GET data tenant, superadmin wajib mengirim query
 
 ## Daftar operasi
 
-Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI; 43 operasi telah dibuka untuk alur utama.
+Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status integrasi ada per operationId pada OpenAPI; endpoint trial baru berstatus `DRAFT` sampai acceptance backend dijalankan.
 
 | Area / operasi | Method dan path | operationId | Akses kandidat | Status handoff |
 | --- | --- | --- | --- | --- |
 | Login | POST /auth/login | login | Publik, rate limited | READY_FOR_FRONTEND |
-| Daftar owner/warung | POST /auth/register | registerWarungOwner | Publik, rate limited | READY_FOR_FRONTEND |
+| Daftar owner/warung | POST /auth/register | registerWarungOwner | Publik, rate limited | DRAFT |
 | Profil dan warung aktif | GET /auth/me | getCurrentUser | User aktif | READY_FOR_FRONTEND |
 | Logout | POST /auth/logout | logout | Bearer token user aktif; mencabut token aktif saja | READY_FOR_FRONTEND |
-| Daftar warung | GET /admin/warungs | listWarungs | superadmin | READY_FOR_FRONTEND |
+| Daftar warung | GET /admin/warungs | listWarungs | superadmin | DRAFT |
 | Warung + owner awal | POST /admin/warungs | createWarung | superadmin | READY_FOR_FRONTEND |
 | Detail warung | GET /admin/warungs/{id} | getWarung | superadmin | READY_FOR_FRONTEND |
 | Ubah warung | PATCH /admin/warungs/{id} | updateWarung | superadmin | READY_FOR_FRONTEND |
 | Setujui pendaftaran dan mulai 30 hari | POST /admin/warungs/{id}/persetujuan | approveWarungRegistration | superadmin | READY_FOR_FRONTEND |
+| Beri aktivasi tiga hari | POST /admin/warungs/{id}/langganan/aktivasi-tiga-hari | activateWarungForThreeDays | superadmin | DRAFT |
 | Tambah masa aktif 30 hari | POST /admin/warungs/{id}/langganan/perpanjangan | extendWarungSubscription | superadmin | READY_FOR_FRONTEND |
+| Status sinkronisasi customer UDEV | GET /admin/warungs/{id}/udev-customer-sync | getWarungUdevCustomerSync | superadmin | DRAFT |
+| Retry sinkronisasi customer UDEV | POST /admin/warungs/{id}/udev-customer-sync/retry | retryWarungUdevCustomerSync | superadmin | DRAFT |
 | Profil warung sendiri | GET /warung | getCurrentWarung | owner/manager/kasir dalam tenant token; superadmin memakai GET /admin/warungs/{id} untuk profil platform | READY_FOR_FRONTEND |
 | Ubah profil warung sendiri | PATCH /warung | updateCurrentWarung | owner dalam tenant token; tanpa warung_id; field nama, alamat, telepon, timezone | READY_FOR_FRONTEND |
 | Unggah/ganti logo sendiri | POST /warung/logo | uploadCurrentWarungLogo | owner dalam tenant token; multipart `logo`, PNG/JPEG/WebP maksimal 1 MiB | READY_FOR_FRONTEND |
@@ -242,7 +245,7 @@ Run `IDEMPOTENCY-SCOPE-NUMBER-001` memakai dua worker yang menunggu barrier sete
 
 Nomor transaksi penjualan adalah `PJ-<ULID>` dan pembelian `PB-<ULID>`. API mengembalikan `no_transaksi`; frontend mencetak nomor yang sama pada nota pesanan dan nota pelunasan. Backend belum menyediakan PDF/print endpoint.
 
-Tidak ada kontrak endpoint delete transaksi atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/persetujuan/langganan warung sesuai D17. Endpoint logo profil tersedia untuk integrasi bertahap. Semua 43 operasi tersedia pada server development. Rincian penjualan dapat berupa menu katalog atau item bebas dengan snapshot nama dan harga; format tiap baris ada pada OpenAPI `SaleLineInput`.
+Tidak ada kontrak endpoint delete transaksi atau transaksi atas nama tenant oleh superadmin. Backend menyediakan koreksi/pembatalan/retur penjualan sesuai D06 serta pendaftaran/trial/persetujuan/langganan warung sesuai D17. Endpoint logo profil tersedia untuk integrasi bertahap. Semua 44 handler tersedia di repository; status handoff mengikuti `x-contract-status` masing-masing operasi. Rincian penjualan dapat berupa menu katalog atau item bebas dengan snapshot nama dan harga; format tiap baris ada pada OpenAPI `SaleLineInput`.
 
 ## Alur layar dan contoh
 
@@ -363,7 +366,7 @@ Sukses create adalah 201, read/update/login 200, logout 204 tanpa JSON body. Jan
 
 Untuk prioritas kerja saat ini, operasi dapat berstatus `READY_FOR_FRONTEND` setelah keputusan inti final, endpoint dan alur utama diuji secara fungsional/tenant, serta contoh utama cocok dengan schema. Pengujian kombinasi error dan edge-case yang kompleks dapat menyusul setelah frontend mulai integrasi. Tracker tetap mencatat status, versi spec, base URL dev, auth, bukti yang tersedia, dan test yang ditunda.
 
-Checklist penerima: pendaftaran owner dan pesan menunggu persetujuan, approval/perpanjangan admin, login/me/logout, profil warung dan unggah/ganti/hapus logo owner, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, pesanan pending yang bisa diedit, pembayaran kasir, nomor transaksi pada nota, koreksi/pembatalan/retur, pembelian ringkas, laporan penjualan/pembelian, antrean belum lunas, tren harian, rata-rata/metode pembayaran, item menu/item bebas, laporan kosong, dan kegagalan jaringan. Seluruh 43 operasi tersedia untuk alur utama; uji edge-case dapat menyusul.
+Checklist penerima: pendaftaran owner mendapat trial tiga hari, aktivasi trial dan perpanjangan admin, login/me/logout, profil warung dan unggah/ganti/hapus logo owner, permission denied, list/filter/pagination, create sukses, error per baris, detail snapshot, pesanan pending yang bisa diedit, pembayaran kasir, nomor transaksi pada nota, koreksi/pembatalan/retur, pembelian ringkas, laporan penjualan/pembelian, antrean belum lunas, tren harian, rata-rata/metode pembayaran, item menu/item bebas, laporan kosong, dan kegagalan jaringan. Handler trial tersedia tetapi conformance backend belum dijalankan.
 
 Batas periode lokal pada empat GET daftar/laporan dikonversi ke UTC lalu divalidasi terhadap MySQL `DATETIME` tahun 1000–9999. Batas yang meluap ditolak 422 sebelum query bisnis; batas aman tetap diterima ([TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001](../backend/test-runs/TRANSACTION-PERIOD-MYSQL-RANGE-CONFORMANCE-001.md)).
 
@@ -373,6 +376,8 @@ Baris penjualan katalog hanya menerima menu aktif di kategori aktif. Baris item 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
+| 0.1.14-draft | DRAFT | Tambah ringkasan sync UDEV pada daftar warung superadmin untuk badge status dan retry UI; acceptance endpoint list/sync belum dijalankan. |
+| 0.1.13-draft | DRAFT | Trial tiga tanggal lokal otomatis untuk pendaftaran publik dan endpoint aktivasi tiga hari oleh superadmin. Grace dan pembayaran tetap pending; conformance trial belum dijalankan. |
 | 0.1.10-draft | DRAFT | Menambahkan profil owner untuk edit nama/alamat/telepon/timezone serta upload, ganti, dan hapus logo; kode dan masa langganan tetap admin-managed. |
 | 0.1.9-draft | DRAFT | D04 dikoreksi: selector `warung_id` superadmin memberi akses baca eksplisit untuk kategori/menu, tetapi tidak memberi hak membuat atau mengubah katalog; operasi tulis tetap owner/manager pada tenant token. |
 | 0.1.8-draft | DRAFT | D07 direvisi: rincian penjualan memakai menu katalog atau item bebas dengan snapshot nama/harga, `menu_id` nullable, baris dapat dicampur tanpa batas jumlah khusus; schema request menggunakan `SaleLineInput`. |

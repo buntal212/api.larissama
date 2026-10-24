@@ -1,6 +1,6 @@
 # Keputusan dan Persetujuan Bertahap Integrasi Larissama–UDEV
 
-Status: **Tahap 1 disetujui pengguna; Tahap 2 dan seterusnya pending**
+Status: **Tahap 1 UDEV disetujui; instruksi backend trial 3 hari diterima; billing/grace pending**
 Tanggal keputusan Tahap 1: 2026-10-24
 Rencana master: [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md)
 
@@ -44,16 +44,15 @@ Keputusan berikut belum diminta untuk implementasi Tahap 1 dan menunggu rancanga
 - Webhook/event, signature, event ID, replay protection, urutan event, retry, serta API rekonsiliasi.
 - Apakah UDEV menyediakan entitlement/trial/grace atau Larissama mengelola kebijakannya sendiri.
 
-## Tahap 3 — Trial, akses, dan pemulihan (pending)
+## Tahap 3 — Trial, akses, dan pemulihan (trial backend diarahkan; billing/grace pending)
 
-Arah produk yang sudah disampaikan: warung langsung aktif selama trial tiga hari; setelah masa aktif berakhir dan belum membayar ada masa tenggang 30 hari; setelah itu login diblokir dan owner menghubungi admin. Detail berikut masih perlu dibekukan sebelum implementasi:
+Arah produk yang sudah disampaikan: warung langsung aktif selama trial tiga hari; setelah masa aktif berakhir dan belum membayar direncanakan ada masa tenggang 30 hari; setelah itu login diblokir dan owner menghubungi admin. Instruksi lanjutan 2026-10-24 mengizinkan backend menerapkan trial tiga tanggal lokal inklusif serta aksi superadmin memberi aktivasi tiga hari. Grace, billing, dan pembatasan setelah grace tetap belum dikerjakan. Detail berikut masih perlu dibekukan sebelum implementasi lanjutan:
 
-- Apakah selama trial akses aplikasi penuh atau hanya menu pembayaran.
-- Apakah tiga hari dihitung sebagai 72 jam atau tanggal kalender, dan batas waktu tepatnya.
+- Akses trial lokal sudah diarahkan penuh selama tiga tanggal lokal inklusif, mulai tanggal pendaftaran.
 - Kapan grace 30 hari dimulai dan bagaimana aturan untuk langganan berbayar yang diperpanjang.
 - Hak akses selama grace, jalur pembayaran setelah akun terkunci, dan aturan pemulihan admin.
 - Dampak pada warung legacy dan penangguhan manual.
 
 ## Batas persetujuan
 
-Persetujuan Tahap 1 tidak mencakup pembuatan invoice, pembayaran, subscription, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Setiap tahap lanjutan memerlukan kontrak UDEV serta keputusan/approval tahapnya sendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.
+Persetujuan integrasi Tahap 1 tidak mencakup pembuatan invoice, pembayaran, subscription berbayar, webhook billing, access gate karena status pembayaran, penghapusan customer UDEV otomatis, atau cutover produksi. Trial lokal tiga hari dan aksi aktivasi superadmin adalah instruksi backend terpisah, tidak menetapkan kontrak billing UDEV. Setiap tahap billing tetap memerlukan kontrak UDEV serta keputusan/approval tahapnya sendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.

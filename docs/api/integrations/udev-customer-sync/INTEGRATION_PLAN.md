@@ -1,10 +1,10 @@
 # Rencana Integrasi Larissama–UDEV: Pelanggan, Langganan, dan Pembayaran
 
-Status: **MASTER PLAN BERTAHAP — Tahap 1 disetujui; Tahap 2 dan seterusnya pending**
+Status: **MASTER PLAN BERTAHAP — customer sync disetujui; trial lokal diarahkan; billing/grace pending**
 Tanggal: 2026-10-24
 Scope master: pendaftaran warung, customer sync, trial, billing UDEV, dan aturan akses Larissama. Pekerjaan awal hanya Tahap 1: customer sync saat pendaftaran.
 
-Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu base URL/token yang dikelola sebagai secret serta review UDEV. Tahap 2 dan seterusnya tetap pending. Kontrak sumber UDEV yang tersimpan di folder ini menjadi referensi untuk customer sync saja; kontrak tersebut belum mendefinisikan pembuatan invoice, pembayaran, subscription, atau webhook billing.
+Implementasi lokal Tahap 1 sudah dibuat pada backend dan form pendaftaran; hasil tes terarah dicatat pada tracker implementasi. Pengiriman live ke Sandbox UDEV masih menunggu review UDEV. Atas instruksi lanjutan 2026-10-24, trial lokal tiga tanggal dan aktivasi tiga hari oleh superadmin dikerjakan sebagai bagian backend sambil menunggu frontend; grace/payment enforcement serta billing UDEV tetap pending. Kontrak sumber UDEV yang tersimpan di folder ini menjadi referensi untuk customer sync saja; kontrak tersebut belum mendefinisikan pembuatan invoice, pembayaran, subscription berbayar, atau webhook billing.
 
 ## Tujuan
 
@@ -12,7 +12,7 @@ Master plan ini menghubungkan pendaftaran customer saat ini dengan rencana billi
 
 ## Kondisi saat ini
 
-- Pendaftaran sekarang membuat warung `aktif = false`, belum disetujui, dan tanpa tanggal masa aktif. Persetujuan admin mengaktifkan warung selama 30 hari.
+- Setelah revisi 2026-10-24, pendaftaran publik langsung membuat warung aktif selama trial tiga tanggal lokal. Provisioning manual superadmin tetap menunggu persetujuan 30 hari; aktivasi trial tiga hari tersedia sebagai aksi terpisah.
 - Login dan request tenant bergantung pada status user, status warung, persetujuan, dan tanggal langganan.
 - Dokumen customer UDEV yang tersedia mengusulkan upsert `POST /api/v1/integrations/customers` dengan ID eksternal stabil. Dokumen tersebut tidak mencakup invoice atau pembayaran.
 - Implementasi UDEV di Larissama belum ditemukan. Endpoint di dokumen perlu dikonfirmasi pada Sandbox dan tidak dianggap sudah tersedia.
@@ -32,10 +32,10 @@ Master plan ini menghubungkan pendaftaran customer saat ini dengan rencana billi
 
 1. UDEV dan Larissama menetapkan paket, harga, invoice, checkout, pembayaran, settlement, subscription, status final, dan `paid_until`.
 2. Tetapkan sumber kebenaran pembayaran dan mekanisme webhook/status API serta rekonsiliasi.
-3. Bekukan kebijakan trial tiga hari, akses selama trial, masa tenggang 30 hari, payment-only, dan penguncian/login/pemulihan admin.
+3. Trial tiga tanggal lokal dengan akses penuh sudah diarahkan untuk pendaftaran; akses kedaluwarsa mengikuti guard tanggal yang ada. Grace 30 hari, payment-only, penagihan, serta penguncian/pemulihan di luar expiry tetap menunggu keputusan dan kontrak billing.
 4. Implementasikan invoice/payment UI dan access gate hanya setelah kontrak dan keputusan tahap ini disetujui.
 
-**Keputusan tahap 2 yang masih terbuka:** apakah trial memberikan akses aplikasi penuh atau payment-only; batas hitung tiga hari; awal/akhir grace 30 hari; paket dan masa berlangganan; peran UDEV untuk entitlement; serta aturan reaktivasi dan legacy.
+**Keputusan billing/access yang masih terbuka:** source of truth status pembayaran/periode berbayar; awal/akhir grace 30 hari; paket dan masa berlangganan; peran UDEV untuk entitlement; serta aturan reaktivasi dan legacy. Trial pendaftaran memakai tiga tanggal lokal inklusif dan akses aplikasi penuh.
 
 ## Usulan sumber kebenaran untuk Tahap 2 (pending)
 
@@ -77,7 +77,7 @@ Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arah
 2. Sediakan endpoint membuat/membaca invoice, membuat checkout URL, dan membaca status invoice/payment/subscription.
 3. Definisikan ID/reference, masa berlaku invoice, nominal/mata uang, fee/pajak, periode yang dibeli, renewal, dan idempotency.
 4. Jelaskan perilaku pembayaran ganda, invoice expired, refund, chargeback, dan pembayaran terlambat.
-5. Konfirmasi dukungan trial tiga hari dan grace 30 hari; siapa pemilik aturan entitlement jika fitur itu tersedia.
+5. Konfirmasi apakah UDEV menyediakan entitlement trial/grace; Larissama sementara menerapkan trial tiga tanggal lokal. Sepakati grace 30 hari dan siapa pemilik aturan entitlement berbayar.
 
 ### Webhook dan rekonsiliasi
 
@@ -100,20 +100,20 @@ Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arah
 
 | Keadaan | Login | Hak akses |
 | --- | --- | --- |
-| Trial 3 hari, belum membayar | Boleh | Fitur aplikasi penuh selama trial. |
+| Trial 3 hari, belum membayar | Boleh | Fitur aplikasi penuh selama tiga tanggal lokal inklusif. |
 | Trial/periode berbayar berakhir, masih dalam grace 30 hari | Boleh | Halaman/status pembayaran saja; API bisnis lain ditolak backend. |
 | Pembayaran belum terverifikasi | Mengikuti status trial/grace yang berlaku | Redirect, screenshot, atau parameter browser tidak membuka akses. |
 | Pembayaran terverifikasi dan periode valid | Boleh | Akses sesuai role/tenant. |
 | Grace habis tanpa entitlement valid | Ditolak | Tidak bisa login; owner menghubungi admin untuk pemulihan. |
 | Penangguhan manual admin | Sesuai tindakan admin | Pembayaran tidak menghapus suspension manual secara otomatis. |
 
-Keputusan yang perlu ditetapkan: batas waktu dan timezone; apakah trial 72 jam atau tiga tanggal kalender; kapan grace 30 hari dimulai; lama paket; siapa yang boleh membayar; akses superadmin ke tenant terkunci; dan prosedur reaktivasi admin.
+Keputusan yang masih perlu ditetapkan: kapan grace 30 hari dimulai; lama paket; siapa yang boleh membayar; akses superadmin ke tenant terkunci; dan prosedur reaktivasi admin. Batas trial ditetapkan tiga tanggal lokal inklusif agar selaras dengan field tanggal langganan yang ada.
 
 ## Rencana pelaksanaan bertahap
 
-1. **Tahap 1 — Pendaftaran/customer sync:** finalisasi customer endpoint dan field/status pada review UDEV; siapkan persetujuan data, ID eksternal, status sync, queue, retry, akses log, dan UAT customer. Ini satu-satunya tahap yang disetujui saat ini.
+1. **Tahap 1 — Pendaftaran/customer sync:** finalisasi customer endpoint dan field/status pada review UDEV; siapkan persetujuan data, ID eksternal, status sync, queue, retry, akses log, dan UAT customer. Ini tetap satu-satunya tahap integrasi UDEV yang disetujui.
 2. **Tahap 2 — Billing:** setelah UDEV mengeluarkan rancangan, sepakati paket/nominal, invoice/checkout, status pembayaran, source of truth, webhook, dan rekonsiliasi. Tahap ini pending.
-3. **Tahap 3 — Trial dan access gate:** tetapkan tanggal/aturan trial dan grace, batas akses, lock/login, admin recovery, migrasi data lama, lalu implementasikan backend dan UI. Tahap ini pending.
+3. **Tahap 3 — Trial dan access gate:** trial tiga tanggal lokal sudah diinstruksikan untuk aktif otomatis dan aksi superadmin tiga hari disiapkan pada backend. Implementasi grace, payment-only, lock/login pasca-grace, admin recovery, migrasi legacy, serta UI tahap lanjut masih pending.
 4. **Tahap 4 — UAT dan rilis:** uji semua slice pada Sandbox, siapkan worker/monitoring/runbook, lalu rencanakan cutover produksi dengan persetujuan dan secret produksi terpisah.
 
 ## Keamanan dan penerimaan
