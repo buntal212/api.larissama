@@ -10,6 +10,8 @@ Commit slice: backend `e216dcf`, frontend `83eb644`. PHP lint, Pint, ESLint, dan
 
 Follow-up CI OpenAPI — commit `9c59500`: jumlah kontrak diperbarui menjadi 46 operasi/32 path/21 operasi ber-ID; dua test inventory route dan integritas lulus 23 test/1.732 assertion. Daftar ringkasan owner/UDEV belum mendapat conformance khusus. Pint tidak dijalankan ulang setelah Docker socket tidak dapat diakses; PHP host tidak tersedia.
 
+Follow-up log CI 2026-10-24 — commit `885540f`: satu test registrasi masih mengharapkan status pending dan login 403 dari alur lama. Ekspektasi diperbarui ke trial tiga tanggal lokal dan login owner; `WarungRegistrationAndSubscriptionApiTest` lulus 8 test/720 assertion. Pint tidak dapat dijalankan karena akses Docker ditolak setelah test; `git diff --check` lulus.
+
 Riwayat slice di bawah ini menyimpan hasil pada saat dicatat. Jika catatan historis menyebut seluruh API `DRAFT`, acuan terkini adalah ringkasan pelaksanaan, tabel status handoff, dan `x-contract-status` pada OpenAPI.
 
 ## Perbaikan edit pengguna — 2026-10-22
