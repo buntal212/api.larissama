@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\PembelianController;
 use App\Http\Controllers\Api\V1\PenjualanController;
 use App\Http\Controllers\Api\V1\RegistrationController;
+use App\Http\Controllers\Api\V1\SubscriptionBillingController;
 use App\Http\Controllers\Api\V1\SubscriptionPlanController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Middleware\EnsureActiveAccount;
@@ -50,6 +51,32 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('subscription-plans', [SubscriptionPlanController::class, 'index'])
             ->middleware('throttle:udev-subscription-plans')
             ->name('subscription-plans.index');
+        Route::post('subscription-referrals/validate', [SubscriptionBillingController::class, 'validateReferral'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-referrals.validate');
+        Route::post('subscription-referrals', [SubscriptionBillingController::class, 'attachReferral'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-referrals.attach');
+        Route::post('subscription-invoices/preview', [SubscriptionBillingController::class, 'preview'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-invoices.preview');
+        Route::post('subscription-invoices', [SubscriptionBillingController::class, 'store'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-invoices.store');
+        Route::get('subscription-invoices', [SubscriptionBillingController::class, 'transactions'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-invoices.index');
+        Route::get('subscription-invoices/{invoiceNumber}', [SubscriptionBillingController::class, 'show'])
+            ->where('invoiceNumber', '[A-Za-z0-9-]{1,100}')
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-invoices.show');
+        Route::post('subscription-invoices/{invoiceNumber}/checkout', [SubscriptionBillingController::class, 'checkout'])
+            ->where('invoiceNumber', '[A-Za-z0-9-]{1,100}')
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-invoices.checkout');
+        Route::post('subscription/reconcile', [SubscriptionBillingController::class, 'reconcile'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription.reconcile');
 
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::post('users', [UserController::class, 'store'])->name('users.store');

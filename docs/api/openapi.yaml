@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.17-draft
+  version: 0.1.19-draft
   description: >-
-    Status handoff 2026-10-25: 48 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog paket dan harga aktif dari UDEV. Setelah masa aktif berakhir, owner dapat login selama 30 tanggal lokal dengan akses katalog saja; mulai hari ke-31 login dan token lama ditolak. Invoice, checkout, dan pembayaran belum tersedia. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
+    Status handoff 2026-10-26: 56 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog UDEV, memvalidasi dan mengunci kode referral, meminta preview harga, membuat invoice, memulai checkout, memantau status dan menyinkronkan masa aktif setelah settlement. Pembayaran Sandbox dan transaksi pembayaran belum diuji. Setelah masa aktif berakhir, owner dapat login selama 30 tanggal lokal dengan akses katalog/pembayaran saja; mulai hari ke-31 login dan token lama ditolak. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
@@ -23,8 +23,8 @@ info:
     serta report juga diperiksa terhadap OpenAPI. Pada enam GET list, nilai sort di luar enum diuji ditolak dengan HTTP/schema 422 dan seluruh 14 nilai enum terdokumentasi diuji diterima dengan HTTP/schema 200; tie-breaker `id` diuji searah sort lintas dua halaman per opsi (`ACCESS-SORT-ALLOWLIST-CONFORMANCE-001`, `ACCESS-SORT-VALID-ENUM-CONFORMANCE-001`, `ACCESS-SORT-TIE-BREAKER-CONFORMANCE-001`), dan semua opsi diuji mengurutkan nilai primer berbeda secara naik/turun (`ACCESS-SORT-ORDERING-CONFORMANCE-001`). Metadata hasil kosong dan halaman di luar `last_page` juga diuji sesuai schema pada keenam list (`ACCESS-PAGINATION-EMPTY-PAGE-CONFORMANCE-001`). Default `page=1`, `per_page=20`, dan sort per operasi diverifikasi pada keenam list tanpa query string (`ACCESS-PAGINATION-DEFAULT-CONFORMANCE-001`). Teks angka desimal, pecahan, dan eksponen ditolak untuk parameter integer `page`/`per_page` pada keenam list (`ACCESS-PAGINATION-NUMERIC-TYPE-CONFORMANCE-001`). Nilai `page=9223372036854775808` diterima pada keenam list, setelah last_page menghasilkan data kosong, dan `meta.page` mempertahankan token integer JSON eksak tanpa offset SQL (`UNBOUNDED-PAGINATION-PAGE-CONFORMANCE-001`).
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
-    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 48 operationId tersedia; edge-case tertunda tercatat per operasi.
-    Revisi D17 2026-10-25: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; owner mendapat akses katalog saja selama 30 tanggal lokal setelah expiry, lalu login ditolak. D20 mengizinkan katalog harga UDEV read-only untuk owner; invoice/checkout belum tercakup.
+    D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 56 operationId tersedia; edge-case tertunda tercatat per operasi.
+    Revisi D17 2026-10-25: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; owner mendapat akses katalog/pembayaran selama 30 tanggal lokal setelah expiry, lalu login ditolak. D20 menetapkan katalog UDEV; D21 menyetujui implementasi invoice, checkout, status, dan sinkronisasi subscription. Transaksi pembayaran Sandbox belum diuji.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 sebelum endpoint katalog ditambahkan telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
     API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory sebelum revisi ini 43 operation pada 29 path dan telah dicocokkan oleh test route terdahulu;
@@ -747,7 +747,7 @@ paths:
       tags:
       - Paket
       summary: Baca katalog paket dan harga dari UDEV
-      description: Owner warung aktif membaca paket aktif untuk aplikasi Larissama langsung dari katalog UDEV. Owner tetap dapat membaca katalog selama 30 tanggal lokal setelah masa aktif berakhir; sejak tanggal ke-31 akses ditolak. Harga dan mata uang berasal dari UDEV. Operasi ini hanya baca katalog; tidak membuat invoice, checkout, pembayaran, atau entitlement.
+      description: Owner warung aktif atau dalam masa tenggang membaca paket aktif untuk aplikasi Larissama langsung dari katalog UDEV. Harga dan mata uang berasal dari UDEV; operasi ini hanya membaca katalog.
       x-contract-status: DRAFT
       x-deferred-verification: Scope subscription-plans:read pada token UDEV bersama, kontrak response, kegagalan upstream, serta Sandbox UAT belum diverifikasi.
       x-implementation-status: DONE
@@ -782,6 +782,242 @@ paths:
           $ref: '#/components/responses/Error502'
         '503':
           $ref: '#/components/responses/Error503'
+  /subscription-referrals/validate:
+    post:
+      operationId: validateUdevSubscriptionReferral
+      tags: [Pembayaran]
+      summary: Validasi kode referral melalui UDEV
+      description: Validasi menampilkan diskon dan harga UDEV tanpa mengunci referral pada customer.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Validasi referral UDEV belum diuji live.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SubscriptionReferralCodeRequest'}
+            example: {referral_code: REF-A1B2C3}
+      responses:
+        '200':
+          description: Kode valid beserta diskon dan harga hasil perhitungan UDEV.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionReferralValidationResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+  /subscription-referrals:
+    post:
+      operationId: attachUdevSubscriptionReferral
+      tags: [Pembayaran]
+      summary: Kunci kode referral pada customer UDEV
+      description: Kode dikunci satu kali untuk customer. UI meminta konfirmasi owner sebelum operasi ini; kode yang sudah terkunci tidak bisa diganti.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Penguncian referral UDEV belum diuji live.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      parameters:
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SubscriptionReferralCodeRequest'}
+            example: {referral_code: REF-A1B2C3}
+      responses:
+        '200':
+          description: Referral berhasil dikunci atau respons operasi idempoten dikembalikan ulang.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionReferralAttachResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+  /subscription-invoices/preview:
+    post:
+      operationId: previewUdevSubscriptionInvoice
+      tags: [Pembayaran]
+      summary: Minta preview harga final paket dari UDEV
+      description: Backend memakai external customer ID warung terautentikasi. Harga final dan referral dihitung UDEV; client tidak dapat mengirim nominal, mata uang, atau application ID.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Endpoint UDEV dan mapping harga belum diverifikasi melalui Sandbox UAT atau test pembayaran.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SubscriptionInvoiceRequest'}
+            example: {subscription_plan_code: PAKET-BULANAN}
+      responses:
+        '200':
+          description: Preview harga final dari UDEV.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionInvoicePreviewResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+  /subscription-invoices:
+    get:
+      operationId: listUdevSubscriptionInvoices
+      tags: [Pembayaran]
+      summary: Baca riwayat invoice warung dari UDEV
+      description: Backend membaca seluruh halaman transaksi UDEV untuk external customer ID warung pada token. Tenant tidak dapat memilih warung atau customer lain.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Paging, response shape, serta sandbox billing belum diverifikasi runtime.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Riwayat invoice terbaru.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionInvoiceListResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+    post:
+      operationId: createUdevSubscriptionInvoice
+      tags: [Pembayaran]
+      summary: Buat invoice paket langganan di UDEV
+      description: Due date dibuat backend satu hari setelah waktu terbit mengikuti contoh UDEV. Nilai paket, mata uang, dan nominal tidak diterima dari client. Retry memakai Idempotency-Key yang sama.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Invoice belum dibuat pada Sandbox dan perilaku idempotensi UDEV belum diuji live.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      parameters:
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SubscriptionInvoiceRequest'}
+            example: {subscription_plan_code: PAKET-BULANAN}
+      responses:
+        '201':
+          description: Invoice berhasil dibuat atau di-replay oleh UDEV.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionInvoiceResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+  /subscription-invoices/{invoiceNumber}:
+    get:
+      operationId: getUdevSubscriptionInvoice
+      tags: [Pembayaran]
+      summary: Baca status invoice UDEV
+      description: Invoice harus tercantum pada riwayat customer UDEV dari warung yang sedang login; invoice tenant lain disamarkan sebagai 404.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Status invoice dan customer boundary belum diuji terhadap UDEV Sandbox.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      parameters:
+      - {$ref: '#/components/parameters/InvoiceNumber'}
+      responses:
+        '200':
+          description: Snapshot invoice, checkout, settlement, dan subscription dari UDEV.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionInvoiceResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+  /subscription-invoices/{invoiceNumber}/checkout:
+    post:
+      operationId: startUdevSubscriptionCheckout
+      tags: [Pembayaran]
+      summary: Siapkan checkout invoice UDEV
+      description: Retry gangguan jaringan memakai key sama. Jika attempt sudah berstatus terminal, owner meminta checkout baru memakai key baru. Redirect ke checkout URL tidak membuktikan pembayaran.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Checkout UDEV Sandbox belum dijalankan; transaksi pembayaran belum diuji.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      parameters:
+      - {$ref: '#/components/parameters/InvoiceNumber'}
+      - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '200':
+          description: Checkout siap dengan URL.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionInvoiceResponse'}
+        '202':
+          description: Checkout sedang diproses; key yang sama dipakai untuk cek ulang.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SubscriptionInvoiceResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '422': {$ref: '#/components/responses/Error422'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
+  /subscription/reconcile:
+    post:
+      operationId: reconcileUdevSubscription
+      tags: [Pembayaran]
+      summary: Salin tanggal masa aktif subscription terverifikasi dari UDEV
+      description: Owner memanggil operasi ini setelah status invoice menunjukkan settlement completed atau saat membuka halaman pembayaran. Backend membaca subscription customer dari UDEV dan memperbarui tanggal lokal tanpa memperpendek tanggal lokal yang lebih panjang.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-deferred-verification: Pemetaan timestamp subscription UDEV ke tanggal zona warung belum diuji pada transaksi Sandbox.
+      x-candidate-roles: [owner]
+      x-blocked-by: [D21]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Tanggal masa aktif lokal sudah disinkronkan.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UdevSubscriptionReconcileResponse'}
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '409': {$ref: '#/components/responses/Error409'}
+        '429': {$ref: '#/components/responses/Error429'}
+        '502': {$ref: '#/components/responses/Error502'}
+        '503': {$ref: '#/components/responses/Error503'}
   /warung:
     get:
       operationId: getCurrentWarung
@@ -2940,6 +3176,16 @@ components:
       schema:
         $ref: '#/components/schemas/Id'
       description: ID resource; lookup selalu mengikuti scope operasi.
+    InvoiceNumber:
+      name: invoiceNumber
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+        pattern: '^[A-Za-z0-9-]+$'
+      description: Nomor invoice UDEV yang harus dimiliki customer pada warung terautentikasi.
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -3123,6 +3369,207 @@ components:
             errors: {}
             request_id: req-contoh-001
   schemas:
+    SubscriptionReferralCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [referral_code]
+      properties:
+        referral_code:
+          type: string
+          pattern: '^REF-[A-Z0-9]{6}$'
+    SubscriptionReferralValidationResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [code, type, base_price, discount_amount, customer_price]
+          properties:
+            code: {type: string, pattern: '^REF-[A-Z0-9]{6}$'}
+            type: {type: string, enum: [umum, khusus]}
+            base_price: {$ref: '#/components/schemas/Money'}
+            discount_amount: {$ref: '#/components/schemas/Money'}
+            customer_price: {$ref: '#/components/schemas/Money'}
+    SubscriptionReferralAttachResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [customer_external_id, referral]
+          properties:
+            customer_external_id: {type: string, minLength: 1, maxLength: 100}
+            referral:
+              type: object
+              additionalProperties: false
+              required: [code, type, base_price, discount_amount, customer_price, locked_at]
+              properties:
+                code: {type: string, pattern: '^REF-[A-Z0-9]{6}$'}
+                type: {type: string, enum: [umum, khusus]}
+                base_price: {$ref: '#/components/schemas/Money'}
+                discount_amount: {$ref: '#/components/schemas/Money'}
+                customer_price: {$ref: '#/components/schemas/Money'}
+                locked_at: {type: [string, 'null'], format: date-time}
+    SubscriptionInvoiceRequest:
+      type: object
+      additionalProperties: false
+      required: [subscription_plan_code]
+      properties:
+        subscription_plan_code:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Kode paket aktif dari katalog UDEV.
+    SubscriptionInvoicePreviewResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [customer_external_id, plan, pricing]
+          properties:
+            customer_external_id: {type: string}
+            plan:
+              type: object
+              additionalProperties: false
+              required: [code, name, duration_days]
+              properties:
+                code: {type: string}
+                name: {type: string}
+                duration_days: {type: integer, minimum: 1}
+            pricing:
+              type: object
+              additionalProperties: false
+              required: [normal_price, referral_code, referral_type, discount_amount, final_price, currency]
+              properties:
+                normal_price: {$ref: '#/components/schemas/Money'}
+                referral_code: {type: [string, 'null']}
+                referral_type: {type: [string, 'null']}
+                discount_amount: {$ref: '#/components/schemas/Money'}
+                final_price: {$ref: '#/components/schemas/Money'}
+                currency: {type: string, pattern: '^[A-Z]{3}$'}
+    SubscriptionInvoiceListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: {$ref: '#/components/schemas/SubscriptionInvoice'}
+    SubscriptionInvoiceResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: {$ref: '#/components/schemas/SubscriptionInvoice'}
+    SubscriptionInvoice:
+      type: object
+      additionalProperties: false
+      required: [invoice_number, status, issued_at, due_at, paid_at, plan, pricing, payment, subscription, tracking]
+      properties:
+        invoice_number: {type: string, minLength: 1, maxLength: 100}
+        status: {type: string, enum: [pending, paid, expired, cancelled]}
+        issued_at: {type: [string, 'null'], format: date-time}
+        due_at: {type: [string, 'null'], format: date-time}
+        paid_at: {type: [string, 'null'], format: date-time}
+        plan:
+          type: object
+          additionalProperties: false
+          required: [code, name, duration_days]
+          properties:
+            code: {type: [string, 'null']}
+            name: {type: [string, 'null']}
+            duration_days: {type: integer, minimum: 1}
+        pricing:
+          type: object
+          additionalProperties: false
+          required: [normal_price, referral_code, referral_type, discount_amount, final_price, currency]
+          properties:
+            normal_price: {$ref: '#/components/schemas/Money'}
+            referral_code: {type: [string, 'null']}
+            referral_type: {type: [string, 'null']}
+            discount_amount: {$ref: '#/components/schemas/Money'}
+            final_price: {$ref: '#/components/schemas/Money'}
+            currency: {type: string, pattern: '^[A-Z]{3}$'}
+        payment:
+          oneOf:
+          - type: 'null'
+          - type: object
+            additionalProperties: false
+            required: [status, provider, checkout_status, checkout_url, checkout_expires_at, transaction_id, completed_at, failure_code]
+            properties:
+              status: {type: string, enum: [initiated, pending, succeeded, failed, expired, cancelled]}
+              provider: {type: string}
+              checkout_status: {type: string, enum: [ready, processing, pending, completed, failed]}
+              checkout_url: {type: [string, 'null'], format: uri}
+              checkout_expires_at: {type: [string, 'null'], format: date-time}
+              transaction_id: {type: [string, 'null']}
+              completed_at: {type: [string, 'null'], format: date-time}
+              failure_code: {type: [string, 'null']}
+        subscription:
+          oneOf:
+          - type: 'null'
+          - type: object
+            additionalProperties: false
+            required: [status, plan_code, starts_at, expires_at, period_events]
+            properties:
+              status: {type: string}
+              plan_code: {type: [string, 'null']}
+              starts_at: {type: [string, 'null'], format: date-time}
+              expires_at: {type: [string, 'null'], format: date-time}
+              period_events:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [event_type, previous_expires_at, new_expires_at, transaction_id, processed_at]
+                  properties:
+                    event_type: {type: string}
+                    previous_expires_at: {type: [string, 'null'], format: date-time}
+                    new_expires_at: {type: [string, 'null'], format: date-time}
+                    transaction_id: {type: [string, 'null']}
+                    processed_at: {type: [string, 'null'], format: date-time}
+        tracking:
+          type: object
+          additionalProperties: false
+          required: [settlement_id, settlement_status, settlement_error_code, settled_at]
+          properties:
+            settlement_id: {type: [integer, 'null'], minimum: 1}
+            settlement_status: {type: [string, 'null']}
+            settlement_error_code: {type: [string, 'null']}
+            settled_at: {type: [string, 'null'], format: date-time}
+    UdevSubscriptionReconcileResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [subscription, warung]
+          properties:
+            subscription:
+              type: object
+              additionalProperties: false
+              required: [status, starts_at, expires_at, plan_code]
+              properties:
+                status: {type: string}
+                starts_at: {type: [string, 'null'], format: date-time}
+                expires_at: {type: [string, 'null'], format: date-time}
+                plan_code: {type: [string, 'null']}
+            warung:
+              type: object
+              additionalProperties: false
+              required: [tanggal_mulai, tanggal_berakhir]
+              properties:
+                tanggal_mulai: {$ref: '#/components/schemas/Date'}
+                tanggal_berakhir: {$ref: '#/components/schemas/Date'}
     SubscriptionPlanCatalogResponse:
       type: object
       additionalProperties: false

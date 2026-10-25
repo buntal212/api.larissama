@@ -41,7 +41,7 @@ class ApiOpenApiDocumentIntegrityTest extends TestCase
 
         $duplicates = array_filter($operationIds, static fn (array $locations): bool => count($locations) > 1);
         $this->assertSame([], $duplicates, 'OpenAPI operationId values must be unique across the document.');
-        $this->assertSame(48, $operationCount, 'The contract includes UDEV package catalog, legacy sync, trial activation, owner profile, logo, and report operations.');
+        $this->assertSame(56, $operationCount, 'The contract includes UDEV referral and billing, package catalog, legacy sync, trial activation, owner profile, logo, and report operations.');
         $this->assertArrayHasKey('listUdevSubscriptionPlans', $operationIds);
         $this->assertArrayHasKey('updatePembelian', $operationIds);
         $this->assertArrayHasKey('cancelPembelian', $operationIds);
@@ -49,6 +49,11 @@ class ApiOpenApiDocumentIntegrityTest extends TestCase
         $this->assertArrayHasKey('cancelPenjualan', $operationIds);
         $this->assertArrayHasKey('createPenjualanRetur', $operationIds);
         $this->assertArrayHasKey('payPenjualan', $operationIds);
+        $this->assertArrayHasKey('previewUdevSubscriptionInvoice', $operationIds);
+        $this->assertArrayHasKey('createUdevSubscriptionInvoice', $operationIds);
+        $this->assertArrayHasKey('startUdevSubscriptionCheckout', $operationIds);
+        $this->assertArrayHasKey('validateUdevSubscriptionReferral', $operationIds);
+        $this->assertArrayHasKey('attachUdevSubscriptionReferral', $operationIds);
 
         $references = $this->collectReferences($document);
         $localReferences = array_filter(

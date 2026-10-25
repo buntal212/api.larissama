@@ -110,8 +110,8 @@ class ApiRouteOpenApiConformanceTest extends TestCase
             }
         }
 
-        $this->assertCount(48, $contractOperations, 'The contract includes UDEV package catalog, legacy sync, trial activation, owner profile, logo, and report operations.');
-        $this->assertCount(33, $contractPaths, 'The contract includes UDEV package catalog, trial activation, UDEV sync, owner logo, and report paths.');
+        $this->assertCount(56, $contractOperations, 'The contract includes UDEV referral and billing, package catalog, legacy sync, trial activation, owner profile, logo, and report operations.');
+        $this->assertCount(40, $contractPaths, 'The contract includes UDEV referral/billing, trial activation, UDEV sync, owner logo, and report paths.');
 
         $runtimeOperations = [];
         foreach (Route::getRoutes() as $route) {

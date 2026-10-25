@@ -1,12 +1,12 @@
 # Panduan API dan Handoff Frontend
 
-Versi kontrak: **0.1.17-draft**, 2026-10-25. [openapi.yaml](openapi.yaml) berisi 48 operasi pada 33 path. Pendaftaran publik memberi trial tiga tanggal lokal; owner dapat membaca katalog harga paket aktif dari UDEV. Owner yang masa aktifnya berakhir tetap dapat login selama 30 tanggal lokal dan hanya mengakses katalog paket; pada hari ke-31 login dan request token lama ditolak. Belum ada invoice atau checkout, jadi reaktivasi tetap melalui admin. Superadmin dapat memberi aktivasi tambahan tiga hari, memantau/retry sinkronisasi UDEV, dan memulai sync warung lama dengan persetujuan satu kali. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
+Versi kontrak: **0.1.19-draft**, 2026-10-26. [openapi.yaml](openapi.yaml) berisi 56 operasi pada 40 path. Pendaftaran publik memberi trial tiga tanggal lokal; owner dapat membaca katalog UDEV, memvalidasi dan mengunci kode referral, meminta preview harga, membuat invoice, memulai checkout, dan memeriksa status. Owner yang masa aktifnya berakhir tetap dapat login selama 30 tanggal lokal dan hanya mengakses katalog/pembayaran; pada hari ke-31 login dan request token lama ditolak. Integrasi billing memakai Global API Token bersama dan base URL `https://apiudev.udumbara.my.id`; pembayaran Sandbox belum diuji. Superadmin dapat memberi aktivasi tambahan tiga hari, memantau/retry sinkronisasi UDEV, dan memulai sync warung lama dengan persetujuan satu kali. Superadmin dapat membaca user, kategori, menu, penjualan, dan pembelian warung yang dipilih melalui `warung_id` di query; superadmin tidak dapat membuat atau mengubah kategori/menu. Mutasi lain yang memang mengizinkan superadmin memakai `warung_id` di body. User tenant memperoleh scope dari token dan dilarang mengirim selector. Pengujian edge-case lanjutan tetap terbuka per operationId. Baseline wire D13: `/api/v1`, ID dan decimal string, envelope `data/meta`, pagination, sort allowlist, serta error `code/message/errors/request_id`. API development: `http://localhost:8010/api/v1`.
 
-`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Inventori terbaru berisi 48 operasi pada 33 path; katalog paket menambah satu operasi dan satu path. Validasi ulang setelah perubahan ini belum dijalankan.
+`OPENAPI-DOCUMENT-INTEGRITY-001` memeriksa keunikan `operationId`, response map, dan resolusi `$ref` lokal ([hasil run](../backend/test-runs/OPENAPI-DOCUMENT-INTEGRITY-001.md)). Inventori kontrak kini berisi 56 operasi pada 40 path; implementasi billing belum diverifikasi.
 
 ## Implementasi backend dan status kontrak
 
-Frontend dapat mulai integrasi alur utama melalui operasi berstatus `READY_FOR_FRONTEND`. Pendaftaran trial, daftar warung dengan ringkasan owner dan sync, endpoint aktivasi trial, endpoint sync UDEV, dan katalog paket UDEV berstatus `DRAFT` sampai acceptance backend dijalankan. Invoice dan checkout belum tersedia. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
+Frontend dapat mulai integrasi alur utama melalui operasi berstatus `READY_FOR_FRONTEND`. Pendaftaran trial, daftar warung dengan ringkasan owner dan sync, endpoint aktivasi trial, endpoint sync UDEV, katalog, invoice, checkout, dan pembayaran UDEV berstatus `DRAFT` sampai acceptance backend dijalankan. Pembayaran Sandbox belum diuji. Test edge-case kompleks yang ditandai di OpenAPI dapat dilengkapi bersama laporan integrasi frontend; schema OpenAPI tetap sumber bentuk payload.
 
 `x-implementation-status: DONE` berarti handler dan fitur backend operationId tersedia di repository. `x-contract-status: READY_FOR_FRONTEND` berarti alur utama dan tenant boundary sudah diuji cukup untuk integrasi bertahap; edge-case kompleks dapat dilanjutkan bersama frontend. Pendaftaran trial dan aktivasi tiga hari masih `DRAFT` sampai acceptance backend dijalankan; `x-deferred-verification` menandai pemeriksaan yang belum selesai.
 
@@ -14,7 +14,7 @@ Daftar handler backend yang terkait fitur utama:
 
 - Auth: `registerWarungOwner`, `login`, `getCurrentUser`, `logout`.
 - Warung/admin: `listWarungs`, `createWarung`, `getWarung`, `updateWarung`, `approveWarungRegistration`, `activateWarungForThreeDays`, `extendWarungSubscription`, `getWarungUdevCustomerSync`, `retryWarungUdevCustomerSync`, `getCurrentWarung`, `updateCurrentWarung`, `uploadCurrentWarungLogo`, `deleteCurrentWarungLogo`.
-- Langganan: `listUdevSubscriptionPlans` membaca paket aktif dan harga dari UDEV; operasi masih DRAFT sampai acceptance dan UAT Sandbox.
+- Langganan/pembayaran: `listUdevSubscriptionPlans`, `previewUdevSubscriptionInvoice`, `createUdevSubscriptionInvoice`, `listUdevSubscriptionInvoices`, `getUdevSubscriptionInvoice`, `startUdevSubscriptionCheckout`, dan `reconcileUdevSubscription` membaca/menulis billing UDEV; operasinya masih DRAFT sampai acceptance. Pembayaran Sandbox belum diuji.
 - User: `listUsers`, `createUser`, `getUser`, `updateUser`.
 - Katalog: `listKategoriMenus`, `createKategoriMenu`, `getKategoriMenu`, `updateKategoriMenu`, `listMenus`, `createMenu`, `getMenu`, `updateMenu`.
 - Penjualan/laporan: `createPenjualan`, `listPenjualans`, `getPenjualan`, `updatePenjualan`, `payPenjualan`, `cancelPenjualan`, `createPenjualanRetur`, `getLaporanPenjualan`, `getLaporanPenjualanHarian`, `getLaporanPenjualanItem`, `getLaporanPesananBelumLunas`.
@@ -57,9 +57,15 @@ UDEV menerima upsert customer segera setelah pendaftaran lokal berhasil. Satu wa
 5. Aksi tambah 30 hari tetap memanggil `POST /api/v1/admin/warungs/{id}/langganan/perpanjangan`. Jika belum kedaluwarsa, tanggal akhir bertambah 30 hari setelah tanggal akhir lama. Jika sudah lewat, langganan mulai hari lokal saat aksi dan berlaku 30 tanggal inklusif.
 6. Backend menghitung `status_langganan` otomatis saat response dibentuk. Setelah tanggal akhir lokal, owner dapat login sampai 30 tanggal lokal dengan akses hanya ke halaman Paket langganan; request tenant lainnya ditolak. Mulai tanggal lokal ke-31, login dan request token lama ditolak. Manager/kasir tidak dapat login dalam masa tenggang. `PATCH /admin/warungs/{id}` tetap boleh mengatur `aktif: false` untuk menonaktifkan manual, tetapi aktivasi dan tanggal langganan harus melalui endpoint khusus.
 
-## Katalog paket UDEV
+## Pembayaran dan katalog paket UDEV
 
-Owner warung aktif atau dalam masa tenggang dapat membaca `GET /api/v1/subscription-plans`. Backend Larissama mengambil katalog aktif dari `GET /api/v1/integrations/subscription-plans` memakai token yang sama dari `UDEV_CUSTOMERS_TOKEN`; token UDEV tersebut perlu memiliki scope `customers:write` dan `subscription-plans:read`. `UDEV_BASE_URL` tetap menjadi base URL backend. Harga diteruskan sebagai decimal string dan UI mempertahankan nilainya tanpa floating point. Endpoint ini read-only; belum membuat invoice, checkout, atau pembayaran. Setelah tanggal berakhir, owner dapat login sampai 30 tanggal lokal inklusif dan hanya dapat membaca katalog paket; akses berakhir mulai tanggal lokal ke-31. Request API tenant selain `GET /subscription-plans`, `/auth/me`, dan `/auth/logout` ditolak selama masa tenggang. Manager dan kasir tidak dapat login selama masa tenggang. Status kontrak tetap `DRAFT` sampai verifikasi runtime dan UAT Sandbox selesai.
+Owner warung aktif atau dalam masa tenggang dapat memakai menu Pembayaran. Backend Larissama membaca katalog dari `GET /api/v1/integrations/subscription-plans` dan billing dari endpoint customer/invoice UDEV memakai Global API Token bersama pada `UDEV_CUSTOMERS_TOKEN`, dengan base URL `UDEV_BASE_URL` sementara `https://apiudev.udumbara.my.id`. Harga dan nominal tidak dipercaya dari browser; backend meminta preview harga UDEV sebelum membuat invoice.
+
+Alur API lokal: `POST /subscription-invoices/preview` dengan `subscription_plan_code`; `POST /subscription-invoices` dengan header `Idempotency-Key`; `POST /subscription-invoices/{invoiceNumber}/checkout` dengan key checkout terpisah; `GET /subscription-invoices/{invoiceNumber}` dan `GET /subscription-invoices` untuk status/riwayat. Invoice jatuh tempo satu hari setelah penerbitan sesuai contoh UDEV. Checkout pending diperiksa tiap 30 detik melalui backend; status dicek kembali saat halaman dibuka. Gangguan jaringan memakai checkout key yang sama. Setelah payment attempt terminal, checkout baru memakai key baru.
+
+Referral dapat divalidasi lewat `POST /subscription-referrals/validate`, yang menampilkan diskon/harga UDEV tanpa mengunci kode. Owner mengonfirmasi secara eksplisit untuk mengunci referral lewat `POST /subscription-referrals` dengan `Idempotency-Key`; UDEV hanya mengizinkan satu referral per customer dan kode yang terkunci tidak dapat diganti. Setelah penguncian, preview invoice menampilkan harga final dari UDEV.
+
+Setelah invoice berstatus `paid` dan `tracking.settlement_status=completed`, owner memanggil `POST /subscription/reconcile`. Backend membaca subscription terbaru dari UDEV dan memperbarui tanggal masa aktif warung dalam timezone warung, tanpa memperpendek tanggal lokal yang lebih panjang. Selama masa tenggang, seluruh operasi pembayaran di atas menjadi akses owner yang diizinkan; route lain tetap ditolak. Seluruh operasi tetap `DRAFT` sampai verifikasi runtime. Pembayaran Sandbox dan transaksi belum diuji.
 
 Contoh minimum body create:
 
@@ -100,7 +106,7 @@ Qty tanpa harga satuan, harga satuan tanpa qty, atau baris ringkas tanpa subtota
 
 ## Status implementasi backend dan lingkungan lokal
 
-Status handoff ditetapkan per operationId; tidak semua operasi sudah `READY_FOR_FRONTEND`. Katalog paket UDEV memiliki handler dan halaman owner, tetapi tetap `DRAFT` sampai verifikasi runtime dan UAT Sandbox. Akses masa tenggang lokal mengikuti D17; invoice, checkout, dan pembayaran belum tersedia. Field `x-deferred-verification` mencatat pemeriksaan yang tertunda. Integrasi berjalan dengan [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md).
+Status handoff ditetapkan per operationId; tidak semua operasi sudah `READY_FOR_FRONTEND`. Katalog dan endpoint billing UDEV memiliki handler dan halaman owner, tetapi tetap `DRAFT` sampai verifikasi runtime. Integrasi pembayaran Sandbox dan transaksi nyata belum diuji. Akses masa tenggang lokal mengikuti D17 dan pemilik dapat memakai menu pembayaran. Field `x-deferred-verification` mencatat pemeriksaan yang tertunda. Integrasi berjalan dengan [tracker implementasi](../../IMPLEMENTATION_PROGRESS.md).
 
 API dev Docker yang sedang tersedia memakai base URL `http://localhost:8010/api/v1`; status app: `http://localhost:8010/up`; MySQL development: `localhost:33309`. Ketiga migration yang tertunda sudah diterapkan pada database dev dan seluruh 17 migration berstatus `Ran`. Ini environment development lokal, bukan environment integrasi atau production.
 
@@ -133,7 +139,7 @@ Status kontrak dan handoff tiap operasi mengikuti `x-contract-status` di OpenAPI
 | Kategori dan menu | Integrasikan list/filter, form tambah/edit kategori dan menu melalui API dev | Kasir melihat item aktif saja. Harga dikirim/ditampilkan sebagai decimal string; `harga_modal` dan gambar bukan bagian MVP. |
 | Kasir dan riwayat penjualan | Integrasikan catat, list/detail, laporan, koreksi, pembatalan, dan retur penjualan melalui API dev. | Total sukses berasal dari response backend. D05 menetapkan harga menu > 0, qty > 0 sampai dua desimal, diskon nominal maksimal subtotal, cash boleh lebih, QRIS/transfer harus pas, dan half-up per baris. |
 | Pembelian | Integrasikan create ringkas/rinci, list/detail, laporan, koreksi, dan pembatalan pembelian melalui API dev. | Koreksi/pembatalan memerlukan alasan dan menyimpan audit snapshot; retry memakai `Idempotency-Key` selama tujuh hari. |
-| Paket langganan | Owner melihat pilihan paket aktif dan harga sumber UDEV melalui halaman Paket langganan. Saat masa tenggang, ini satu-satunya halaman aplikasi yang dapat diakses owner. | Read-only; belum ada invoice, checkout, atau pembayaran. Sandbox UAT masih perlu dilakukan. |
+| Pembayaran | Owner melihat paket/harga UDEV, memvalidasi dan mengunci kode referral, meminta preview harga final, membuat invoice, membuka checkout, dan melihat riwayat/status. Saat masa tenggang, halaman pembayaran adalah satu-satunya halaman aplikasi yang dapat diakses owner. | UDEV menjadi sumber kebenaran invoice, pembayaran, settlement, dan subscription. Pembayaran Sandbox belum diuji; settlement completed direkonsiliasi ke masa aktif lokal. |
 | Laporan | Integrasikan dua tampilan periode: pendapatan penjualan dan total pembelian, termasuk keadaan periode kosong | Filter tanggal memakai hari lokal warung (`YYYY-MM-DD`). Jangan hitung atau beri label laba dari selisih kedua total. |
 | Komponen lintas fitur | Gunakan response server untuk status yang ditemui; gunakan fixture mock untuk variasi edge-case yang belum diuji | Pertahankan input saat 422 dan jangan mengubah kegagalan request menjadi angka nol. Kirim temuan dengan method/path dan `request_id`. |
 
@@ -184,6 +190,14 @@ Path berikut relatif terhadap `/api/v1`. Role mengikuti keputusan D04. Status in
 | --- | --- | --- | --- | --- |
 | Login | POST /auth/login | login | Publik, rate limited | READY_FOR_FRONTEND |
 | Katalog paket langganan UDEV | GET /subscription-plans | listUdevSubscriptionPlans | Owner warung | DRAFT |
+| Validasi kode referral | POST /subscription-referrals/validate | validateUdevSubscriptionReferral | Owner warung | DRAFT |
+| Kunci kode referral | POST /subscription-referrals | attachUdevSubscriptionReferral | Owner warung; Idempotency-Key wajib | DRAFT |
+| Preview harga paket | POST /subscription-invoices/preview | previewUdevSubscriptionInvoice | Owner warung | DRAFT |
+| Buat invoice | POST /subscription-invoices | createUdevSubscriptionInvoice | Owner warung; Idempotency-Key wajib | DRAFT |
+| Riwayat invoice | GET /subscription-invoices | listUdevSubscriptionInvoices | Owner warung | DRAFT |
+| Status invoice | GET /subscription-invoices/{invoiceNumber} | getUdevSubscriptionInvoice | Owner warung; invoice milik customer token | DRAFT |
+| Mulai checkout | POST /subscription-invoices/{invoiceNumber}/checkout | startUdevSubscriptionCheckout | Owner warung; Idempotency-Key wajib | DRAFT |
+| Sinkronkan subscription terverifikasi | POST /subscription/reconcile | reconcileUdevSubscription | Owner warung | DRAFT |
 | Daftar owner/warung | POST /auth/register | registerWarungOwner | Publik, rate limited | DRAFT |
 | Profil dan warung aktif | GET /auth/me | getCurrentUser | User aktif | READY_FOR_FRONTEND |
 | Logout | POST /auth/logout | logout | Bearer token user aktif; mencabut token aktif saja | READY_FOR_FRONTEND |
@@ -384,6 +398,8 @@ Baris penjualan katalog hanya menerima menu aktif di kategori aktif. Baris item 
 
 | Versi | Status | Perubahan |
 | --- | --- | --- |
+| 0.1.19-draft | DRAFT | Tambah validasi dan penguncian referral UDEV sebelum preview/invoice; referral hanya dapat dikunci sekali per customer. |
+| 0.1.18-draft | DRAFT | Tambah preview/invoice/checkout/status/riwayat billing UDEV dan sinkronisasi subscription ke tanggal aktif lokal. Token Global; due date +1 hari, polling 30 detik, sandbox/payment test belum dijalankan. |
 | 0.1.15-draft | DRAFT | Tambah aksi superadmin untuk memulai sync warung lama, memilih owner, dan mencatat pemberitahuan/persetujuan satu kali yang mencakup invoice langganan. |
 | 0.1.17-draft | DRAFT | Menjelaskan akses owner selama masa tenggang 30 tanggal lokal dan penolakan login mulai hari ke-31; belum ada invoice/checkout/pembayaran. |
 | 0.1.16-draft | DRAFT | Tambah endpoint owner untuk membaca katalog paket dan harga aktif langsung dari UDEV. Invoice/checkout/pembayaran belum termasuk. |

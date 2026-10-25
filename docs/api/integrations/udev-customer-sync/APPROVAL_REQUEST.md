@@ -1,10 +1,10 @@
 # Keputusan dan Persetujuan Bertahap Integrasi Larissama–UDEV
 
-Status: **Tahap 1 customer sync, katalog paket read-only, dan aturan akses grace lokal disetujui; invoice/pembayaran UDEV pending**
+Status: **Customer sync, katalog paket, dan integrasi invoice/status pembayaran disetujui bertahap; uji transaksi pembayaran Sandbox belum dilakukan**
 Tanggal keputusan Tahap 1: 2026-10-24
 Rencana master: [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md)
 
-Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan mencakup pendaftaran customer baru di UDEV dan, melalui arahan terpisah 2026-10-25, pembacaan katalog paket aktif secara read-only. Billing, trial/grace enforcement, dan perubahan akses tetap dicatat sebagai pekerjaan berikutnya, bukan dihapus dari rencana atau dianggap selesai oleh dua slice tersebut.
+Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan mencakup pendaftaran customer UDEV, pembacaan katalog, dan implementasi invoice/checkout/status billing. Status approval dan verifikasi tiap slice tetap dicatat terpisah; persetujuan ini bukan bukti pembayaran Sandbox atau kesiapan produksi.
 
 ## Tahap 1 — Keputusan yang sudah disetujui
 
@@ -18,7 +18,7 @@ Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan mencakup pendaftaran
 
 ## Konfirmasi teknis UDEV untuk Tahap 1
 
-- Endpoint customer Sandbox dan token server-to-server Larissama dengan scope minimum `customers:write`.
+- Endpoint customer Sandbox dan Global API Token server-to-server. Catatan drift: dokumen customer-sync menyebut token terikat aplikasi, sementara route integrasi pada kode UDEV saat ini mensyaratkan Global API Token; user menyetujui jenis Global untuk token bersama.
 - Konfirmasi endpoint menerima pendaftaran sebelum ada pembayaran.
 - Review arti `status=active`, serta mapping `name` = nama warung dan `owner_name` = nama owner.
 - Konfirmasi schema field, respons sukses/error, idempotency, konflik customer manual, rate limit, dan `Retry-After`.
@@ -34,26 +34,31 @@ Dokumen ini mempertahankan keseluruhan roadmap. Persetujuan mencakup pendaftaran
 - Queue worker, metadata sync, retry terbatas, pemulihan manual, monitoring, dan akses log yang dibatasi.
 - UAT Bearer eksternal dari backend; panel admin internal UDEV saja bukan bukti autentikasi eksternal.
 
-## Tahap 2 — Billing dan pembayaran (pending)
+## Tahap 2 — Integrasi invoice dan pembayaran
 
-Arahan user 2026-10-25 menyetujui slice katalog harga aktif read-only untuk owner menggunakan endpoint UDEV. Sandbox UAT tetap perlu dilakukan. Keputusan berikut masih menunggu kontrak dan persetujuan lanjutan:
+Arahan user 2026-10-26 menyetujui implementasi integrasi billing dari backend Larissama ke API UDEV. Keputusan implementasi:
 
-- UAT Sandbox untuk API `GET /api/v1/integrations/subscription-plans`; satu token UDEV bersama memerlukan scope `customers:write` dan `subscription-plans:read`. Pemilihan paket dan kebijakan produk Larissama tetap pending.
-- Pembuatan invoice, checkout URL, pembacaan invoice/payment/subscription, dan idempotency.
-- Mata uang, pajak/biaya, metode pembayaran, masa berlaku invoice, dan renewal.
-- Sumber kebenaran status invoice, payment, settlement, refund/chargeback, `paid_at`, dan `paid_until`.
-- Webhook/event, signature, event ID, replay protection, urutan event, retry, serta API rekonsiliasi.
-- Apakah UDEV menyediakan entitlement/trial/grace atau Larissama mengelola kebijakannya sendiri.
+- Semua request server-to-server memakai Global API Token bersama.
+- Base URL sementara `https://apiudev.udumbara.my.id`; jika gagal diakses, user akan mengonfirmasi URL ke UDEV.
+- Invoice jatuh tempo satu hari setelah diterbitkan, mengikuti contoh payload UDEV.
+- Owner dapat memvalidasi kode referral sebelum memakainya. Penguncian referral dilakukan eksplisit setelah owner menyetujui bahwa kode hanya dapat dipasang sekali pada customer dan tidak bisa diganti. Harga final tetap dihitung UDEV.
+- Integrasi memakai alur checkout yang dikontrak UDEV, tetapi belum menjalankan transaksi pembayaran atau UAT pembayaran.
+- Larissama memeriksa invoice tiap 30 detik selama checkout masih pending dan memeriksa kembali saat halaman pembayaran dibuka.
+- Request checkout yang hasilnya tidak diketahui karena gangguan jaringan diulang dengan idempotency key yang sama. Jika payment attempt telah berakhir/ditolak/kedaluwarsa/dibatalkan, percobaan checkout berikut memakai key baru.
+- UDEV adalah sumber kebenaran paket/harga, invoice, pembayaran terverifikasi, settlement, dan subscription. Larissama memperbarui masa aktif lokal dari subscription UDEV setelah settlement selesai dan tidak memperpendek masa lokal yang lebih panjang.
+- Belum ada webhook yang dipakai; status diperiksa melalui endpoint GET UDEV yang didokumentasikan.
 
-## Tahap 3 — Trial, akses, dan pemulihan (aturan akses lokal disetujui; billing UDEV pending)
+Uji integrasi endpoint dan transaksi pembayaran adalah gate terpisah. Transaksi pembayaran Sandbox, simulasi sukses/gagal, serta kesiapan produksi tetap pending sampai user meminta dan UDEV memberi environment/akses yang sesuai.
 
-Aturan akses lokal yang disetujui: warung aktif selama trial tiga tanggal lokal; setelah `tanggal_berakhir`, owner dapat login selama 30 tanggal lokal inklusif dan hanya membuka katalog paket; mulai hari ke-31 login dan token lama ditolak. Manager/kasir tidak dapat login selama grace. Karena invoice/checkout belum tersedia, owner menghubungi admin untuk reaktivasi. Aturan ini tidak menetapkan sumber kebenaran pembayaran atau kontrak billing UDEV.
+## Tahap 3 — Trial, akses, dan pemulihan (aturan akses lokal disetujui; integrasi billing disetujui)
+
+Aturan akses lokal yang disetujui: warung aktif selama trial tiga tanggal lokal; setelah `tanggal_berakhir`, owner dapat login selama 30 tanggal lokal inklusif dan hanya membuka menu pembayaran; mulai hari ke-31 login dan token lama ditolak. Manager/kasir tidak dapat login selama grace. Pembayaran UDEV yang terverifikasi menyelaraskan tanggal masa aktif lokal dari subscription UDEV. Implementasi billing belum menjalani transaksi pembayaran Sandbox.
 
 - Masa grace dimulai pada hari lokal setelah tanggal akhir dan berakhir inklusif pada `tanggal_berakhir + 30 hari`.
-- Pemilihan paket, pembuatan invoice, pembayaran, perpanjangan berbayar, dan sumber kebenaran status pembayaran tetap memerlukan kontrak UDEV terpisah.
+- Pemilihan paket, pembuatan invoice, status pembayaran, settlement, dan subscription memakai kontrak UDEV Tahap 2.
 - Pemulihan setelah grace dan pengaktifan kembali setelah suspend manual memerlukan tindakan admin.
 - Dampak pada warung legacy dan penangguhan manual.
 
 ## Batas persetujuan
 
-Persetujuan Tahap 1 tidak mencakup invoice, checkout, pembayaran, subscription berbayar, webhook billing, access gate berdasarkan fakta pembayaran UDEV, penghapusan customer UDEV otomatis, atau cutover produksi. Slice katalog read-only dan kebijakan akses lokal selama grace disetujui terpisah pada 2026-10-25 dan tidak berarti billing disetujui. Trial lokal tiga hari, aktivasi superadmin tiga hari, dan pembatasan lokal pasca-expiry tidak menetapkan kontrak billing UDEV. Tahap invoice/payment tetap memerlukan kontrak dan keputusan/approval tersendiri. Kredensial produksi juga memerlukan persetujuan dan secret produksi tersendiri.
+Persetujuan integrasi invoice/status tidak berarti transaksi pembayaran sudah diuji, sistem siap cutover produksi, atau kredensial produksi baru telah disediakan. Trial lokal tiga hari dan aktivasi superadmin tiga hari tetap aturan lokal. Akses grace lokal dapat menggunakan menu pembayaran; kebijakan setelah grace dan pemulihan manual tetap mengikuti keputusan lokal/admin.

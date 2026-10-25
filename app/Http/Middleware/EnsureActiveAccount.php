@@ -55,6 +55,14 @@ class EnsureActiveAccount
                 'api.v1.auth.me',
                 'api.v1.auth.logout',
                 'api.v1.subscription-plans.index',
+                'api.v1.subscription-referrals.validate',
+                'api.v1.subscription-referrals.attach',
+                'api.v1.subscription-invoices.preview',
+                'api.v1.subscription-invoices.store',
+                'api.v1.subscription-invoices.index',
+                'api.v1.subscription-invoices.show',
+                'api.v1.subscription-invoices.checkout',
+                'api.v1.subscription.reconcile',
             ], true)) {
             return ApiErrorResponse::make(
                 'SUBSCRIPTION_PAYMENT_REQUIRED',
