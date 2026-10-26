@@ -28,10 +28,11 @@ class UdevBillingClient
     }
 
     /** @return array<string, mixed> */
-    public function preview(string $externalCustomerId, string $planCode): array
+    public function preview(string $externalCustomerId, string $planCode, int $periodCount = 1): array
     {
         return $this->data($this->send()->post($this->customerPath($externalCustomerId).'/invoice-preview', [
             'subscription_plan_code' => $planCode,
+            'period_count' => $periodCount,
         ]));
     }
 
@@ -39,12 +40,14 @@ class UdevBillingClient
     public function createInvoice(
         string $externalCustomerId,
         string $planCode,
+        int $periodCount,
         CarbonImmutable $dueAt,
         string $idempotencyKey,
     ): array {
         return $this->data($this->send()->withHeader('Idempotency-Key', $idempotencyKey)
             ->post($this->customerPath($externalCustomerId).'/invoices', [
                 'subscription_plan_code' => $planCode,
+                'period_count' => $periodCount,
                 'due_at' => $dueAt->toIso8601String(),
             ]));
     }

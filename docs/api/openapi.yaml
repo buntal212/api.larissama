@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.19-draft
+  version: 0.1.20-draft
   description: >-
-    Status handoff 2026-10-26: 56 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog UDEV, memvalidasi dan mengunci kode referral, meminta preview harga, membuat invoice, memulai checkout, memantau status dan menyinkronkan masa aktif setelah settlement. Pembayaran Sandbox dan transaksi pembayaran belum diuji. Setelah masa aktif berakhir, owner dapat login selama 30 tanggal lokal dengan akses katalog/pembayaran saja; mulai hari ke-31 login dan token lama ditolak. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
+    Status handoff 2026-10-26: 56 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog UDEV, memvalidasi dan mengunci kode referral, meminta preview harga, membuat invoice untuk 1–12 periode 30 hari, memulai checkout, memantau status dan menyinkronkan masa aktif setelah settlement. Pembayaran Sandbox dan transaksi pembayaran belum diuji. Setelah masa aktif berakhir, owner dapat login selama 30 tanggal lokal dengan akses katalog/pembayaran saja; mulai hari ke-31 login dan token lama ditolak. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
@@ -24,7 +24,7 @@ info:
     CURRENT-WARUNG-API-ACCEPTANCE-001 menguji response profil `/warung` untuk manager/kasir,
     superadmin dan anonim; `OWNER-TENANT-ACCESS-CONFORMANCE-001` kini mencocokkan response profil owner tenant dengan schema. Request/query operasi lain,
     D06/D18 menetapkan menu/kategori aktif untuk pesanan baru, koreksi pesanan pending tanpa batas sebelum bayar, koreksi/pembatalan penjualan lunas sampai 72 jam sejak pembayaran, dan retur nominal setelahnya. Retur mengurangi laporan pada periode retur tanpa mengubah stok. Pendapatan mengikuti waktu pembayaran. Laporan item memakai snapshot nama/harga, tidak mengalokasikan diskon header atau retur ke item. Implementasi 56 operationId tersedia; edge-case tertunda tercatat per operasi.
-    Revisi D17 2026-10-25: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; owner mendapat akses katalog/pembayaran selama 30 tanggal lokal setelah expiry, lalu login ditolak. D20 menetapkan katalog UDEV; D21 menyetujui implementasi invoice, checkout, status, dan sinkronisasi subscription. Transaksi pembayaran Sandbox belum diuji.
+    Revisi D17 2026-10-25: pendaftaran owner publik mendapat trial tiga tanggal lokal dan aksi superadmin untuk aktivasi tiga hari; owner mendapat akses katalog/pembayaran selama 30 tanggal lokal setelah expiry, lalu login ditolak. D20 menetapkan katalog UDEV; D21 menyetujui implementasi invoice, checkout, status, dan sinkronisasi subscription. Revisi UDEV 2026-10-26 menambahkan `period_count` 1–12; satu periode tetap 30 hari. Transaksi pembayaran Sandbox belum diuji.
     PROTECTED-OPERATIONS-401-CONFORMANCE-001 sebelum endpoint katalog ditambahkan telah menguji tanpa token seluruh 32 operasi yang mewajibkan bearer:
     HTTP 401 UNAUTHENTICATED dan body cocok schema; status lain dan conformance keseluruhan masih belum lengkap.
     API-ROUTE-INVENTORY-CONFORMANCE-001 sebelumnya mencocokkan baseline 28 method/path; inventory sebelum revisi ini 43 operation pada 29 path dan telah dicocokkan oleh test route terdahulu;
@@ -851,7 +851,7 @@ paths:
       operationId: previewUdevSubscriptionInvoice
       tags: [Pembayaran]
       summary: Minta preview harga final paket dari UDEV
-      description: Backend memakai external customer ID warung terautentikasi. Harga final dan referral dihitung UDEV; client tidak dapat mengirim nominal, mata uang, atau application ID.
+      description: Backend memakai external customer ID warung terautentikasi. Harga final dan referral dihitung UDEV; client hanya dapat memilih period_count 1–12 dengan satu periode 30 hari, bukan nominal, mata uang, atau application ID.
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-deferred-verification: Endpoint UDEV dan mapping harga belum diverifikasi melalui Sandbox UAT atau test pembayaran.
@@ -863,7 +863,7 @@ paths:
         content:
           application/json:
             schema: {$ref: '#/components/schemas/SubscriptionInvoiceRequest'}
-            example: {subscription_plan_code: PAKET-BULANAN}
+            example: {subscription_plan_code: PAKET-BULANAN, period_count: 3}
       responses:
         '200':
           description: Preview harga final dari UDEV.
@@ -905,7 +905,7 @@ paths:
       operationId: createUdevSubscriptionInvoice
       tags: [Pembayaran]
       summary: Buat invoice paket langganan di UDEV
-      description: Due date dibuat backend satu hari setelah waktu terbit mengikuti contoh UDEV. Nilai paket, mata uang, dan nominal tidak diterima dari client. Retry memakai Idempotency-Key yang sama.
+      description: Due date dibuat backend satu hari setelah waktu terbit mengikuti contoh UDEV. Client dapat memilih period_count 1–12; UDEV menghitung harga dan durasi 30 hari per periode. Nilai paket, mata uang, dan nominal tidak diterima dari client. Retry memakai Idempotency-Key yang sama untuk paket dan jumlah periode yang sama.
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-deferred-verification: Invoice belum dibuat pada Sandbox dan perilaku idempotensi UDEV belum diuji live.
@@ -919,7 +919,7 @@ paths:
         content:
           application/json:
             schema: {$ref: '#/components/schemas/SubscriptionInvoiceRequest'}
-            example: {subscription_plan_code: PAKET-BULANAN}
+            example: {subscription_plan_code: PAKET-BULANAN, period_count: 3}
       responses:
         '201':
           description: Invoice berhasil dibuat atau di-replay oleh UDEV.
@@ -3424,6 +3424,12 @@ components:
           minLength: 1
           maxLength: 100
           description: Kode paket aktif dari katalog UDEV.
+        period_count:
+          type: integer
+          minimum: 1
+          maximum: 12
+          default: 1
+          description: Jumlah periode berbayar. Setiap periode berdurasi tetap 30 hari; harga final dihitung UDEV.
     SubscriptionInvoicePreviewResponse:
       type: object
       additionalProperties: false
@@ -3438,16 +3444,19 @@ components:
             plan:
               type: object
               additionalProperties: false
-              required: [code, name, duration_days]
+              required: [code, name, duration_days, period_count]
               properties:
                 code: {type: string}
                 name: {type: string}
                 duration_days: {type: integer, minimum: 1}
+                period_count: {type: integer, minimum: 1, maximum: 12}
             pricing:
               type: object
               additionalProperties: false
-              required: [normal_price, referral_code, referral_type, discount_amount, final_price, currency]
+              required: [unit_price, period_count, normal_price, referral_code, referral_type, discount_amount, final_price, currency]
               properties:
+                unit_price: {$ref: '#/components/schemas/Money'}
+                period_count: {type: integer, minimum: 1, maximum: 12}
                 normal_price: {$ref: '#/components/schemas/Money'}
                 referral_code: {type: [string, 'null']}
                 referral_type: {type: [string, 'null']}
@@ -3471,21 +3480,23 @@ components:
     SubscriptionInvoice:
       type: object
       additionalProperties: false
-      required: [invoice_number, status, issued_at, due_at, paid_at, plan, pricing, payment, subscription, tracking]
+      required: [invoice_number, status, period_count, issued_at, due_at, paid_at, plan, pricing, payment, subscription, tracking]
       properties:
         invoice_number: {type: string, minLength: 1, maxLength: 100}
         status: {type: string, enum: [pending, paid, expired, cancelled]}
+        period_count: {type: integer, minimum: 1, maximum: 12}
         issued_at: {type: [string, 'null'], format: date-time}
         due_at: {type: [string, 'null'], format: date-time}
         paid_at: {type: [string, 'null'], format: date-time}
         plan:
           type: object
           additionalProperties: false
-          required: [code, name, duration_days]
+          required: [code, name, duration_days, period_count]
           properties:
             code: {type: [string, 'null']}
             name: {type: [string, 'null']}
             duration_days: {type: integer, minimum: 1}
+            period_count: {type: integer, minimum: 1, maximum: 12}
         pricing:
           type: object
           additionalProperties: false

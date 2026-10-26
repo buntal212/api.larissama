@@ -66,7 +66,11 @@ class SubscriptionBillingController extends Controller
             return $sync;
         }
         try {
-            return response()->json(['data' => $udev->preview($sync->external_customer_id, $request->string('subscription_plan_code')->toString())]);
+            return response()->json(['data' => $udev->preview(
+                $sync->external_customer_id,
+                $request->string('subscription_plan_code')->toString(),
+                $request->integer('period_count', 1),
+            )]);
         } catch (Throwable $exception) {
             return $this->upstreamFailure($exception);
         }
@@ -88,6 +92,7 @@ class SubscriptionBillingController extends Controller
             $invoice = $udev->createInvoice(
                 $sync->external_customer_id,
                 $request->string('subscription_plan_code')->toString(),
+                $request->integer('period_count', 1),
                 $dueAt,
                 $idempotencyKey,
             );

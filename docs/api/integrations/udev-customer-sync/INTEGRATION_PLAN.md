@@ -30,12 +30,13 @@ Master plan ini menghubungkan pendaftaran customer dengan billing dan pengaturan
 
 ### Tahap 2 — Billing dan entitlement (implementasi disetujui; pembayaran Sandbox pending)
 
-1. Implementasi menggunakan dokumentasi invoice/checkout/status UDEV, Global API Token yang sama, dan base URL sementara `https://apiudev.udumbara.my.id`. Jika endpoint gagal, user mengonfirmasi URL ke UDEV.
-2. Invoice jatuh tempo satu hari setelah dibuat mengikuti contoh kontrak. Idempotency key invoice/checkout disimpan dan digunakan ulang pada retry jaringan; percobaan baru memakai key baru hanya setelah payment attempt terminal.
-3. Frontend memeriksa status melalui backend setiap 30 detik selama pending dan mengecek kembali saat halaman pembayaran dibuka. Dokumen saat ini tidak mendefinisikan webhook Larissama.
-4. Hanya invoice `paid` dengan settlement `completed` yang memicu pembacaan subscription terbaru UDEV dan pembaruan tanggal masa aktif lokal. Tanggal lokal yang lebih panjang tidak dipendekkan.
-5. Kode referral dapat divalidasi lebih dahulu; penguncian ke customer dilakukan setelah konfirmasi eksplisit karena UDEV hanya mengizinkan satu kode referral per customer dan kode terkunci tidak dapat diganti. Preview/invoice sesudahnya memakai snapshot referral UDEV.
-6. Implementasi endpoint dan UI tidak menjalankan transaksi pembayaran. UAT endpoint dan transaksi pembayaran Sandbox adalah gate berikutnya.
+1. Implementasi menggunakan dokumentasi dan kode invoice/checkout/status UDEV, Global API Token yang sama, dan base URL sementara `https://apiudev.udumbara.my.id`. Jika endpoint gagal, user mengonfirmasi URL ke UDEV.
+2. Preview dan pembuatan invoice menerima `period_count` 1–12 (default 1); satu periode tepat 30 hari. UDEV menghitung harga dan durasi, Larissama hanya mengirim jumlah periode yang lolos validasi. Invoice jatuh tempo satu hari setelah dibuat mengikuti contoh kontrak.
+3. Idempotency key invoice dibedakan menurut paket dan jumlah periode; checkout key disimpan dan digunakan ulang pada retry jaringan. Percobaan checkout baru memakai key baru hanya setelah payment attempt terminal.
+4. Frontend memeriksa status melalui backend setiap 30 detik selama pending dan mengecek kembali saat halaman pembayaran dibuka. Dokumen saat ini tidak mendefinisikan webhook Larissama.
+5. Hanya invoice `paid` dengan settlement `completed` yang memicu pembacaan subscription terbaru UDEV dan pembaruan tanggal masa aktif lokal. Tanggal lokal yang lebih panjang tidak dipendekkan.
+6. Kode referral dapat divalidasi lebih dahulu; penguncian ke customer dilakukan setelah konfirmasi eksplisit karena UDEV hanya mengizinkan satu kode referral per customer dan kode terkunci tidak dapat diganti. Preview/invoice sesudahnya memakai snapshot referral UDEV.
+7. Implementasi endpoint dan UI tidak menjalankan transaksi pembayaran. UAT endpoint dan transaksi pembayaran Sandbox adalah gate berikutnya.
 
 **Yang masih menunggu:** transaksi pembayaran Sandbox, simulasi sukses/gagal/expired, hasil konfirmasi URL bila diperlukan, aturan refund/chargeback, dan cutover produksi. Trial dan grace lokal sudah ditetapkan.
 
@@ -45,7 +46,7 @@ Master plan ini menghubungkan pendaftaran customer dengan billing dan pengaturan
 | --- | --- | --- |
 | Identitas warung, akun owner, kontak utama | Larissama | UDEV menerima salinan customer dan menghubungkannya ke billing. |
 | ID customer UDEV | UDEV menerbitkan ID internal; Larissama memiliki ID eksternal stabil | Larissama menyimpan pasangan ID. |
-| Paket/harga, invoice, payment attempt, settlement, `paid_at`, refund/chargeback | UDEV | Larissama menggunakan status terverifikasi untuk akses. |
+| Paket/harga, jumlah periode, invoice, payment attempt, settlement, `paid_at`, refund/chargeback | UDEV | Larissama meneruskan `period_count` yang dipilih dan menggunakan status terverifikasi untuk akses. |
 | Periode berbayar dan `paid_until` | UDEV setelah settlement terverifikasi | Larissama menyimpan projection, ID/version event, dan waktu rekonsiliasi. |
 | Durasi trial, masa tenggang, pembatasan route, penguncian/pemulihan | Larissama | Backend menerapkan kebijakan lokal dan memakai tanggal UDEV setelah settlement. |
 | Hak login/API dan isolasi tenant | Backend Larissama | Frontend hanya mencerminkan keputusan backend. |
