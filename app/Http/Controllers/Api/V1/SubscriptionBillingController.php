@@ -119,7 +119,11 @@ class SubscriptionBillingController extends Controller
                 return ApiErrorResponse::make('NOT_FOUND', 'Invoice tidak ditemukan.', 404);
             }
 
-            $checkout = $udev->startCheckout($invoiceNumber, $idempotencyKey);
+            $checkout = $udev->startCheckout(
+                $invoiceNumber,
+                $idempotencyKey,
+                $request->validated('payment_method', 'qris'),
+            );
 
             return response()->json(['data' => $checkout], ($checkout['payment']['checkout_status'] ?? null) === 'ready' ? 200 : 202);
         } catch (Throwable $exception) {

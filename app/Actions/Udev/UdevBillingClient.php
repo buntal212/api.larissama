@@ -53,10 +53,12 @@ class UdevBillingClient
     }
 
     /** @return array<string, mixed> */
-    public function startCheckout(string $invoiceNumber, string $idempotencyKey): array
+    public function startCheckout(string $invoiceNumber, string $idempotencyKey, string $paymentMethod = 'qris'): array
     {
         return $this->data($this->send()->withHeader('Idempotency-Key', $idempotencyKey)
-            ->post($this->invoicePath($invoiceNumber).'/checkout'));
+            ->post($this->invoicePath($invoiceNumber).'/checkout', [
+                'payment_method' => $paymentMethod,
+            ]));
     }
 
     /** @return array<string, mixed> */

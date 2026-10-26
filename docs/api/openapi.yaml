@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: LarisSama Backend API — Draft
-  version: 0.1.20-draft
+  version: 0.1.21-draft
   description: >-
-    Status handoff 2026-10-26: 56 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog UDEV, memvalidasi dan mengunci kode referral, meminta preview harga, membuat invoice untuk 1–12 periode 30 hari, memulai checkout, memantau status dan menyinkronkan masa aktif setelah settlement. Pembayaran Sandbox dan transaksi pembayaran belum diuji. Setelah masa aktif berakhir, owner dapat login selama 30 tanggal lokal dengan akses katalog/pembayaran saja; mulai hari ke-31 login dan token lama ditolak. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
+    Status handoff 2026-10-27: 56 operationId tersedia; pendaftaran publik langsung aktif selama tiga tanggal lokal, superadmin memiliki aksi aktivasi tiga hari, memantau/retry sync UDEV, dan memulai sync untuk warung lama. Owner dapat membaca katalog UDEV, memvalidasi dan mengunci kode referral, meminta preview harga, membuat invoice untuk 1–12 periode 30 hari, memilih checkout QRIS (default) atau DANA Wallet, memantau status dan menyinkronkan masa aktif setelah settlement. Pembayaran Sandbox dan transaksi pembayaran belum diuji. Setelah masa aktif berakhir, owner dapat login selama 30 tanggal lokal dengan akses katalog/pembayaran saja; mulai hari ke-31 login dan token lama ditolak. GET data tenant oleh superadmin wajib menyertakan `warung_id` yang dipilih. Owner dapat mengubah nama, alamat, telepon, timezone, dan logo profil melalui endpoint tanpa selector tenant.
     Superadmin dapat membaca data tenant dengan selector `warung_id`; selector itu tidak memberi hak membuat atau mengubah kategori/menu. Mutasi lain yang mengizinkan superadmin memakai `warung_id` wajib pada body. Request tenant menggunakan warung dari identitas dan menolak field selector.
     payPenjualan sudah melalui focused conformance
     untuk integrasi alur utama, termasuk pendaftaran owner, persetujuan admin,
@@ -964,8 +964,8 @@ paths:
     post:
       operationId: startUdevSubscriptionCheckout
       tags: [Pembayaran]
-      summary: Siapkan checkout invoice UDEV
-      description: Retry gangguan jaringan memakai key sama. Jika attempt sudah berstatus terminal, owner meminta checkout baru memakai key baru. Redirect ke checkout URL tidak membuktikan pembayaran.
+      summary: Pilih metode checkout invoice UDEV
+      description: Owner dapat memilih QRIS (default) atau DANA Wallet. Backend meneruskan metode pilihan secara eksplisit; frontend merender qr_content/payment_code secara lokal atau menampilkan checkout_url untuk DANA Wallet. Mengganti metode membatalkan attempt aktif sebelumnya di UDEV. Retry gangguan jaringan dengan metode yang sama memakai key sama; attempt terminal menggunakan key baru. QR atau redirect checkout tidak membuktikan pembayaran.
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-deferred-verification: Checkout UDEV Sandbox belum dijalankan; transaksi pembayaran belum diuji.
@@ -975,9 +975,21 @@ paths:
       parameters:
       - {$ref: '#/components/parameters/InvoiceNumber'}
       - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                payment_method:
+                  type: string
+                  enum: [qris, dana_wallet]
+                  default: qris
       responses:
         '200':
-          description: Checkout siap dengan URL.
+          description: Checkout QRIS siap dengan payload QR atau DANA Wallet siap dengan URL checkout.
           content:
             application/json:
               schema: {$ref: '#/components/schemas/SubscriptionInvoiceResponse'}
@@ -3518,7 +3530,19 @@ components:
               status: {type: string, enum: [initiated, pending, succeeded, failed, expired, cancelled]}
               provider: {type: string}
               checkout_status: {type: string, enum: [ready, processing, pending, completed, failed]}
+              payment_method: {type: string, enum: [qris, dana_wallet]}
               checkout_url: {type: [string, 'null'], format: uri}
+              qr_content: {type: [string, 'null']}
+              payment_code: {type: [string, 'null']}
+              payment_instruction:
+                oneOf:
+                - type: 'null'
+                - type: object
+                  additionalProperties: false
+                  properties:
+                    instruction_type: {type: string}
+                    payment_code: {type: string}
+                    expires_at: {type: [string, 'null'], format: date-time}
               checkout_expires_at: {type: [string, 'null'], format: date-time}
               transaction_id: {type: [string, 'null']}
               completed_at: {type: [string, 'null'], format: date-time}
