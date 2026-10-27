@@ -23,7 +23,7 @@ class StartSubscriptionCheckoutRequest extends FormRequest
             'merchant' => ['prohibited'],
             'provider' => ['prohibited'],
             'idempotency_key' => ['nullable', 'prohibited'],
-            'payment_method' => ['sometimes', 'string', 'in:qris,dana_wallet'],
+            'payment_method' => ['sometimes', 'string', 'in:qris,dana_wallet,va_bri,va_pani,va_cimb,va_btpn'],
         ];
     }
 
