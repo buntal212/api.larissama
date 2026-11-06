@@ -53,12 +53,78 @@ class UdevBillingClient
     }
 
     /** @return array<string, mixed> */
-    public function startCheckout(string $invoiceNumber, string $idempotencyKey, string $paymentMethod = 'qris'): array
-    {
+    public function startCheckout(
+        string $invoiceNumber,
+        string $idempotencyKey,
+        string $paymentMethod = 'qris',
+        string $provider = 'midtrans',
+    ): array {
+        $payload = [
+            'payment_method' => $paymentMethod,
+            'provider' => $provider,
+        ];
+
+        if (str_starts_with($paymentMethod, 'va_')) {
+            $payload['bank'] = substr($paymentMethod, 3);
+        }
+
         return $this->data($this->send()->withHeader('Idempotency-Key', $idempotencyKey)
-            ->post($this->invoicePath($invoiceNumber).'/checkout', [
-                'payment_method' => $paymentMethod,
-            ]));
+            ->post($this->invoicePath($invoiceNumber).'/checkout', $payload));
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function paymentMethods(): array
+    {
+        return [
+            [
+                'code' => 'qris',
+                'name' => 'QRIS',
+                'category' => 'qris',
+                'provider' => 'midtrans',
+                'description' => 'BCA, Mandiri, GoPay, OVO, ShopeePay, DANA, LinkAja',
+            ],
+            [
+                'code' => 'va_bca',
+                'name' => 'Virtual Account BCA',
+                'category' => 'virtual_account',
+                'provider' => 'midtrans',
+                'bank' => 'bca',
+            ],
+            [
+                'code' => 'va_bni',
+                'name' => 'Virtual Account BNI',
+                'category' => 'virtual_account',
+                'provider' => 'midtrans',
+                'bank' => 'bni',
+            ],
+            [
+                'code' => 'va_bri',
+                'name' => 'Virtual Account BRI',
+                'category' => 'virtual_account',
+                'provider' => 'midtrans',
+                'bank' => 'bri',
+            ],
+            [
+                'code' => 'va_mandiri',
+                'name' => 'Mandiri Bill Payment',
+                'category' => 'virtual_account',
+                'provider' => 'midtrans',
+                'bank' => 'mandiri',
+            ],
+            [
+                'code' => 'va_permata',
+                'name' => 'Virtual Account Permata',
+                'category' => 'virtual_account',
+                'provider' => 'midtrans',
+                'bank' => 'permata',
+            ],
+            [
+                'code' => 'gopay',
+                'name' => 'GoPay',
+                'category' => 'ewallet',
+                'provider' => 'midtrans',
+            ],
+        ];
     }
 
     /** @return array<string, mixed> */

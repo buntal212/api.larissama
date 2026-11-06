@@ -782,6 +782,67 @@ paths:
           $ref: '#/components/responses/Error502'
         '503':
           $ref: '#/components/responses/Error503'
+  /subscription-payment-methods:
+    get:
+      operationId: listSubscriptionPaymentMethods
+      tags:
+      - Pembayaran
+      summary: Daftar metode pembayaran langganan Midtrans
+      description: Membaca daftar metode pembayaran langganan yang didukung melalui gateway Midtrans dan UDEV Billing.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles:
+      - owner
+      - superadmin
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Daftar metode pembayaran Midtrans yang tersedia.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPaymentMethodsResponse'
+              example:
+                data:
+                - code: qris
+                  name: QRIS
+                  category: qris
+                  provider: midtrans
+                  description: BCA, Mandiri, GoPay, OVO, ShopeePay, DANA, LinkAja
+                - code: va_bca
+                  name: Virtual Account BCA
+                  category: virtual_account
+                  provider: midtrans
+                  bank: bca
+                - code: va_bni
+                  name: Virtual Account BNI
+                  category: virtual_account
+                  provider: midtrans
+                  bank: bni
+                - code: va_bri
+                  name: Virtual Account BRI
+                  category: virtual_account
+                  provider: midtrans
+                  bank: bri
+                - code: va_mandiri
+                  name: Mandiri Bill Payment
+                  category: virtual_account
+                  provider: midtrans
+                  bank: mandiri
+                - code: va_permata
+                  name: Virtual Account Permata
+                  category: virtual_account
+                  provider: midtrans
+                  bank: permata
+                - code: gopay
+                  name: GoPay
+                  category: ewallet
+                  provider: midtrans
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
   /subscription-referrals/validate:
     post:
       operationId: validateUdevSubscriptionReferral
@@ -965,7 +1026,7 @@ paths:
       operationId: startUdevSubscriptionCheckout
       tags: [Pembayaran]
       summary: Pilih metode checkout invoice UDEV
-      description: Owner dapat memilih QRIS (default), DANA Wallet, atau Virtual Account BRI, PANI, CIMB, dan BTPN. Backend meneruskan metode pilihan secara eksplisit; frontend merender qr_content atau payment_code QRIS yang lolos validasi struktur EMVCo/CRC, menampilkan payment_code/instruksi VA, atau membuka checkout_url untuk DANA Wallet. Mengganti metode membatalkan attempt aktif sebelumnya di UDEV. Retry gangguan jaringan dengan metode yang sama memakai key sama; attempt terminal menggunakan key baru. Instruksi checkout tidak membuktikan pembayaran.
+      description: Owner dapat memilih metode pembayaran Midtrans (QRIS, VA BCA, VA BNI, VA BRI, Mandiri Bill Payment, VA Permata, atau GoPay). Backend meneruskan metode pilihan secara eksplisit dengan provider midtrans; frontend merender qr_content untuk QRIS, menampilkan payment_code dan biller_code untuk VA / Mandiri, atau membuka checkout_url untuk GoPay. Mengganti metode membatalkan attempt aktif sebelumnya di UDEV.
       x-contract-status: DRAFT
       x-implementation-status: DONE
       x-deferred-verification: Checkout UDEV Sandbox belum dijalankan; transaksi pembayaran belum diuji.
@@ -985,8 +1046,12 @@ paths:
               properties:
                 payment_method:
                   type: string
-                  enum: [qris, dana_wallet, va_bri, va_pani, va_cimb, va_btpn]
+                  enum: [qris, va_bca, va_bni, va_bri, va_mandiri, va_permata, gopay]
                   default: qris
+                provider:
+                  type: string
+                  enum: [midtrans]
+                  default: midtrans
       responses:
         '200':
           description: Checkout siap dengan QR atau instruksi pembayaran sesuai metode yang dipilih.
@@ -3647,6 +3712,35 @@ components:
         is_active:
           type: boolean
           const: true
+    SubscriptionPaymentMethodsResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionPaymentMethod'
+    SubscriptionPaymentMethod:
+      type: object
+      additionalProperties: false
+      required: [code, name, category, provider]
+      properties:
+        code:
+          type: string
+          enum: [qris, va_bca, va_bni, va_bri, va_mandiri, va_permata, gopay]
+        name:
+          type: string
+        category:
+          type: string
+          enum: [qris, virtual_account, ewallet]
+        provider:
+          type: string
+          enum: [midtrans]
+        bank:
+          type: string
+        description:
+          type: string
     Id:
       type: string
       pattern: ^[1-9][0-9]*$

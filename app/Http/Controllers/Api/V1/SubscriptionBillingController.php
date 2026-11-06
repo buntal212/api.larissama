@@ -103,6 +103,16 @@ class SubscriptionBillingController extends Controller
         }
     }
 
+    public function paymentMethods(Request $request, UdevBillingClient $udev): JsonResponse
+    {
+        $actor = $request->user();
+        if (! $actor instanceof User || ! in_array($actor->role, ['owner', 'superadmin'], true)) {
+            return ApiErrorResponse::make('FORBIDDEN', 'Hanya owner warung atau superadmin yang dapat mengakses metode pembayaran.', 403);
+        }
+
+        return response()->json(['data' => $udev->paymentMethods()]);
+    }
+
     public function checkout(StartSubscriptionCheckoutRequest $request, string $invoiceNumber, UdevBillingClient $udev): JsonResponse
     {
         $sync = $this->customerSync($request);
@@ -123,6 +133,7 @@ class SubscriptionBillingController extends Controller
                 $invoiceNumber,
                 $idempotencyKey,
                 $request->validated('payment_method', 'qris'),
+                'midtrans',
             );
 
             return response()->json(['data' => $checkout], ($checkout['payment']['checkout_status'] ?? null) === 'ready' ? 200 : 202);
@@ -181,7 +192,7 @@ class SubscriptionBillingController extends Controller
             return ApiErrorResponse::make('UDEV_SUBSCRIPTION_NOT_ACTIVE', 'UDEV belum memiliki masa aktif hasil billing yang dapat diterapkan.', 409);
         }
 
-        $warung = $request->user()->warung;
+        $warung = $request->user()->warung ?? Warung::query()->find($sync->warung_id);
         if (! $warung instanceof Warung
             || ! is_string($warung->timezone)
             || ! in_array($warung->timezone, \DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC), true)) {
@@ -190,21 +201,30 @@ class SubscriptionBillingController extends Controller
 
         $startsAt = CarbonImmutable::parse($subscription['starts_at'])->setTimezone($warung->timezone)->toDateString();
         $udevExpiresAt = CarbonImmutable::parse($subscription['expires_at'])->setTimezone($warung->timezone)->toDateString();
-        $updatedWarung = DB::transaction(function () use ($warung, $startsAt, $udevExpiresAt): Warung {
+        $changed = false;
+        $updatedWarung = DB::transaction(function () use ($warung, $startsAt, $udevExpiresAt, &$changed): Warung {
             $lockedWarung = Warung::query()->lockForUpdate()->findOrFail($warung->getKey());
             $currentEnd = $lockedWarung->tanggal_berakhir?->toDateString();
             $effectiveEnd = $currentEnd !== null && $currentEnd > $udevExpiresAt ? $currentEnd : $udevExpiresAt;
-            $lockedWarung->update([
-                'tanggal_mulai' => $startsAt,
-                'tanggal_berakhir' => $effectiveEnd,
-            ]);
+            $currentStart = $lockedWarung->tanggal_mulai?->toDateString();
+            $currentActive = (bool) $lockedWarung->aktif;
 
-            $lockedWarung->refresh();
+            if ($currentStart !== $startsAt || $currentEnd !== $effectiveEnd || ! $currentActive) {
+                $lockedWarung->update([
+                    'tanggal_mulai' => $startsAt,
+                    'tanggal_berakhir' => $effectiveEnd,
+                    'aktif' => true,
+                ]);
+
+                $lockedWarung->refresh();
+                $changed = true;
+            }
 
             return $lockedWarung;
         });
 
         return response()->json(['data' => [
+            'updated' => $changed,
             'subscription' => $subscription,
             'warung' => [
                 'tanggal_mulai' => $updatedWarung->tanggal_mulai?->toDateString(),
@@ -216,11 +236,23 @@ class SubscriptionBillingController extends Controller
     private function customerSync(Request $request): WarungCustomerSync|JsonResponse
     {
         $actor = $request->user();
-        if (! $actor instanceof User || $actor->role !== 'owner' || $actor->warung_id === null) {
+        if (! $actor instanceof User || ! in_array($actor->role, ['owner', 'superadmin'], true)) {
+            return ApiErrorResponse::make('FORBIDDEN', 'Hanya owner warung atau superadmin yang dapat mengakses pembayaran langganan.', 403);
+        }
+
+        if ($actor->role === 'owner' && $actor->warung_id === null) {
             return ApiErrorResponse::make('FORBIDDEN', 'Hanya owner warung yang dapat mengakses pembayaran langganan.', 403);
         }
 
-        $sync = WarungCustomerSync::query()->where('warung_id', $actor->warung_id)->first();
+        $warungId = $actor->role === 'superadmin'
+            ? ($request->query('warung_id') ?? $request->input('warung_id'))
+            : $actor->warung_id;
+
+        if ($warungId === null || $warungId === '') {
+            return ApiErrorResponse::make('WARUNG_REQUIRED', 'Pilih warung terlebih dahulu untuk mengakses data langganan.', 422);
+        }
+
+        $sync = WarungCustomerSync::query()->where('warung_id', $warungId)->first();
         if (! $sync instanceof WarungCustomerSync || $sync->status !== 'synced' || $sync->consented_at === null) {
             return ApiErrorResponse::make('UDEV_CUSTOMER_NOT_READY', 'Data pelanggan warung belum tersinkron ke UDEV. Hubungi admin untuk bantuan.', 409);
         }

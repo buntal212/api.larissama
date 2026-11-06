@@ -19,6 +19,7 @@ class AttachSubscriptionReferralRequest extends FormRequest
     {
         return [
             'referral_code' => ['required', 'string', 'max:40', 'regex:/^REF-[A-Z0-9]{6}$/'],
+            'warung_id' => ['sometimes', 'integer', 'min:1'],
             'application_id' => ['prohibited'],
             'customer_price' => ['prohibited'],
             'discount_amount' => ['prohibited'],

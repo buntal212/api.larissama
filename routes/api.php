@@ -51,6 +51,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('subscription-plans', [SubscriptionPlanController::class, 'index'])
             ->middleware('throttle:udev-subscription-plans')
             ->name('subscription-plans.index');
+        Route::get('subscription-payment-methods', [SubscriptionBillingController::class, 'paymentMethods'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-payment-methods.index');
         Route::post('subscription-referrals/validate', [SubscriptionBillingController::class, 'validateReferral'])
             ->middleware('throttle:udev-subscription-billing')
             ->name('subscription-referrals.validate');

@@ -55,6 +55,7 @@ class EnsureActiveAccount
                 'api.v1.auth.me',
                 'api.v1.auth.logout',
                 'api.v1.subscription-plans.index',
+                'api.v1.subscription-payment-methods.index',
                 'api.v1.subscription-referrals.validate',
                 'api.v1.subscription-referrals.attach',
                 'api.v1.subscription-invoices.preview',

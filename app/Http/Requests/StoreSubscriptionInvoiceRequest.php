@@ -20,6 +20,7 @@ class StoreSubscriptionInvoiceRequest extends FormRequest
         return [
             'subscription_plan_code' => ['required', 'string', 'max:100'],
             'period_count' => ['sometimes', 'integer', 'min:1', 'max:12'],
+            'warung_id' => ['sometimes', 'integer', 'min:1'],
             'amount' => ['prohibited'],
             'currency' => ['prohibited'],
             'due_at' => ['prohibited'],

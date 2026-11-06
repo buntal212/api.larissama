@@ -18,7 +18,11 @@ class SubscriptionPlanController extends Controller
     public function index(Request $request, UdevSubscriptionPlanClient $client): JsonResponse
     {
         $actor = $request->user();
-        if (! $actor instanceof User || $actor->role !== 'owner' || $actor->warung_id === null) {
+        if (! $actor instanceof User || ! in_array($actor->role, ['owner', 'superadmin'], true)) {
+            return ApiErrorResponse::make('FORBIDDEN', 'Hanya owner warung atau superadmin yang dapat melihat paket langganan.', 403);
+        }
+
+        if ($actor->role === 'owner' && $actor->warung_id === null) {
             return ApiErrorResponse::make('FORBIDDEN', 'Hanya owner warung yang dapat melihat paket langganan.', 403);
         }
 
