@@ -77,6 +77,10 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->where('invoiceNumber', '[A-Za-z0-9-]{1,100}')
             ->middleware('throttle:udev-subscription-billing')
             ->name('subscription-invoices.checkout');
+        Route::post('subscription-invoices/{invoiceNumber}/fee-preview', [SubscriptionBillingController::class, 'feePreview'])
+            ->where('invoiceNumber', '[A-Za-z0-9-]{1,100}')
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription-invoices.fee-preview');
         Route::post('subscription/reconcile', [SubscriptionBillingController::class, 'reconcile'])
             ->middleware('throttle:udev-subscription-billing')
             ->name('subscription.reconcile');

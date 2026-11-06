@@ -72,58 +72,153 @@ class UdevBillingClient
             ->post($this->invoicePath($invoiceNumber).'/checkout', $payload));
     }
 
+    public const array MidtransMethodDefinitions = [
+        'qris' => [
+            'name' => 'QRIS',
+            'category' => 'qris',
+            'provider' => 'midtrans',
+            'fee_type' => 'percent',
+            'fee_rate' => 0.7,
+            'fixed_amount' => 0.0,
+            'fee_label' => '0,7%',
+            'description' => 'BCA, Mandiri, GoPay, OVO, ShopeePay, DANA, LinkAja',
+        ],
+        'va_bca' => [
+            'name' => 'Virtual Account BCA',
+            'category' => 'virtual_account',
+            'provider' => 'midtrans',
+            'bank' => 'bca',
+            'fee_type' => 'fixed',
+            'fee_rate' => 0.0,
+            'fixed_amount' => 4000.0,
+            'fee_label' => 'Rp 4.000',
+        ],
+        'va_bni' => [
+            'name' => 'Virtual Account BNI',
+            'category' => 'virtual_account',
+            'provider' => 'midtrans',
+            'bank' => 'bni',
+            'fee_type' => 'fixed',
+            'fee_rate' => 0.0,
+            'fixed_amount' => 4000.0,
+            'fee_label' => 'Rp 4.000',
+        ],
+        'va_bri' => [
+            'name' => 'Virtual Account BRI',
+            'category' => 'virtual_account',
+            'provider' => 'midtrans',
+            'bank' => 'bri',
+            'fee_type' => 'fixed',
+            'fee_rate' => 0.0,
+            'fixed_amount' => 4000.0,
+            'fee_label' => 'Rp 4.000',
+        ],
+        'va_mandiri' => [
+            'name' => 'Mandiri Bill Payment',
+            'category' => 'virtual_account',
+            'provider' => 'midtrans',
+            'bank' => 'mandiri',
+            'fee_type' => 'fixed',
+            'fee_rate' => 0.0,
+            'fixed_amount' => 4000.0,
+            'fee_label' => 'Rp 4.000',
+        ],
+        'va_permata' => [
+            'name' => 'Virtual Account Permata',
+            'category' => 'virtual_account',
+            'provider' => 'midtrans',
+            'bank' => 'permata',
+            'fee_type' => 'fixed',
+            'fee_rate' => 0.0,
+            'fixed_amount' => 4000.0,
+            'fee_label' => 'Rp 4.000',
+        ],
+        'gopay' => [
+            'name' => 'GoPay',
+            'category' => 'ewallet',
+            'provider' => 'midtrans',
+            'fee_type' => 'percent',
+            'fee_rate' => 2.0,
+            'fixed_amount' => 0.0,
+            'fee_label' => '2%',
+        ],
+    ];
+
     /** @return list<array<string, mixed>> */
     public function paymentMethods(): array
     {
+        $methods = [];
+        foreach (self::MidtransMethodDefinitions as $code => $def) {
+            $item = [
+                'code' => $code,
+                'name' => $def['name'],
+                'category' => $def['category'],
+                'provider' => $def['provider'],
+                'fee_type' => $def['fee_type'],
+                'fee_rate' => $def['fee_rate'],
+                'fixed_amount' => $def['fixed_amount'],
+                'fee_label' => $def['fee_label'],
+            ];
+            if (isset($def['bank'])) {
+                $item['bank'] = $def['bank'];
+            }
+            if (isset($def['description'])) {
+                $item['description'] = $def['description'];
+            }
+            $methods[] = $item;
+        }
+
+        return $methods;
+    }
+
+    /**
+     * Hitung estimasi biaya admin dan total pembayaran berdasarkan subtotal invoice.
+     *
+     * @return array{
+     *     subtotal: float,
+     *     payment_method: string,
+     *     payment_method_label: string,
+     *     fee_type: string,
+     *     fee_rate: float,
+     *     fixed_amount: float,
+     *     fee_amount: float,
+     *     fee_label: string,
+     *     total_amount: float,
+     *     currency: string
+     * }
+     */
+    public function calculateFee(float|int|string $subtotal, string $paymentMethod): array
+    {
+        $subtotalFloat = max(0.0, (float) $subtotal);
+        $def = self::MidtransMethodDefinitions[$paymentMethod] ?? [
+            'name' => strtoupper($paymentMethod),
+            'fee_type' => 'fixed',
+            'fee_rate' => 0.0,
+            'fixed_amount' => 4000.0,
+            'fee_label' => 'Rp 4.000',
+        ];
+
+        if ($def['fee_type'] === 'percent') {
+            $feeAmount = (float) round($subtotalFloat * ($def['fee_rate'] / 100));
+            $feeLabel = str_replace('.', ',', (string) $def['fee_rate']).'%';
+        } else {
+            $feeAmount = (float) round((float) $def['fixed_amount']);
+            $feeLabel = 'Rp '.number_format($def['fixed_amount'], 0, ',', '.').' (Tetap)';
+        }
+
+        $totalAmount = (float) round($subtotalFloat + $feeAmount);
+
         return [
-            [
-                'code' => 'qris',
-                'name' => 'QRIS',
-                'category' => 'qris',
-                'provider' => 'midtrans',
-                'description' => 'BCA, Mandiri, GoPay, OVO, ShopeePay, DANA, LinkAja',
-            ],
-            [
-                'code' => 'va_bca',
-                'name' => 'Virtual Account BCA',
-                'category' => 'virtual_account',
-                'provider' => 'midtrans',
-                'bank' => 'bca',
-            ],
-            [
-                'code' => 'va_bni',
-                'name' => 'Virtual Account BNI',
-                'category' => 'virtual_account',
-                'provider' => 'midtrans',
-                'bank' => 'bni',
-            ],
-            [
-                'code' => 'va_bri',
-                'name' => 'Virtual Account BRI',
-                'category' => 'virtual_account',
-                'provider' => 'midtrans',
-                'bank' => 'bri',
-            ],
-            [
-                'code' => 'va_mandiri',
-                'name' => 'Mandiri Bill Payment',
-                'category' => 'virtual_account',
-                'provider' => 'midtrans',
-                'bank' => 'mandiri',
-            ],
-            [
-                'code' => 'va_permata',
-                'name' => 'Virtual Account Permata',
-                'category' => 'virtual_account',
-                'provider' => 'midtrans',
-                'bank' => 'permata',
-            ],
-            [
-                'code' => 'gopay',
-                'name' => 'GoPay',
-                'category' => 'ewallet',
-                'provider' => 'midtrans',
-            ],
+            'subtotal' => $subtotalFloat,
+            'payment_method' => $paymentMethod,
+            'payment_method_label' => $def['name'],
+            'fee_type' => $def['fee_type'],
+            'fee_rate' => (float) $def['fee_rate'],
+            'fixed_amount' => (float) $def['fixed_amount'],
+            'fee_amount' => $feeAmount,
+            'fee_label' => $feeLabel,
+            'total_amount' => $totalAmount,
+            'currency' => 'IDR',
         ];
     }
 

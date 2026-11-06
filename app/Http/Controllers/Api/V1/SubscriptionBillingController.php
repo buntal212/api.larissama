@@ -113,6 +113,69 @@ class SubscriptionBillingController extends Controller
         return response()->json(['data' => $udev->paymentMethods()]);
     }
 
+    public function feePreview(Request $request, string $invoiceNumber, UdevBillingClient $udev): JsonResponse
+    {
+        $sync = $this->customerSync($request);
+        if ($sync instanceof JsonResponse) {
+            return $sync;
+        }
+
+        $paymentMethod = (string) ($request->input('payment_method') ?? 'qris');
+        $validMethods = ['qris', 'va_bca', 'va_bni', 'va_bri', 'va_mandiri', 'va_permata', 'gopay'];
+        if (! in_array($paymentMethod, $validMethods, true)) {
+            return ApiErrorResponse::make('INVALID_PAYMENT_METHOD', 'Metode pembayaran tidak valid.', 422);
+        }
+
+        try {
+            if (! $this->invoiceBelongsToCustomer($udev, $sync, $invoiceNumber)) {
+                return ApiErrorResponse::make('NOT_FOUND', 'Invoice tidak ditemukan.', 404);
+            }
+
+            $invoice = $udev->invoice($invoiceNumber);
+            $subtotal = (float) ($invoice['pricing']['final_price'] ?? $invoice['amount'] ?? 0);
+
+            $activePayment = $invoice['payment'] ?? null;
+            if (
+                is_array($activePayment) &&
+                ($activePayment['payment_method'] ?? null) === $paymentMethod &&
+                is_array($activePayment['fee_breakdown'] ?? null)
+            ) {
+                $fb = $activePayment['fee_breakdown'];
+                $feeType = (string) ($fb['fee_type'] ?? 'fixed');
+                $feeRate = (float) ($fb['fee_rate'] ?? 0);
+                $fixedAmount = (float) ($fb['fixed_amount'] ?? 0);
+                $feeLabel = $feeType === 'percent'
+                    ? str_replace('.', ',', (string) $feeRate).'%'
+                    : 'Rp '.number_format($fixedAmount, 0, ',', '.').' (Tetap)';
+
+                return response()->json([
+                    'data' => [
+                        'invoice_number' => $invoiceNumber,
+                        'subtotal' => (float) ($fb['subtotal_amount'] ?? $subtotal),
+                        'payment_method' => $paymentMethod,
+                        'payment_method_label' => (string) ($fb['payment_method_label'] ?? $paymentMethod),
+                        'fee_type' => $feeType,
+                        'fee_rate' => $feeRate,
+                        'fixed_amount' => $fixedAmount,
+                        'fee_amount' => (float) ($fb['fee_amount'] ?? 0),
+                        'fee_label' => $feeLabel,
+                        'total_amount' => (float) ($fb['total_amount'] ?? $activePayment['amount'] ?? ($subtotal + (float) ($fb['fee_amount'] ?? 0))),
+                        'currency' => (string) ($fb['currency'] ?? 'IDR'),
+                        'is_locked' => true,
+                    ],
+                ]);
+            }
+
+            $calc = $udev->calculateFee($subtotal, $paymentMethod);
+            $calc['invoice_number'] = $invoiceNumber;
+            $calc['is_locked'] = false;
+
+            return response()->json(['data' => $calc]);
+        } catch (Throwable $exception) {
+            return $this->upstreamFailure($exception);
+        }
+    }
+
     public function checkout(StartSubscriptionCheckoutRequest $request, string $invoiceNumber, UdevBillingClient $udev): JsonResponse
     {
         $sync = $this->customerSync($request);

@@ -809,36 +809,64 @@ paths:
                   name: QRIS
                   category: qris
                   provider: midtrans
+                  fee_type: percent
+                  fee_rate: 0.7
+                  fixed_amount: 0
+                  fee_label: 0,7%
                   description: BCA, Mandiri, GoPay, OVO, ShopeePay, DANA, LinkAja
                 - code: va_bca
                   name: Virtual Account BCA
                   category: virtual_account
                   provider: midtrans
                   bank: bca
+                  fee_type: fixed
+                  fee_rate: 0
+                  fixed_amount: 4000
+                  fee_label: Rp 4.000
                 - code: va_bni
                   name: Virtual Account BNI
                   category: virtual_account
                   provider: midtrans
                   bank: bni
+                  fee_type: fixed
+                  fee_rate: 0
+                  fixed_amount: 4000
+                  fee_label: Rp 4.000
                 - code: va_bri
                   name: Virtual Account BRI
                   category: virtual_account
                   provider: midtrans
                   bank: bri
+                  fee_type: fixed
+                  fee_rate: 0
+                  fixed_amount: 4000
+                  fee_label: Rp 4.000
                 - code: va_mandiri
                   name: Mandiri Bill Payment
                   category: virtual_account
                   provider: midtrans
                   bank: mandiri
+                  fee_type: fixed
+                  fee_rate: 0
+                  fixed_amount: 4000
+                  fee_label: Rp 4.000
                 - code: va_permata
                   name: Virtual Account Permata
                   category: virtual_account
                   provider: midtrans
                   bank: permata
+                  fee_type: fixed
+                  fee_rate: 0
+                  fixed_amount: 4000
+                  fee_label: Rp 4.000
                 - code: gopay
                   name: GoPay
                   category: ewallet
                   provider: midtrans
+                  fee_type: percent
+                  fee_rate: 2
+                  fixed_amount: 0
+                  fee_label: 2%
         '401':
           $ref: '#/components/responses/Error401'
         '403':
@@ -1071,6 +1099,58 @@ paths:
         '429': {$ref: '#/components/responses/Error429'}
         '502': {$ref: '#/components/responses/Error502'}
         '503': {$ref: '#/components/responses/Error503'}
+  /subscription-invoices/{invoiceNumber}/fee-preview:
+    post:
+      operationId: previewUdevSubscriptionFee
+      tags: [Pembayaran]
+      summary: Preview biaya admin dan total pembayaran Midtrans
+      description: Menghitung rincian biaya admin dan total akhir pembayaran berdasarkan subtotal invoice UDEV dan metode pembayaran yang dipilih.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles: [owner, superadmin]
+      security: [{ bearerAuth: [] }]
+      parameters:
+      - {$ref: '#/components/parameters/InvoiceNumber'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_method]
+              additionalProperties: false
+              properties:
+                payment_method:
+                  type: string
+                  enum: [qris, va_bca, va_bni, va_bri, va_mandiri, va_permata, gopay]
+                warung_id:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Rincian preview biaya admin dan total pembayaran.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionFeePreviewResponse'
+              example:
+                data:
+                  invoice_number: INV-20261106-001
+                  subtotal: 175000
+                  payment_method: qris
+                  payment_method_label: QRIS
+                  fee_type: percent
+                  fee_rate: 0.7
+                  fixed_amount: 0
+                  fee_amount: 1225
+                  fee_label: 0,7%
+                  total_amount: 176225
+                  currency: IDR
+                  is_locked: false
+        '401': {$ref: '#/components/responses/Error401'}
+        '403': {$ref: '#/components/responses/Error403'}
+        '404': {$ref: '#/components/responses/Error404'}
+        '422': {$ref: '#/components/responses/Error422'}
   /subscription/reconcile:
     post:
       operationId: reconcileUdevSubscription
@@ -3741,6 +3821,51 @@ components:
           type: string
         description:
           type: string
+        fee_type:
+          type: string
+          enum: [percent, fixed]
+        fee_rate:
+          type: number
+        fixed_amount:
+          type: number
+        fee_label:
+          type: string
+    SubscriptionFeePreviewResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [invoice_number, subtotal, payment_method, payment_method_label, fee_type, fee_rate, fixed_amount, fee_amount, fee_label, total_amount, currency, is_locked]
+          properties:
+            invoice_number:
+              type: string
+            subtotal:
+              type: number
+            payment_method:
+              type: string
+              enum: [qris, va_bca, va_bni, va_bri, va_mandiri, va_permata, gopay]
+            payment_method_label:
+              type: string
+            fee_type:
+              type: string
+              enum: [percent, fixed]
+            fee_rate:
+              type: number
+            fixed_amount:
+              type: number
+            fee_amount:
+              type: number
+            fee_label:
+              type: string
+            total_amount:
+              type: number
+            currency:
+              type: string
+            is_locked:
+              type: boolean
     Id:
       type: string
       pattern: ^[1-9][0-9]*$

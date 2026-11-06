@@ -63,6 +63,7 @@ class EnsureActiveAccount
                 'api.v1.subscription-invoices.index',
                 'api.v1.subscription-invoices.show',
                 'api.v1.subscription-invoices.checkout',
+                'api.v1.subscription-invoices.fee-preview',
                 'api.v1.subscription.reconcile',
             ], true)) {
             return ApiErrorResponse::make(
