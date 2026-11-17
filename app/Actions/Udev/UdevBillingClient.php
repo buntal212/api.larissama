@@ -57,7 +57,7 @@ class UdevBillingClient
         string $invoiceNumber,
         string $idempotencyKey,
         string $paymentMethod = 'qris',
-        string $provider = 'midtrans',
+        string $provider = 'dana',
     ): array {
         $payload = [
             'payment_method' => $paymentMethod,
@@ -70,6 +70,116 @@ class UdevBillingClient
 
         return $this->data($this->send()->withHeader('Idempotency-Key', $idempotencyKey)
             ->post($this->invoicePath($invoiceNumber).'/checkout', $payload));
+    }
+
+    public const array DanaMethodDefinitions = [
+        'qris' => [
+            'name' => 'QRIS (DANA)',
+            'category' => 'qris',
+            'provider' => 'dana',
+            'fee_type' => 'fixed',
+            'fee_rate' => 0.0,
+            'fixed_amount' => 0.0,
+            'fee_label' => 'Rp 0',
+            'description' => 'DANA, GoPay, OVO, ShopeePay, BCA, Mandiri & Mobile Banking',
+            'verified' => true,
+            'is_primary' => true,
+        ],
+    ];
+
+    /**
+     * Definisi katalog metode gateway DANA pada UDEV dengan status verifikasi.
+     * Hanya metode yang terverifikasi (verified = true) yang akan ditampilkan kepada pelanggan.
+     * Metode VA / e-wallet yang belum terverifikasi disaring secara dinamis.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function danaGatewayMethods(): array
+    {
+        return [
+            'qris' => [
+                'code' => 'qris',
+                'name' => 'QRIS (DANA)',
+                'category' => 'qris',
+                'provider' => 'dana',
+                'fee_type' => 'fixed',
+                'fee_rate' => 0.0,
+                'fixed_amount' => 0.0,
+                'fee_label' => 'Rp 0',
+                'description' => 'DANA, GoPay, OVO, ShopeePay, BCA, Mandiri & Mobile Banking',
+                'verified' => true,
+                'is_primary' => true,
+            ],
+            'dana_wallet' => [
+                'code' => 'dana_wallet',
+                'name' => 'DANA Wallet',
+                'category' => 'ewallet',
+                'provider' => 'dana',
+                'fee_type' => 'fixed',
+                'fee_rate' => 0.0,
+                'fixed_amount' => 0.0,
+                'fee_label' => 'Rp 0',
+                'description' => 'Bayar langsung melalui aplikasi DANA atau web checkout',
+                'verified' => true,
+                'is_primary' => false,
+            ],
+            'va_bri' => [
+                'code' => 'va_bri',
+                'name' => 'Virtual Account BRI (DANA)',
+                'category' => 'virtual_account',
+                'provider' => 'dana',
+                'bank' => 'bri',
+                'fee_type' => 'fixed',
+                'fee_rate' => 0.0,
+                'fixed_amount' => 0.0,
+                'fee_label' => 'Rp 0',
+                'description' => 'Virtual Account Bank BRI via DANA',
+                'verified' => true,
+                'is_primary' => false,
+            ],
+            'va_cimb' => [
+                'code' => 'va_cimb',
+                'name' => 'Virtual Account CIMB Niaga (DANA)',
+                'category' => 'virtual_account',
+                'provider' => 'dana',
+                'bank' => 'cimb',
+                'fee_type' => 'fixed',
+                'fee_rate' => 0.0,
+                'fixed_amount' => 0.0,
+                'fee_label' => 'Rp 0',
+                'description' => 'Virtual Account Bank CIMB Niaga via DANA',
+                'verified' => true,
+                'is_primary' => false,
+            ],
+            'va_btpn' => [
+                'code' => 'va_btpn',
+                'name' => 'Virtual Account BTPN / Jenius (DANA)',
+                'category' => 'virtual_account',
+                'provider' => 'dana',
+                'bank' => 'btpn',
+                'fee_type' => 'fixed',
+                'fee_rate' => 0.0,
+                'fixed_amount' => 0.0,
+                'fee_label' => 'Rp 0',
+                'description' => 'Virtual Account Bank BTPN / Jenius via DANA',
+                'verified' => true,
+                'is_primary' => false,
+            ],
+            'va_pani' => [
+                'code' => 'va_pani',
+                'name' => 'Virtual Account Panin Bank (DANA)',
+                'category' => 'virtual_account',
+                'provider' => 'dana',
+                'bank' => 'pani',
+                'fee_type' => 'fixed',
+                'fee_rate' => 0.0,
+                'fixed_amount' => 0.0,
+                'fee_label' => 'Rp 0',
+                'description' => 'Virtual Account Bank Panin via DANA',
+                'verified' => true,
+                'is_primary' => false,
+            ],
+        ];
     }
 
     public const array MidtransMethodDefinitions = [
@@ -147,10 +257,25 @@ class UdevBillingClient
     /** @return list<array<string, mixed>> */
     public function paymentMethods(): array
     {
+        $all = $this->danaGatewayMethods();
+        $verified = array_filter($all, fn (array $m): bool => ($m['verified'] ?? false) === true);
+
+        // QRIS DANA selalu diutamakan sebagai metode utama
+        usort($verified, function (array $a, array $b): int {
+            if ($a['code'] === 'qris') {
+                return -1;
+            }
+            if ($b['code'] === 'qris') {
+                return 1;
+            }
+
+            return 0;
+        });
+
         $methods = [];
-        foreach (self::MidtransMethodDefinitions as $code => $def) {
+        foreach ($verified as $code => $def) {
             $item = [
-                'code' => $code,
+                'code' => (string) ($def['code'] ?? $code),
                 'name' => $def['name'],
                 'category' => $def['category'],
                 'provider' => $def['provider'],
@@ -158,6 +283,8 @@ class UdevBillingClient
                 'fee_rate' => $def['fee_rate'],
                 'fixed_amount' => $def['fixed_amount'],
                 'fee_label' => $def['fee_label'],
+                'verified' => true,
+                'is_primary' => (bool) ($def['is_primary'] ?? false),
             ];
             if (isset($def['bank'])) {
                 $item['bank'] = $def['bank'];
@@ -190,12 +317,13 @@ class UdevBillingClient
     public function calculateFee(float|int|string $subtotal, string $paymentMethod): array
     {
         $subtotalFloat = max(0.0, (float) $subtotal);
-        $def = self::MidtransMethodDefinitions[$paymentMethod] ?? [
-            'name' => strtoupper($paymentMethod),
+        $all = $this->danaGatewayMethods();
+        $def = $all[$paymentMethod] ?? self::DanaMethodDefinitions[$paymentMethod] ?? [
+            'name' => 'QRIS (DANA)',
             'fee_type' => 'fixed',
             'fee_rate' => 0.0,
-            'fixed_amount' => 4000.0,
-            'fee_label' => 'Rp 4.000',
+            'fixed_amount' => 0.0,
+            'fee_label' => 'Rp 0',
         ];
 
         if ($def['fee_type'] === 'percent') {
@@ -203,7 +331,7 @@ class UdevBillingClient
             $feeLabel = str_replace('.', ',', (string) $def['fee_rate']).'%';
         } else {
             $feeAmount = (float) round((float) $def['fixed_amount']);
-            $feeLabel = 'Rp '.number_format($def['fixed_amount'], 0, ',', '.').' (Tetap)';
+            $feeLabel = $def['fee_label'] ?? ('Rp '.number_format($def['fixed_amount'], 0, ',', '.').' (Tetap)');
         }
 
         $totalAmount = (float) round($subtotalFloat + $feeAmount);
@@ -223,9 +351,11 @@ class UdevBillingClient
     }
 
     /** @return array<string, mixed> */
-    public function invoice(string $invoiceNumber): array
+    public function invoice(string $invoiceNumber, bool $reconcile = false): array
     {
-        return $this->data($this->send()->get($this->invoicePath($invoiceNumber)));
+        $query = $reconcile ? ['reconcile' => 1] : [];
+
+        return $this->data($this->send()->get($this->invoicePath($invoiceNumber), $query));
     }
 
     /** @return list<array<string, mixed>> */

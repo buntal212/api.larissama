@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('udev:dispatch-pending-customers')->everyMinute()->withoutOverlapping();
+Schedule::command('udev:sync-invoices')->everyFiveMinutes()->withoutOverlapping(10);
+Schedule::command('udev:recover-invoices')->everyThirtyMinutes()->withoutOverlapping(15);

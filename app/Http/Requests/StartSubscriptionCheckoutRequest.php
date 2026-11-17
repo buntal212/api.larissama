@@ -21,9 +21,9 @@ class StartSubscriptionCheckoutRequest extends FormRequest
             'amount' => ['prohibited'],
             'currency' => ['prohibited'],
             'merchant' => ['prohibited'],
-            'provider' => ['sometimes', 'string', 'in:midtrans'],
+            'provider' => ['sometimes', 'string', 'in:dana'],
             'idempotency_key' => ['nullable', 'prohibited'],
-            'payment_method' => ['sometimes', 'string', 'in:qris,va_bca,va_bni,va_bri,va_mandiri,va_permata,gopay'],
+            'payment_method' => ['sometimes', 'string', 'in:qris,dana_wallet,va_bri,va_cimb,va_btpn,va_pani'],
             'warung_id' => ['sometimes', 'integer', 'min:1'],
         ];
     }

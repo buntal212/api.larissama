@@ -84,6 +84,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('subscription/reconcile', [SubscriptionBillingController::class, 'reconcile'])
             ->middleware('throttle:udev-subscription-billing')
             ->name('subscription.reconcile');
+        Route::get('subscription/monitoring', [SubscriptionBillingController::class, 'monitoring'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription.monitoring');
+        Route::post('subscription/manual-resync', [SubscriptionBillingController::class, 'manualResync'])
+            ->middleware('throttle:udev-subscription-billing')
+            ->name('subscription.manual-resync');
 
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::post('users', [UserController::class, 'store'])->name('users.store');
