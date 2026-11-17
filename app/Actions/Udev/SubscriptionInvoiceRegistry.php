@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\Cache;
 class SubscriptionInvoiceRegistry
 {
     public const string ACTIVE_KEYS_CACHE_KEY = 'udev_invoice_registry:active_keys';
+
     public const string INVOICE_PREFIX = 'udev_invoice_registry:invoice:';
+
     public const string RECENT_COMPLETED_KEY = 'udev_invoice_registry:recent_completed';
+
     public const string REGISTRY_LOCK_KEY = 'udev_invoice_registry_lock';
+
     public const int CACHE_TTL_SECONDS = 604800; // 7 hari
 
     /**

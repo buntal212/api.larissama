@@ -21,6 +21,7 @@ use Throwable;
 class RecoverSubscriptionInvoicesCommand extends Command
 {
     public const string CHECKPOINT_KEY = 'udev_recovery:last_sync_id';
+
     public const int BATCH_SIZE = 50;
 
     public function handle(

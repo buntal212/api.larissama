@@ -3,7 +3,10 @@
 namespace Tests\Unit;
 
 use App\Actions\Udev\UdevBillingClient;
+use App\Http\Controllers\Api\V1\SubscriptionBillingController;
 use App\Http\Requests\StartSubscriptionCheckoutRequest;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
@@ -219,10 +222,10 @@ class SubscriptionPaymentDanaTest extends TestCase
 
     public function test_resolve_polling_session_persists_across_calls_and_tracks_duration(): void
     {
-        $controller = new \App\Http\Controllers\Api\V1\SubscriptionBillingController;
+        $controller = new SubscriptionBillingController;
         $invoiceNumber = 'INV-POLL-TEST-1';
 
-        \Illuminate\Support\Facades\Cache::forget("polling_session:{$invoiceNumber}");
+        Cache::forget("polling_session:{$invoiceNumber}");
 
         $session1 = $controller->resolvePollingSession($invoiceNumber, false);
         $this->assertSame(0, $session1['check_count']);
@@ -245,12 +248,12 @@ class SubscriptionPaymentDanaTest extends TestCase
 
     public function test_resolve_polling_session_becomes_inactive_when_limit_reached(): void
     {
-        $controller = new \App\Http\Controllers\Api\V1\SubscriptionBillingController;
+        $controller = new SubscriptionBillingController;
         $invoiceNumber = 'INV-POLL-LIMIT-1';
 
         // Skenario 1: Batas 30 pemeriksaan otomatis habis
-        \Illuminate\Support\Facades\Cache::put("polling_session:{$invoiceNumber}", [
-            'started_at' => \Carbon\CarbonImmutable::now()->timestamp - 50,
+        Cache::put("polling_session:{$invoiceNumber}", [
+            'started_at' => CarbonImmutable::now()->timestamp - 50,
             'check_count' => 30,
         ], 600);
 
@@ -259,8 +262,8 @@ class SubscriptionPaymentDanaTest extends TestCase
         $this->assertSame(0, $session1['remaining_seconds'] > 0 ? 0 : 0); // remaining checks is 0
 
         // Skenario 2: Waktu 5 menit (300 detik) habis
-        \Illuminate\Support\Facades\Cache::put("polling_session:{$invoiceNumber}", [
-            'started_at' => \Carbon\CarbonImmutable::now()->timestamp - 301,
+        Cache::put("polling_session:{$invoiceNumber}", [
+            'started_at' => CarbonImmutable::now()->timestamp - 301,
             'check_count' => 10,
         ], 600);
 
@@ -276,7 +279,7 @@ class SubscriptionPaymentDanaTest extends TestCase
             'services.udev.token' => 'test-integration-token',
         ]);
 
-        $controller = new \App\Http\Controllers\Api\V1\SubscriptionBillingController;
+        $controller = new SubscriptionBillingController;
         $client = new UdevBillingClient;
         $invoiceNumber = 'INV-CACHE-FRESH-1';
 
@@ -307,18 +310,18 @@ class SubscriptionPaymentDanaTest extends TestCase
             'services.udev.token' => 'test-integration-token',
         ]);
 
-        $controller = new \App\Http\Controllers\Api\V1\SubscriptionBillingController;
+        $controller = new SubscriptionBillingController;
         $client = new UdevBillingClient;
         $invoiceNumber = 'INV-CACHE-STALE-1';
 
-        \Illuminate\Support\Facades\Cache::forget("invoice_fresh:{$invoiceNumber}");
-        \Illuminate\Support\Facades\Cache::put("invoice_stale:{$invoiceNumber}", [
+        Cache::forget("invoice_fresh:{$invoiceNumber}");
+        Cache::put("invoice_stale:{$invoiceNumber}", [
             'data' => [
                 'invoice_number' => $invoiceNumber,
                 'status' => 'pending',
                 'stale_source' => true,
             ],
-            'cached_at' => \Carbon\CarbonImmutable::now()->timestamp - 60, // 60 detik lalu (masih dalam jendela 5 menit)
+            'cached_at' => CarbonImmutable::now()->timestamp - 60, // 60 detik lalu (masih dalam jendela 5 menit)
         ], 300);
 
         // UDEV sedang down (503)
@@ -342,17 +345,17 @@ class SubscriptionPaymentDanaTest extends TestCase
             'services.udev.token' => 'test-integration-token',
         ]);
 
-        $controller = new \App\Http\Controllers\Api\V1\SubscriptionBillingController;
+        $controller = new SubscriptionBillingController;
         $client = new UdevBillingClient;
         $invoiceNumber = 'INV-CACHE-TOO-OLD-1';
 
-        \Illuminate\Support\Facades\Cache::forget("invoice_fresh:{$invoiceNumber}");
-        \Illuminate\Support\Facades\Cache::put("invoice_stale:{$invoiceNumber}", [
+        Cache::forget("invoice_fresh:{$invoiceNumber}");
+        Cache::put("invoice_stale:{$invoiceNumber}", [
             'data' => [
                 'invoice_number' => $invoiceNumber,
                 'status' => 'pending',
             ],
-            'cached_at' => \Carbon\CarbonImmutable::now()->timestamp - 305, // Melebihi 5 menit (300s)
+            'cached_at' => CarbonImmutable::now()->timestamp - 305, // Melebihi 5 menit (300s)
         ], 300);
 
         Http::fake([
@@ -374,7 +377,7 @@ class SubscriptionPaymentDanaTest extends TestCase
             'services.udev.token' => 'test-integration-token',
         ]);
 
-        $controller = new \App\Http\Controllers\Api\V1\SubscriptionBillingController;
+        $controller = new SubscriptionBillingController;
         $client = new UdevBillingClient;
         $invoiceNumber = 'INV-FORCE-FRESH-1';
 

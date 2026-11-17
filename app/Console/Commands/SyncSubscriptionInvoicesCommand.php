@@ -86,6 +86,7 @@ class SyncSubscriptionInvoicesCommand extends Command
 
             if (! $warungLock->get()) {
                 $invoiceLock->release();
+
                 continue;
             }
 

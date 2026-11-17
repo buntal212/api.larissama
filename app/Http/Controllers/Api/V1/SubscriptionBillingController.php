@@ -15,14 +15,12 @@ use App\Http\Requests\SubscriptionInvoicePreviewRequest;
 use App\Http\Requests\ValidateSubscriptionReferralRequest;
 use App\Http\Responses\ApiErrorResponse;
 use App\Models\User;
-use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 use UnexpectedValueException;
@@ -30,10 +28,15 @@ use UnexpectedValueException;
 class SubscriptionBillingController extends Controller
 {
     public const int STATUS_CACHE_TTL_SECONDS = 15;
+
     public const int STALE_MAX_AGE_SECONDS = 300;
+
     public const int MAX_POLL_CHECKS = 30;
+
     public const int MAX_POLL_DURATION_SECONDS = 300;
+
     public const int CHECKOUT_LOCK_TTL_SECONDS = 60;
+
     public const int CHECKOUT_LOCK_WAIT_SECONDS = 15;
 
     public function validateReferral(ValidateSubscriptionReferralRequest $request, UdevBillingClient $udev): JsonResponse

@@ -10,17 +10,25 @@ use Throwable;
 class UdevSyncLimiter
 {
     public const int MAX_REQUESTS_PER_MINUTE = 10;
+
     public const int CIRCUIT_FAILURE_THRESHOLD = 5;
+
     public const int CIRCUIT_COOLDOWN_SECONDS = 120; // 2 menit
 
     public const string STATE_CLOSED = 'CLOSED';
+
     public const string STATE_OPEN = 'OPEN';
+
     public const string STATE_HALF_OPEN = 'HALF_OPEN';
 
     public const string LIMITER_WINDOW_PREFIX = 'udev_rate_limiter:window:';
+
     public const string CB_STATE_KEY = 'udev_circuit_breaker:state';
+
     public const string CB_FAILURES_KEY = 'udev_circuit_breaker:consecutive_failures';
+
     public const string CB_COOLDOWN_KEY = 'udev_circuit_breaker:cooldown_until';
+
     public const string CB_PROBING_KEY = 'udev_circuit_breaker:probing';
 
     /**

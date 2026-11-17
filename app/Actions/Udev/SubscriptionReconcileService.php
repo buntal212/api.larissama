@@ -8,11 +8,11 @@ use DateTimeZone;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use UnexpectedValueException;
 
 class SubscriptionReconcileService
 {
     public const string RECENT_LOGS_KEY = 'udev_subscription_reconcile:recent_logs';
+
     public const int LOGS_TTL_SECONDS = 604800; // 7 hari
 
     public function __construct(
