@@ -12,9 +12,10 @@
 
 ## 1. Konteks dan Arsitektur Integrasi
 
-Dalam ekosistem Udumbara, **Temuka** bertindak sebagai platform penemuan (*discovery platform*) multi-sumber yang menyajikan penawaran produk/jasa kepada publik secara bertahap (*progressive delivery*) melalui **Server-Sent Events (SSE)**.
+Dalam ekosistem Udumbara, **Temuka** bertindak sebagai platform penemuan (_discovery platform_) multi-sumber yang menyajikan penawaran produk/jasa kepada publik secara bertahap (_progressive delivery_) melalui **Server-Sent Events (SSE)**.
 
 Alur integrasi berjalan secara berjenjang:
+
 ```
 Browser Pengguna (Temuka Web)
         │
@@ -29,15 +30,16 @@ Aplikasi Sumber Udumbara (ASU): [Larissama, Sumber Lain...]
 ```
 
 ### Prinsip Utama Integrasi:
+
 1. **Zero Direct Database Access:** UIH **tidak pernah** mengakses database MySQL Larissama secara langsung. Komunikasi murni melalui gerbang API HTTP REST S2S.
-2. **Kanonisasi Data:** UIH menormalisasi data dari berbagai ASU ke dalam satu kontrak kanonik yang seragam (*UIH Canonical Catalog Contract v1*). Larissama bertugas menyediakan data katalog sesuai kontrak S2S yang ditentukan dalam dokumen ini.
+2. **Kanonisasi Data:** UIH menormalisasi data dari berbagai ASU ke dalam satu kontrak kanonik yang seragam (_UIH Canonical Catalog Contract v1_). Larissama bertugas menyediakan data katalog sesuai kontrak S2S yang ditentukan dalam dokumen ini.
 3. **Penyedia Kuliner Pertama:** Larissama bertindak sebagai ASU kuliner pertama yang menyediakan katalog menu makanan/minuman dari warung-warung makan terverifikasi.
 
 ---
 
 ## 2. Identitas dan Routing ASU
 
-Larissama adalah sistem *multi-tenant* berbasis *single database* di mana setiap tenant merepresentasikan sebuah warung makan (`warungs`). Identitas data dibagi menjadi 3 hierarki:
+Larissama adalah sistem _multi-tenant_ berbasis _single database_ di mana setiap tenant merepresentasikan sebuah warung makan (`warungs`). Identitas data dibagi menjadi 3 hierarki:
 
 ```
 +-------------------------------------------------------------+
@@ -61,20 +63,24 @@ Larissama adalah sistem *multi-tenant* berbasis *single database* di mana setiap
 ```
 
 ### 2.1. ASU Identity (`source: "larissama"`)
+
 - Larissama **tidak memerlukan** kolom `application_id` pada database internal. Seluruh instance Larissama secara utuh adalah satu domain aplikasi sumber.
 - UIH mendaftarkan Larissama pada registry internalnya dengan kode kanonis string: `'larissama'`.
 
 ### 2.2. Provider Identity (`provider_id`)
+
 - Mengidentifikasi warung penjual di Larissama.
 - **Identitas Kanonik:** `warungs.id` (integer atau string numerik unik global).
 - **Business Code:** `warungs.kode` (contoh: `WRG-00001`), ramah pengguna dan bersifat unik global.
 
 ### 2.3. Offer / Menu Identity (`offer_id`)
+
 - Mengidentifikasi item menu yang ditawarkan oleh warung.
 - **Identitas Kanonik:** `menus.id` (integer atau string numerik unik global).
 - **Peringatan Penting mengenai `menus.kode`:** Kolom `menus.kode` (contoh: `MNU-00001`) di Larissama **hanya unik per warung** (`menus_warung_kode_unique`), bukan unik global lintas warung. Oleh karena itu, UIH dan Temuka **wajib menggunakan `menus.id`** sebagai `offer_id` kanonis global. `menus.kode` hanya berfungsi sebagai atribut metadata bisnis opsional.
 
 ### 2.4. Mekanisme Routing di UIH
+
 - **Pencarian Katalog:** UIH menjalankan adapter terdaftar (`LarissamaCatalogAdapter`) secara paralel saat pengguna Temuka mencari menu makanan.
 - **Routing Permintaan Masa Depan:** Setiap item yang berasal dari Larissama dilabeli dengan tuple:
   ```json
@@ -93,18 +99,21 @@ Larissama adalah sistem *multi-tenant* berbasis *single database* di mana setiap
 Untuk melayani pencarian katalog dari UIH, Larissama wajib menyediakan satu endpoint API Server-to-Server (S2S) inbound khusus publik katalog.
 
 ### 3.1. Spesifikasi Endpoint & Metode HTTP
+
 - **Metode:** `GET` (idempotent dan ramah performa)
 - **URL Path:** `/api/v1/s2s/catalog/search`
 - **Tipe Konten:** `application/json`
 
 ### 3.2. Parameter Pencarian (Query Parameters)
-| Parameter | Tipe Data | Wajib | Keterangan |
-|---|---|---|---|
-| `q` atau `query` | `string` | Tidak (Nullable) | Kata kunci pencarian nama atau deskripsi menu (min: 1 karakter, max: 100 karakter). Jika kosong atau tidak disertakan, kembalikan daftar menu aktif terpopuler/terbaru hingga batas `limit`. |
-| `limit` | `integer` | Tidak | Batas jumlah item yang dikembalikan. Default: `20`, minimum: `1`, maksimum: `50`. Nilai di atas 50 wajib ditolak dengan HTTP 422. |
-| `provider_id` | `integer` | Tidak | Filter opsional untuk mencari menu dari satu warung tertentu (`warungs.id`). |
+
+| Parameter        | Tipe Data | Wajib            | Keterangan                                                                                                                                                                                   |
+| ---------------- | --------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `q` atau `query` | `string`  | Tidak (Nullable) | Kata kunci pencarian nama atau deskripsi menu (min: 1 karakter, max: 100 karakter). Jika kosong atau tidak disertakan, kembalikan daftar menu aktif terpopuler/terbaru hingga batas `limit`. |
+| `limit`          | `integer` | Tidak            | Batas jumlah item yang dikembalikan. Default: `20`, minimum: `1`, maksimum: `50`. Nilai di atas 50 wajib ditolak dengan HTTP 422.                                                            |
+| `provider_id`    | `integer` | Tidak            | Filter opsional untuk mencari menu dari satu warung tertentu (`warungs.id`).                                                                                                                 |
 
 ### 3.3. Request Headers dari UIH
+
 ```http
 GET /api/v1/s2s/catalog/search?q=nasi+goreng&limit=20 HTTP/1.1
 Host: api.larissama.internal
@@ -114,6 +123,7 @@ X-Correlation-ID: 7b36f1c2-9014-411a-824c-b17f8a92345e
 ```
 
 ### 3.4. Format JSON Response Resmi (Canonical v1 Compliant)
+
 Format respons menggunakan standar JSON envelope yang selaras 100% dengan Canonical Catalog Contract v1:
 
 ```json
@@ -159,6 +169,7 @@ Format respons menggunakan standar JSON envelope yang selaras 100% dengan Canoni
 ```
 
 ### 3.5. Aturan Lapangan, Sensitivitas, dan Nullability
+
 1. **Harga Jual Menu (`price`):**
    - Format wajib berupa objek: `{"amount": <integer rupiah>, "currency": "IDR"}`.
    - `price.amount`: Bilangan bulat positif $\ge 0$ (contoh: `25000`). Bukan float (bukan `25000.00`), dan bukan string.
@@ -180,30 +191,33 @@ Format respons menggunakan standar JSON envelope yang selaras 100% dengan Canoni
    - `location.address`: Diambil dari `warungs.alamat` (atau `null`).
    - `location.latitude` & `location.longitude`: Saat ini belum ada kolom koordinat di Larissama, sehingga wajib bernilai `null`.
 6. **Penegakan Nullability Eksplisit:**
-   - Seluruh field yang bernilai kosong (`code`, `category`, `summary`, `image`, `provider.image`, `provider.contact.*`, `provider.location.*`) **wajib hadir eksplisit dalam JSON dengan nilai `null`**, bukan dihilangkan dari objek (*omitted*).
+   - Seluruh field yang bernilai kosong (`code`, `category`, `summary`, `image`, `provider.image`, `provider.contact.*`, `provider.location.*`) **wajib hadir eksplisit dalam JSON dengan nilai `null`**, bukan dihilangkan dari objek (_omitted_).
 
 ### 3.6. Aturan Kelayakan Publik (Public Eligibility Rules)
+
 Hanya menu dan warung yang memenuhi **seluruh kriteria** berikut yang boleh dikembalikan dalam pencarian katalog publik:
 
-| Entitas | Kriteria Kelayakan Publik di Larissama | Keterangan Teknis |
-|---|---|---|
-| **Warung** | `warungs.pendaftaran_disetujui == true` | Pendaftaran warung telah disetujui admin. |
-| **Warung** | `warungs.aktif == true` | Warung dalam status operasional aktif. |
-| **Warung** | `warung->subscriptionStatusAt(now()) === 'aktif'` | Langganan warung aktif (tidak kedaluwarsa, tidak terjadwal, tidak ditangguhkan). |
-| **Kategori**| `kategori_menus.aktif == true` | Kategori menu aktif. |
-| **Menu** | `menus.aktif == true` | Menu aktif dan dapat dipesan. |
-| **Menu** | `menus.harga >= 0` | Harga jual valid dan tidak negatif. |
-| **Integritas** | `menus.warung_id == kategori_menus.warung_id` | Integritas composite key tenant terjamin. |
+| Entitas        | Kriteria Kelayakan Publik di Larissama            | Keterangan Teknis                                                                |
+| -------------- | ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Warung**     | `warungs.pendaftaran_disetujui == true`           | Pendaftaran warung telah disetujui admin.                                        |
+| **Warung**     | `warungs.aktif == true`                           | Warung dalam status operasional aktif.                                           |
+| **Warung**     | `warung->subscriptionStatusAt(now()) === 'aktif'` | Langganan warung aktif (tidak kedaluwarsa, tidak terjadwal, tidak ditangguhkan). |
+| **Kategori**   | `kategori_menus.aktif == true`                    | Kategori menu aktif.                                                             |
+| **Menu**       | `menus.aktif == true`                             | Menu aktif dan dapat dipesan.                                                    |
+| **Menu**       | `menus.harga >= 0`                                | Harga jual valid dan tidak negatif.                                              |
+| **Integritas** | `menus.warung_id == kategori_menus.warung_id`     | Integritas composite key tenant terjamin.                                        |
 
 Menu dari warung yang belum disetujui, warung non-aktif, atau warung yang masa langganannya habis **tidak boleh muncul** di hasil pencarian.
 
 ### 3.7. Penanganan Hasil Kosong dan Error
+
 - **Hasil Tidak Ditemukan:** Jika kata kunci tidak menghasilkan menu yang cocok, kembalikan HTTP `200 OK` dengan payload `"data": []` dan `"total": 0`. **Bukan HTTP 404**.
 - **Validasi Gagal (misal limit > 50):** HTTP `422 Unprocessable Content` dengan struktur JSON error Laravel standar.
 - **Autentikasi Gagal:** HTTP `401 Unauthorized`.
 - **Internal Server Error:** HTTP `500 Internal Server Error` dengan pesan aman tanpa membocorkan trace database atau file paths di environment produksi.
 
 ### 3.8. Target Kinerja & SLA
+
 - **Target SLA Latensi:** Larissama diharapkan merespons query pencarian dalam waktu $\le \mathbf{800\text{ ms}}$.
 - **Batas Timeout UIH:** UIH membatasi waktu tunggu HTTP client sebesar **2.0 hingga 3.0 detik**. Jika Larissama melewati batas ini, UIH akan memutus koneksi dan memancarkan event SSE `source_failed` untuk Larissama agar stream pencarian pengguna Temuka tidak terhenti.
 
@@ -211,15 +225,18 @@ Menu dari warung yang belum disetujui, warung non-aktif, atau warung yang masa l
 
 ## 4. Autentikasi Server-to-Server (S2S)
 
-Komunikasi antara UIH dan Larissama adalah komunikasi mesin-ke-mesin (*machine-to-machine*) dalam jaringan terpercaya.
+Komunikasi antara UIH dan Larissama adalah komunikasi mesin-ke-mesin (_machine-to-machine_) dalam jaringan terpercaya.
 
 ### 4.1. Pemisahan Total dari Laravel Sanctum
+
 Larissama saat ini menggunakan Laravel Sanctum untuk otentikasi pengguna web/mobile (kasir/pemilik warung).
+
 - Autentikasi S2S **tidak boleh** menggunakan atau memeriksa tabel `personal_access_tokens` milik Sanctum.
-- Autentikasi S2S tidak merepresentasikan user login mana pun dan bersifat *stateless*.
+- Autentikasi S2S tidak merepresentasikan user login mana pun dan bersifat _stateless_.
 - Diimplementasikan menggunakan dedicated middleware, misalnya: `EnsureServerToServerAuthentication`.
 
 ### 4.2. Mekanisme Bearer Token
+
 1. UIH menyertakan Bearer token pada header:
    ```http
    Authorization: Bearer <UIH_SERVER_TOKEN>
@@ -230,7 +247,7 @@ Larissama saat ini menggunakan Laravel Sanctum untuk otentikasi pengguna web/mob
    UIH_SERVER_TOKEN=larissama_s2s_secret_secure_token_random
    ```
    Didaftarkan pada konfigurasi: `config('services.uih.server_token')`.
-3. Validasi token wajib menggunakan perbandingan string tahan serangan pewaktuan (*timing-attack safe*):
+3. Validasi token wajib menggunakan perbandingan string tahan serangan pewaktuan (_timing-attack safe_):
    ```php
    if (! is_string($token) || ! hash_equals($expectedToken, $token)) {
        return response()->json(['message' => 'Invalid S2S credentials.'], 401);
@@ -242,10 +259,12 @@ Larissama saat ini menggunakan Laravel Sanctum untuk otentikasi pengguna web/mob
 
 ## 5. Aturan Data dan Tenant Isolation
 
-Larissama mengelola ribuan menu dari berbagai warung dalam satu database terpusat. Untuk mencegah kebocoran data (*data leakage*):
+Larissama mengelola ribuan menu dari berbagai warung dalam satu database terpusat. Untuk mencegah kebocoran data (_data leakage_):
 
 ### 5.1. Perlindungan Data Sensitif (Strict Exclusion List)
+
 Endpoint S2S katalog Larissama **DILARANG KERAS** memuat field-field berikut:
+
 1. `menus.harga_modal` (HPP / margin keuntungan pedagang).
 2. Data akun pengguna (`users.id`, `username`, `email`, `password`, `pin`, `role`).
 3. Riwayat transaksi kasir dan penjualan (`penjualans`, `penjualan_items`, `penjualan_payments`).
@@ -284,7 +303,9 @@ Meskipun integrasi tahap awal difokuskan pada pencarian katalog, struktur identi
 ```
 
 ### 6.2. Prinsip Validasi Mandiri Larissama
+
 Jika endpoint pemesanan S2S kelak dibangun di Larissama:
+
 1. **Zero-Trust Input Harga:** Larissama **tidak boleh** menerima harga barang yang dikirim oleh client/UIH. Larissama wajib mengambil harga resmi langsung dari database `menus.harga` pada saat pembuatan pesanan.
 2. **Validasi Ketersediaan Real-Time:** Larissama wajib memverifikasi ulang apakah warung dan menu bersangkutan masih aktif dan dapat menerima pesanan.
 3. **Pencatatan Transaksi:** Pesanan dari luar akan dicatat sesuai alur kasir Larissama dengan referensi nomor order eksternal dari Temuka.
@@ -295,26 +316,26 @@ Jika endpoint pemesanan S2S kelak dibangun di Larissama:
 
 Tabel berikut menunjukkan pemetaan antara field data di Larissama, field kanonik di UIH, dan konsumsinya di Temuka:
 
-| Field Kanonik UIH v1 | Field Sumber Larissama | Tipe Data | Status | Aturan Transformasi & Mapping |
-|---|---|---|---|---|
-| `id` | `menus.id` | `string` | **Tersedia** | Wajib. Di-cast ke string (`(string) $menu->id`). Menggunakan PK global unik `menus.id`. |
-| `code` | `menus.kode` | `string \| null` | **Tersedia** | Opsional. Kode menu bisnis (`MNU-XXXXX`). Unik hanya per-warung. |
-| `name` | `menus.nama` | `string` | **Tersedia** | Wajib. Nama publik menu makanan/minuman. |
-| `category` | `kategori_menus.nama` | `string \| null` | **Tersedia** | Opsional. Nama kategori publik via relasi `$menu->kategoriMenu->nama`. |
-| `summary` | `menus.deskripsi` | `string \| null` | **Tersedia** | Opsional. Deskripsi singkat menu, atau `null` jika tidak diisi warung. |
-| `price.amount` | `menus.harga` | `integer` | **Tersedia** | Wajib. Di-cast ke integer rupiah (`(int) round((float) $menu->harga)`). Nilai $\ge 0$. **HPP dilarang diekspos.** |
-| `price.currency` | Konstanta `'IDR'` | `string` | **Tersedia** | Wajib. Kode ISO 4217 tetap `'IDR'`. |
-| `image` | `menus.gambar` | `object \| null` | **Tersedia** | Opsional. Objek `{"url": Storage::url($menu->gambar)}` jika gambar ada, atau `null` jika kosong. |
-| `availability` | Status aktif | `string` | **Tersedia** | Wajib. Enum `"available"` jika menu aktif, selain itu `"unavailable"`. |
-| `provider.id` | `warungs.id` | `string` | **Tersedia** | Wajib. Di-cast ke string (`(string) $warung->id`). |
-| `provider.code` | `warungs.kode` | `string \| null` | **Tersedia** | Opsional. Format string `WRG-XXXXX`. |
-| `provider.name` | `warungs.nama` | `string` | **Tersedia** | Wajib. Nama warung makan. |
-| `provider.image` | `warungs.logo` | `object \| null` | **Tersedia** | Opsional. Objek `{"url": Storage::url($warung->logo)}` jika logo ada, atau `null`. |
-| `provider.contact.phone` | `warungs.telepon` | `string \| null` | **Tersedia** | Opsional. Nomor telepon publik warung. |
-| `provider.contact.whatsapp` | *Belum ada kolom* | `null` | **Belum Tersedia** | Bernilai `null`. |
-| `provider.location.address` | `warungs.alamat` | `string \| null` | **Tersedia** | Opsional. Alamat fisik warung. |
-| `provider.location.latitude` | *Belum ada kolom* | `null` | **Belum Tersedia** | Bernilai `null`. |
-| `provider.location.longitude` | *Belum ada kolom* | `null` | **Belum Tersedia** | Bernilai `null`. |
+| Field Kanonik UIH v1          | Field Sumber Larissama | Tipe Data        | Status             | Aturan Transformasi & Mapping                                                                                     |
+| ----------------------------- | ---------------------- | ---------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `id`                          | `menus.id`             | `string`         | **Tersedia**       | Wajib. Di-cast ke string (`(string) $menu->id`). Menggunakan PK global unik `menus.id`.                           |
+| `code`                        | `menus.kode`           | `string \| null` | **Tersedia**       | Opsional. Kode menu bisnis (`MNU-XXXXX`). Unik hanya per-warung.                                                  |
+| `name`                        | `menus.nama`           | `string`         | **Tersedia**       | Wajib. Nama publik menu makanan/minuman.                                                                          |
+| `category`                    | `kategori_menus.nama`  | `string \| null` | **Tersedia**       | Opsional. Nama kategori publik via relasi `$menu->kategoriMenu->nama`.                                            |
+| `summary`                     | `menus.deskripsi`      | `string \| null` | **Tersedia**       | Opsional. Deskripsi singkat menu, atau `null` jika tidak diisi warung.                                            |
+| `price.amount`                | `menus.harga`          | `integer`        | **Tersedia**       | Wajib. Di-cast ke integer rupiah (`(int) round((float) $menu->harga)`). Nilai $\ge 0$. **HPP dilarang diekspos.** |
+| `price.currency`              | Konstanta `'IDR'`      | `string`         | **Tersedia**       | Wajib. Kode ISO 4217 tetap `'IDR'`.                                                                               |
+| `image`                       | `menus.gambar`         | `object \| null` | **Tersedia**       | Opsional. Objek `{"url": Storage::url($menu->gambar)}` jika gambar ada, atau `null` jika kosong.                  |
+| `availability`                | Status aktif           | `string`         | **Tersedia**       | Wajib. Enum `"available"` jika menu aktif, selain itu `"unavailable"`.                                            |
+| `provider.id`                 | `warungs.id`           | `string`         | **Tersedia**       | Wajib. Di-cast ke string (`(string) $warung->id`).                                                                |
+| `provider.code`               | `warungs.kode`         | `string \| null` | **Tersedia**       | Opsional. Format string `WRG-XXXXX`.                                                                              |
+| `provider.name`               | `warungs.nama`         | `string`         | **Tersedia**       | Wajib. Nama warung makan.                                                                                         |
+| `provider.image`              | `warungs.logo`         | `object \| null` | **Tersedia**       | Opsional. Objek `{"url": Storage::url($warung->logo)}` jika logo ada, atau `null`.                                |
+| `provider.contact.phone`      | `warungs.telepon`      | `string \| null` | **Tersedia**       | Opsional. Nomor telepon publik warung.                                                                            |
+| `provider.contact.whatsapp`   | _Belum ada kolom_      | `null`           | **Belum Tersedia** | Bernilai `null`.                                                                                                  |
+| `provider.location.address`   | `warungs.alamat`       | `string \| null` | **Tersedia**       | Opsional. Alamat fisik warung.                                                                                    |
+| `provider.location.latitude`  | _Belum ada kolom_      | `null`           | **Belum Tersedia** | Bernilai `null`.                                                                                                  |
+| `provider.location.longitude` | _Belum ada kolom_      | `null`           | **Belum Tersedia** | Bernilai `null`.                                                                                                  |
 
 ---
 
@@ -323,6 +344,7 @@ Tabel berikut menunjukkan pemetaan antara field data di Larissama, field kanonik
 Bagian ini memuat panduan konkret bagi developer Larissama yang akan mengimplementasikan fitur ini.
 
 ### 8.1. Konfigurasi Lingkungan (`.env` dan `config/services.php`)
+
 1. Tambahkan environment variable pada file `.env` dan `.env.example`:
    ```dotenv
    UIH_SERVER_TOKEN=larissama_s2s_secret_random_token_key_here
@@ -335,6 +357,7 @@ Bagian ini memuat panduan konkret bagi developer Larissama yang akan mengimpleme
    ```
 
 ### 8.2. Pembuatan Middleware S2S Auth
+
 Buat file `app/Http/Middleware/EnsureServerToServerAuthentication.php`:
 
 ```php
@@ -368,6 +391,7 @@ class EnsureServerToServerAuthentication
 ```
 
 ### 8.3. Pendaftaran Route di `routes/api.php`
+
 ```php
 use App\Http\Controllers\Api\V1\S2S\CatalogSearchController;
 use App\Http\Middleware\EnsureServerToServerAuthentication;
@@ -378,6 +402,7 @@ Route::prefix('v1/s2s')->middleware([EnsureServerToServerAuthentication::class])
 ```
 
 ### 8.4. Pembuatan Controller & Query Scope
+
 Buat `app/Http/Controllers/Api/V1/S2S/CatalogSearchController.php`:
 
 ```php
@@ -457,6 +482,7 @@ class CatalogSearchController extends Controller
 ```
 
 ### 8.5. Pembuatan API Resource (`CatalogMenuResource`)
+
 Buat `app/Http/Resources/Api/V1/S2S/CatalogMenuResource.php`:
 
 ```php
@@ -512,7 +538,9 @@ class CatalogMenuResource extends JsonResource
 ```
 
 ### 8.6. Automated Testing Plan (PHPUnit)
+
 Buat feature test di Larissama (`tests/Feature/Api/V1/S2S/CatalogSearchTest.php`) untuk memvalidasi:
+
 1. `test_rejects_unauthenticated_s2s_request()`: Request tanpa header `Authorization` mengembalikan 401.
 2. `test_rejects_invalid_s2s_token()`: Request dengan token salah mengembalikan 401.
 3. `test_validates_limit_parameter_maximum_50()`: `limit=51` mengembalikan 422.
@@ -529,12 +557,12 @@ Buat feature test di Larissama (`tests/Feature/Api/V1/S2S/CatalogSearchTest.php`
 
 Seluruh keputusan teknis penting kini telah **resmi disepakati dan diimplementasikan** pada UIH:
 
-| Keputusan | Status | Ketetapan |
-|---|---|---|
-| **Metode HTTP Endpoint S2S** | **DISEPAKATI** | Menggunakan `GET /api/v1/s2s/catalog/search`. |
-| **Format Harga** | **DISEPAKATI** | Objek kanonik `{"amount": int >= 0, "currency": "IDR"}`. Harga invalid ditolak (tidak diubah ke 0). |
-| **Format Gambar** | **DISEPAKATI** | Objek nullable `{"url": string} \| null`. Gambar item dan provider terpisah. |
-| **Batas Pencarian (`limit`)** | **DISEPAKATI** | Default 20, batas maksimum 50. Nilai > 50 ditolak (422). |
-| **Field Nullable** | **DISEPAKATI** | Wajib hadir eksplisit sebagai `null`, bukan dihilangkan dari JSON. |
-| **Kebijakan Caching UIH** | **DISEPAKATI** | UIH bertindak murni *pass-through* tanpa cache pada v1. |
-| **Data Sensitif / HPP** | **DISEPAKATI** | HPP (`harga_modal`) dan data internal dilarang keras dikembalikan. |
+| Keputusan                     | Status         | Ketetapan                                                                                           |
+| ----------------------------- | -------------- | --------------------------------------------------------------------------------------------------- |
+| **Metode HTTP Endpoint S2S**  | **DISEPAKATI** | Menggunakan `GET /api/v1/s2s/catalog/search`.                                                       |
+| **Format Harga**              | **DISEPAKATI** | Objek kanonik `{"amount": int >= 0, "currency": "IDR"}`. Harga invalid ditolak (tidak diubah ke 0). |
+| **Format Gambar**             | **DISEPAKATI** | Objek nullable `{"url": string} \| null`. Gambar item dan provider terpisah.                        |
+| **Batas Pencarian (`limit`)** | **DISEPAKATI** | Default 20, batas maksimum 50. Nilai > 50 ditolak (422).                                            |
+| **Field Nullable**            | **DISEPAKATI** | Wajib hadir eksplisit sebagai `null`, bukan dihilangkan dari JSON.                                  |
+| **Kebijakan Caching UIH**     | **DISEPAKATI** | UIH bertindak murni _pass-through_ tanpa cache pada v1.                                             |
+| **Data Sensitif / HPP**       | **DISEPAKATI** | HPP (`harga_modal`) dan data internal dilarang keras dikembalikan.                                  |

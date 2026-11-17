@@ -17,12 +17,12 @@ docker compose -f compose.test.yaml run --rm test-runner composer test
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Tiga feature test transaksi/laporan | PASS, 22 test / 3270 assertions; tanpa warning |
-| Suite `composer test` | PASS, 81 test / 9748 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Pemeriksaan                         | Hasil                                                   |
+| ----------------------------------- | ------------------------------------------------------- |
+| Pint                                | PASS                                                    |
+| Tiga feature test transaksi/laporan | PASS, 22 test / 3270 assertions; tanpa warning          |
+| Suite `composer test`               | PASS, 81 test / 9748 assertions; tanpa warning          |
+| Cleanup Compose test                | PASS, container database dan network disposable dihapus |
 
 ## Cakupan yang diperiksa
 

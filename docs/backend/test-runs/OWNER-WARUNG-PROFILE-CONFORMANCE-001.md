@@ -15,17 +15,17 @@ OpenAPI: **0.1.10-draft**
 
 ## Hasil
 
-| Check | Hasil |
-| --- | --- |
-| `CurrentWarungApiTest.php` di MySQL 8.0.40 Compose disposable | PASS: 9 tests / 762 assertions |
-| Endpoints warung/admin/profil terkait | PASS: 32 tests / 3.168 assertions setelah pemeriksaan akhir URL logo |
-| Policy, OpenAPI document integrity, dan route/OpenAPI inventory | PASS: 28 tests / 1.537 assertions; 40 operationId / 26 paths cocok |
-| Full suite MySQL 8.0.40 Compose disposable | PASS: 577 tests / 98.202 assertions in 61.03 seconds |
-| Pint | PASS |
-| OpenAPI 3.1 validator | PASS |
-| `php artisan route:cache` lalu `route:clear` pada Docker PHP 8.3 | PASS |
-| PHP `fileinfo`, upload limits 2M/8M, dan `php artisan storage:link --force` pada Docker runtime | PASS |
-| YAML dan bash syntax seluruh workflow deploy | PASS: 17 script |
+| Check                                                                                           | Hasil                                                                |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `CurrentWarungApiTest.php` di MySQL 8.0.40 Compose disposable                                   | PASS: 9 tests / 762 assertions                                       |
+| Endpoints warung/admin/profil terkait                                                           | PASS: 32 tests / 3.168 assertions setelah pemeriksaan akhir URL logo |
+| Policy, OpenAPI document integrity, dan route/OpenAPI inventory                                 | PASS: 28 tests / 1.537 assertions; 40 operationId / 26 paths cocok   |
+| Full suite MySQL 8.0.40 Compose disposable                                                      | PASS: 577 tests / 98.202 assertions in 61.03 seconds                 |
+| Pint                                                                                            | PASS                                                                 |
+| OpenAPI 3.1 validator                                                                           | PASS                                                                 |
+| `php artisan route:cache` lalu `route:clear` pada Docker PHP 8.3                                | PASS                                                                 |
+| PHP `fileinfo`, upload limits 2M/8M, dan `php artisan storage:link --force` pada Docker runtime | PASS                                                                 |
+| YAML dan bash syntax seluruh workflow deploy                                                    | PASS: 17 script                                                      |
 
 ## Catatan deploy
 

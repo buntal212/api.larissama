@@ -17,11 +17,11 @@ docker compose -f compose.test.yaml run --rm test-runner composer test
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Pint | PASS |
-| `AuthApiTest` | PASS, 20 test / 3069 assertions |
-| `composer test` | PASS, 82 test / 10865 assertions; tanpa warning |
+| Pemeriksaan          | Hasil                                                   |
+| -------------------- | ------------------------------------------------------- |
+| Pint                 | PASS                                                    |
+| `AuthApiTest`        | PASS, 20 test / 3069 assertions                         |
+| `composer test`      | PASS, 82 test / 10865 assertions; tanpa warning         |
 | Cleanup Compose test | PASS, container database dan network disposable dihapus |
 
 ## Request body yang dicocokkan

@@ -3,7 +3,7 @@ name: larissama-backend-performance
 services:
   performance-db:
     image: mysql:8.0.40
-    command: ["--log-bin-trust-function-creators=1"]
+    command: ['--log-bin-trust-function-creators=1']
     environment:
       MYSQL_DATABASE: larissama_performance
       MYSQL_USER: larissama_performance
@@ -27,20 +27,20 @@ services:
       - .:/var/www/html
     environment:
       APP_ENV: testing
-      APP_DEBUG: "false"
+      APP_DEBUG: 'false'
       APP_KEY: base64:bGFyaXNzYW1hLWxvY2FsLXRlc3Qta2V5LTEyMzQ1Njc=
       APP_URL: http://performance-api:8000
       DB_CONNECTION: mysql
       DB_HOST: performance-db
-      DB_PORT: "3306"
+      DB_PORT: '3306'
       DB_DATABASE: larissama_performance
       DB_USERNAME: larissama_performance
       DB_PASSWORD: larissama-performance-only
-      DB_URL: ""
+      DB_URL: ''
       CACHE_STORE: array
       SESSION_DRIVER: array
       QUEUE_CONNECTION: sync
-      PHP_CLI_SERVER_WORKERS: "4"
+      PHP_CLI_SERVER_WORKERS: '4'
       COMPOSER_HOME: /tmp/composer
     command:
       - sh
@@ -69,16 +69,16 @@ services:
       - .:/var/www/html
     environment:
       APP_ENV: testing
-      APP_DEBUG: "false"
+      APP_DEBUG: 'false'
       APP_KEY: base64:bGFyaXNzYW1hLWxvY2FsLXRlc3Qta2V5LTEyMzQ1Njc=
       APP_URL: http://performance-api:8000
       DB_CONNECTION: mysql
       DB_HOST: performance-db
-      DB_PORT: "3306"
+      DB_PORT: '3306'
       DB_DATABASE: larissama_performance
       DB_USERNAME: larissama_performance
       DB_PASSWORD: larissama-performance-only
-      DB_URL: ""
+      DB_URL: ''
       CACHE_STORE: array
       SESSION_DRIVER: array
       QUEUE_CONNECTION: sync

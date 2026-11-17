@@ -21,25 +21,25 @@ docker compose -f compose.test.yaml run --rm test-runner php artisan test --disp
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Feature test pagination dan sort | PASS, 51 test / 3381 assertions |
-| Suite penuh | PASS, 133 test / 14246 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Pemeriksaan                      | Hasil                                                   |
+| -------------------------------- | ------------------------------------------------------- |
+| Pint                             | PASS                                                    |
+| Feature test pagination dan sort | PASS, 51 test / 3381 assertions                         |
+| Suite penuh                      | PASS, 133 test / 14246 assertions; tanpa warning        |
+| Cleanup Compose test             | PASS, container database dan network disposable dihapus |
 
 ## Bukti enum
 
 Semua nilai enum diambil dari kontrak OpenAPI dan dipakai dalam query GET. Checker memastikan map query cocok dengan schema parameter, lalu request runtime memakai role yang sesuai menghasilkan HTTP 200 dengan response schema valid.
 
-| Operasi | Nilai sort yang diuji |
-| --- | --- |
-| `GET /admin/warungs` | `nama`, `-nama` |
-| `GET /users` | `nama`, `-nama` |
+| Operasi               | Nilai sort yang diuji                |
+| --------------------- | ------------------------------------ |
+| `GET /admin/warungs`  | `nama`, `-nama`                      |
+| `GET /users`          | `nama`, `-nama`                      |
 | `GET /kategori-menus` | `urutan`, `-urutan`, `nama`, `-nama` |
-| `GET /menus` | `nama`, `-nama` |
-| `GET /penjualans` | `-tanggal`, `tanggal` |
-| `GET /pembelians` | `-tanggal`, `tanggal` |
+| `GET /menus`          | `nama`, `-nama`                      |
+| `GET /penjualans`     | `-tanggal`, `tanggal`                |
+| `GET /pembelians`     | `-tanggal`, `tanggal`                |
 
 Run mengonfirmasi 14 kombinasi terdokumentasi, tanpa mengubah endpoint, validator, query, database, tenant scope, atau authorization.
 

@@ -11,13 +11,13 @@
 
 `IdempotencyKeyHeaderConformanceTest` menambahkan kedua operasi D11. Header hilang, kosong, lebih dari 255 karakter, atau whitespace di tepi ditolak oleh OpenAPI/runtime dengan 422 schema-conformant tanpa event audit. Key 255 karakter cocok schema request, diterima 201 schema-conformant, dan tercatat bersama event koreksi/pembatalan yang benar.
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Focused conformance | PASS: 5 test / 1.878 assertions |
-| Laravel Pint | PASS |
-| Suite Laravel lengkap | PASS: 492 test / 71.961 assertions, 39,21 detik |
-| Validator OpenAPI 3.1 | PASS; `docs/api/openapi.yaml: OK` |
-| Cleanup Compose | PASS; database test disposable dan network dihapus |
+| Pemeriksaan           | Hasil                                              |
+| --------------------- | -------------------------------------------------- |
+| Focused conformance   | PASS: 5 test / 1.878 assertions                    |
+| Laravel Pint          | PASS                                               |
+| Suite Laravel lengkap | PASS: 492 test / 71.961 assertions, 39,21 detik    |
+| Validator OpenAPI 3.1 | PASS; `docs/api/openapi.yaml: OK`                  |
+| Cleanup Compose       | PASS; database test disposable dan network dihapus |
 
 ## Batas bukti
 

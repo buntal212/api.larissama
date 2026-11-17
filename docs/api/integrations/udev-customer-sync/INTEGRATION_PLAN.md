@@ -42,14 +42,14 @@ Master plan ini menghubungkan pendaftaran customer dengan billing dan pengaturan
 
 ## Sumber kebenaran billing dan akses
 
-| Fakta | Otoritas | Peran sistem lain |
-| --- | --- | --- |
-| Identitas warung, akun owner, kontak utama | Larissama | UDEV menerima salinan customer dan menghubungkannya ke billing. |
-| ID customer UDEV | UDEV menerbitkan ID internal; Larissama memiliki ID eksternal stabil | Larissama menyimpan pasangan ID. |
-| Paket/harga, jumlah periode, invoice, payment attempt, settlement, `paid_at`, refund/chargeback | UDEV | Larissama meneruskan `period_count` yang dipilih dan menggunakan status terverifikasi untuk akses. |
-| Periode berbayar dan `paid_until` | UDEV setelah settlement terverifikasi | Larissama menyimpan projection, ID/version event, dan waktu rekonsiliasi. |
-| Durasi trial, masa tenggang, pembatasan route, penguncian/pemulihan | Larissama | Backend menerapkan kebijakan lokal dan memakai tanggal UDEV setelah settlement. |
-| Hak login/API dan isolasi tenant | Backend Larissama | Frontend hanya mencerminkan keputusan backend. |
+| Fakta                                                                                           | Otoritas                                                             | Peran sistem lain                                                                                  |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Identitas warung, akun owner, kontak utama                                                      | Larissama                                                            | UDEV menerima salinan customer dan menghubungkannya ke billing.                                    |
+| ID customer UDEV                                                                                | UDEV menerbitkan ID internal; Larissama memiliki ID eksternal stabil | Larissama menyimpan pasangan ID.                                                                   |
+| Paket/harga, jumlah periode, invoice, payment attempt, settlement, `paid_at`, refund/chargeback | UDEV                                                                 | Larissama meneruskan `period_count` yang dipilih dan menggunakan status terverifikasi untuk akses. |
+| Periode berbayar dan `paid_until`                                                               | UDEV setelah settlement terverifikasi                                | Larissama menyimpan projection, ID/version event, dan waktu rekonsiliasi.                          |
+| Durasi trial, masa tenggang, pembatasan route, penguncian/pemulihan                             | Larissama                                                            | Backend menerapkan kebijakan lokal dan memakai tanggal UDEV setelah settlement.                    |
+| Hak login/API dan isolasi tenant                                                                | Backend Larissama                                                    | Frontend hanya mencerminkan keputusan backend.                                                     |
 
 Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arahan UDEV dan menunggu review. Status customer UDEV bukan bukti lunas. Status customer, invoice, payment, subscription, trial, dan application access adalah fakta terpisah. Semantik final customer status masih perlu dicatat dari hasil review UDEV.
 
@@ -100,14 +100,14 @@ Untuk Tahap 1, `status=active` dikirim sementara untuk customer baru sesuai arah
 
 ## Kebijakan akses yang direkomendasikan
 
-| Keadaan | Login | Hak akses |
-| --- | --- | --- |
-| Trial 3 hari, belum membayar | Boleh | Fitur aplikasi penuh selama tiga tanggal lokal inklusif. |
-| Trial/periode saat ini berakhir, masih dalam grace 30 hari | Boleh untuk owner | Hanya katalog dan pembayaran dapat diakses; API bisnis lain ditolak backend. |
-| Pembayaran belum terverifikasi | Mengikuti status trial/grace yang berlaku | Redirect, screenshot, atau parameter browser tidak membuka akses. |
-| Pembayaran terverifikasi dan periode valid | Boleh | Akses sesuai role/tenant. |
-| Grace habis tanpa entitlement valid | Ditolak | Tidak bisa login; owner menghubungi admin untuk pemulihan. |
-| Penangguhan manual admin | Sesuai tindakan admin | Pembayaran tidak menghapus suspension manual secara otomatis. |
+| Keadaan                                                    | Login                                     | Hak akses                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
+| Trial 3 hari, belum membayar                               | Boleh                                     | Fitur aplikasi penuh selama tiga tanggal lokal inklusif.                     |
+| Trial/periode saat ini berakhir, masih dalam grace 30 hari | Boleh untuk owner                         | Hanya katalog dan pembayaran dapat diakses; API bisnis lain ditolak backend. |
+| Pembayaran belum terverifikasi                             | Mengikuti status trial/grace yang berlaku | Redirect, screenshot, atau parameter browser tidak membuka akses.            |
+| Pembayaran terverifikasi dan periode valid                 | Boleh                                     | Akses sesuai role/tenant.                                                    |
+| Grace habis tanpa entitlement valid                        | Ditolak                                   | Tidak bisa login; owner menghubungi admin untuk pemulihan.                   |
+| Penangguhan manual admin                                   | Sesuai tindakan admin                     | Pembayaran tidak menghapus suspension manual secara otomatis.                |
 
 Aturan grace lokal ditetapkan: mulai sehari setelah tanggal akhir, owner dapat login sampai tanggal akhir +30 secara inklusif dan hanya mengakses katalog/pembayaran; setelahnya akses perlu dibuka kembali admin. Batas trial ditetapkan tiga tanggal lokal inklusif agar selaras dengan field tanggal langganan yang ada.
 

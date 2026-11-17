@@ -26,21 +26,21 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Test laporan terarah | PASS, 4 test / 96 assertions; tanpa warning |
-| Suite `composer test` | PASS, 25 test / 191 assertions; tanpa warning |
-| Pembersihan stack | PASS, container DB dan network disposable dihapus |
+| Check                 | Hasil                                             |
+| --------------------- | ------------------------------------------------- |
+| Pint                  | PASS                                              |
+| Test laporan terarah  | PASS, 4 test / 96 assertions; tanpa warning       |
+| Suite `composer test` | PASS, 25 test / 191 assertions; tanpa warning     |
+| Pembersihan stack     | PASS, container DB dan network disposable dihapus |
 
 ## Bukti conformance parsial
 
 Test membandingkan field set HTTP dengan schema response report dan `ApiError` di `docs/api/openapi.yaml`; ini assertion terarah dalam feature test, bukan validasi JSON Schema otomatis.
 
-| Response | Assertions |
-| --- | --- |
+| Response              | Assertions                                                                                                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Kedua report HTTP 200 | Top-level hanya `data`; data hanya berisi `period`, `jumlah_transaksi`, dan field total report; period hanya `date_from`, `date_to`, `timezone`; count bertipe integer dan nominal bertipe string decimal. Nilai juga diverifikasi pada boundary DST dan periode kosong. |
-| Kedua report HTTP 422 | Top-level persis `code`, `message`, `errors`, `request_id`; code `VALIDATION_ERROR`; error menyebut field yang invalid; pesan berupa string; request_id berformat UUID. Tiga skenario invalid dijalankan pada masing-masing endpoint. |
+| Kedua report HTTP 422 | Top-level persis `code`, `message`, `errors`, `request_id`; code `VALIDATION_ERROR`; error menyebut field yang invalid; pesan berupa string; request_id berformat UUID. Tiga skenario invalid dijalankan pada masing-masing endpoint.                                    |
 
 Expected cocok dengan schema OpenAPI dan D13 yang disetujui user. Tidak ada perubahan runtime/API pada slice ini karena implementasi yang diuji sudah mengembalikan field set tersebut.
 

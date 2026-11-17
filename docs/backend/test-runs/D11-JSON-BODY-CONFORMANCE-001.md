@@ -17,13 +17,13 @@ Setiap request menggunakan ID pembelian dan bearer owner yang valid serta key id
 
 ## Hasil
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Focused `ApiMalformedJsonConformanceTest` | PASS: 3 test / 2.815 assertions |
-| Laravel Pint | PASS |
-| Suite Laravel lengkap | PASS: 492 test / 72.390 assertions, 42,58 detik |
-| Validator OpenAPI 3.1 | PASS; `docs/api/openapi.yaml: OK` |
-| Cleanup Compose | PASS; database test disposable dan network dihapus |
+| Pemeriksaan                               | Hasil                                              |
+| ----------------------------------------- | -------------------------------------------------- |
+| Focused `ApiMalformedJsonConformanceTest` | PASS: 3 test / 2.815 assertions                    |
+| Laravel Pint                              | PASS                                               |
+| Suite Laravel lengkap                     | PASS: 492 test / 72.390 assertions, 42,58 detik    |
+| Validator OpenAPI 3.1                     | PASS; `docs/api/openapi.yaml: OK`                  |
+| Cleanup Compose                           | PASS; database test disposable dan network dihapus |
 
 Dengan run ini seluruh 13 operasi yang mewajibkan request body memiliki cakupan ketiga bentuk JSON tersebut.
 

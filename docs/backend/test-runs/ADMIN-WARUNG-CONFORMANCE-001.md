@@ -25,12 +25,12 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Test terarah `AdminWarungManagementApiTest` | PASS, 5 test / 976 assertions; tanpa warning |
-| Suite `composer test` penuh | PASS, 80 test / 1844 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Check                                       | Hasil                                                   |
+| ------------------------------------------- | ------------------------------------------------------- |
+| Pint                                        | PASS                                                    |
+| Test terarah `AdminWarungManagementApiTest` | PASS, 5 test / 976 assertions; tanpa warning            |
+| Suite `composer test` penuh                 | PASS, 80 test / 1844 assertions; tanpa warning          |
+| Cleanup Compose test                        | PASS, container database dan network disposable dihapus |
 
 ## Bukti conformance runtime
 

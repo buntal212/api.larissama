@@ -94,14 +94,14 @@ Satu slice diterima bila:
 
 Roadmap mengikuti rancangan delapan tabel. [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) adalah indeks rencana; task dan dependency rinci dipelihara hanya di [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md), sedangkan kriteria gate ada di [TEST_PLAN.md](docs/backend/TEST_PLAN.md).
 
-| Milestone | Hasil dan gate |
-| --- | --- |
-| M0 | Runtime, keputusan awal, konvensi API, validator, harness dan DB test terisolasi; gate G0. |
-| M1 | Warung, users, auth, policy, tenant, administrasi dan kontrak akses; gate G1. |
-| M2 | Kategori/menu, validasi tenant, arsip dan kontrak katalog; gate G2. |
-| M3 | Penjualan header-rinci, snapshot, nominal, nomor/retry, riwayat dan laporan pendapatan; gate G3. |
-| M4 | Pembelian ringkas/rinci yang independen, nomor/retry, riwayat dan laporan total pembelian; gate G4. |
-| M5 | Regression, environment, runbook, integrasi/handoff frontend dan rilis; gate G5. |
+| Milestone | Hasil dan gate                                                                                      |
+| --------- | --------------------------------------------------------------------------------------------------- |
+| M0        | Runtime, keputusan awal, konvensi API, validator, harness dan DB test terisolasi; gate G0.          |
+| M1        | Warung, users, auth, policy, tenant, administrasi dan kontrak akses; gate G1.                       |
+| M2        | Kategori/menu, validasi tenant, arsip dan kontrak katalog; gate G2.                                 |
+| M3        | Penjualan header-rinci, snapshot, nominal, nomor/retry, riwayat dan laporan pendapatan; gate G3.    |
+| M4        | Pembelian ringkas/rinci yang independen, nomor/retry, riwayat dan laporan total pembelian; gate G4. |
+| M5        | Regression, environment, runbook, integrasi/handoff frontend dan rilis; gate G5.                    |
 
 Jangan menaikkan status milestone hanya karena dokumen atau migration selesai. Operasi API tetap DRAFT sampai perilaku/izin inti, implementasi, dan bukti fungsional/tenant untuk alur utama tersedia. Jika edge-case lanjutan disepakati untuk menyusul setelah frontend mulai integrasi, catat pada `x-deferred-verification`; `READY_FOR_FRONTEND` tidak berarti seluruh gate milestone atau production selesai. Handoff memakai operationId, versi spec, commit yang diuji, environment, dan bukti sesuai panduan API.
 

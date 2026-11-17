@@ -26,23 +26,23 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| `KategoriMenuApiTest.php` dan `MenuApiTest.php` | PASS, 17 test / 1573 assertions; tanpa warning |
-| Suite `composer test` | PASS, 81 test / 6673 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Check                                           | Hasil                                                   |
+| ----------------------------------------------- | ------------------------------------------------------- |
+| Pint                                            | PASS                                                    |
+| `KategoriMenuApiTest.php` dan `MenuApiTest.php` | PASS, 17 test / 1573 assertions; tanpa warning          |
+| Suite `composer test`                           | PASS, 81 test / 6673 assertions; tanpa warning          |
+| Cleanup Compose test                            | PASS, container database dan network disposable dihapus |
 
 ## Bukti conformance response runtime
 
 `tests/TestCase.php` mengambil operasi, status, schema response, dan `$ref` lokal dari `docs/api/openapi.yaml`. Test memasang assertion pada response HTTP yang sudah digunakan acceptance dan menguji schema untuk delapan operasi katalog:
 
-| Operasi | Status yang response-nya dicocokkan |
-| --- | --- |
-| `GET /kategori-menus` dan `GET /menus` | 200, 422 |
-| `POST /kategori-menus` dan `POST /menus` | 201, 403, 422 |
-| `GET /kategori-menus/{id}` dan `GET /menus/{id}` | 200, 404 |
-| `PATCH /kategori-menus/{id}` dan `PATCH /menus/{id}` | 200, 403, 404, 422 |
+| Operasi                                              | Status yang response-nya dicocokkan |
+| ---------------------------------------------------- | ----------------------------------- |
+| `GET /kategori-menus` dan `GET /menus`               | 200, 422                            |
+| `POST /kategori-menus` dan `POST /menus`             | 201, 403, 422                       |
+| `GET /kategori-menus/{id}` dan `GET /menus/{id}`     | 200, 404                            |
+| `PATCH /kategori-menus/{id}` dan `PATCH /menus/{id}` | 200, 403, 404, 422                  |
 
 Acceptance kategori/menu tetap membuktikan tenant scope, manager-only writes, cashier active-only visibility, pagination/filter/sort, kategori silang tenant, dan field yang tidak tersedia. Run ini tidak menemukan mismatch response API.
 

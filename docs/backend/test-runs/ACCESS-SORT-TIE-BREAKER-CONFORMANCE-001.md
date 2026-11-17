@@ -21,25 +21,25 @@ docker compose -f compose.test.yaml run --rm test-runner php artisan test --disp
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Tie-breaker sort | PASS, 14 test / 3514 assertions |
-| Suite penuh | PASS, 147 test / 17760 assertions; tanpa warning |
+| Pemeriksaan          | Hasil                                                   |
+| -------------------- | ------------------------------------------------------- |
+| Pint                 | PASS                                                    |
+| Tie-breaker sort     | PASS, 14 test / 3514 assertions                         |
+| Suite penuh          | PASS, 147 test / 17760 assertions; tanpa warning        |
 | Cleanup Compose test | PASS, container database dan network disposable dihapus |
 
 ## Bukti tie-breaker
 
 Setiap case membuat dua row dengan kolom primary sort yang sama, kemudian meminta dua halaman (`per_page=1`). Ascending mengurutkan ID terkecil pada page 1; descending mengurutkan ID terbesar pada page 1. Page 2 berisi row satunya dan kedua response melaporkan `total=2`, `last_page=2`; schema response cocok OpenAPI.
 
-| Operasi | Nilai sort yang diuji |
-| --- | --- |
-| `GET /admin/warungs` | `nama`, `-nama` |
-| `GET /users` | `nama`, `-nama` |
+| Operasi               | Nilai sort yang diuji                |
+| --------------------- | ------------------------------------ |
+| `GET /admin/warungs`  | `nama`, `-nama`                      |
+| `GET /users`          | `nama`, `-nama`                      |
 | `GET /kategori-menus` | `urutan`, `-urutan`, `nama`, `-nama` |
-| `GET /menus` | `nama`, `-nama` |
-| `GET /penjualans` | `tanggal`, `-tanggal` |
-| `GET /pembelians` | `tanggal`, `-tanggal` |
+| `GET /menus`          | `nama`, `-nama`                      |
+| `GET /penjualans`     | `tanggal`, `-tanggal`                |
+| `GET /pembelians`     | `tanggal`, `-tanggal`                |
 
 Semua 14 opsi dan 28 respons halaman lulus. Test hanya menggunakan data sintetis dan tidak mengubah API, query, controller, database, policy, tenant, atau role.
 

@@ -57,63 +57,63 @@ Tipe berikut menjelaskan maksud desain. Migration harus memakai tipe Laravel yan
 
 ### `warungs`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `kode` | VARCHAR(30), unique global; dibuat otomatis oleh backend saat provisioning warung |
-| `nama` | VARCHAR(150) |
-| `alamat` | TEXT, nullable |
-| `telepon` | VARCHAR(30), nullable |
-| `logo` | VARCHAR(255), nullable |
-| `timezone` | VARCHAR(64), identifier IANA, nullable tanpa default; wajib diisi sebelum akses tenant diaktifkan |
-| `tanggal_mulai` | DATE, nullable pada rancangan |
-| `tanggal_berakhir` | DATE, nullable pada rancangan |
-| `aktif` | BOOLEAN, default true |
-| `pendaftaran_disetujui` | BOOLEAN, default true untuk menjaga data lama; pendaftaran publik dimulai false dan hanya admin platform dapat menyetujuinya |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                                                                           |
+| `kode`                     | VARCHAR(30), unique global; dibuat otomatis oleh backend saat provisioning warung                                            |
+| `nama`                     | VARCHAR(150)                                                                                                                 |
+| `alamat`                   | TEXT, nullable                                                                                                               |
+| `telepon`                  | VARCHAR(30), nullable                                                                                                        |
+| `logo`                     | VARCHAR(255), nullable                                                                                                       |
+| `timezone`                 | VARCHAR(64), identifier IANA, nullable tanpa default; wajib diisi sebelum akses tenant diaktifkan                            |
+| `tanggal_mulai`            | DATE, nullable pada rancangan                                                                                                |
+| `tanggal_berakhir`         | DATE, nullable pada rancangan                                                                                                |
+| `aktif`                    | BOOLEAN, default true                                                                                                        |
+| `pendaftaran_disetujui`    | BOOLEAN, default true untuk menjaga data lama; pendaftaran publik dimulai false dan hanya admin platform dapat menyetujuinya |
+| `created_at`, `updated_at` | timestamp                                                                                                                    |
 
 ### `users`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key, nullable hanya untuk superadmin |
-| `nama` | VARCHAR(150) |
-| `username` | VARCHAR(100), unique global sesuai rancangan |
-| `email` | VARCHAR(150), nullable; unique global jika diisi |
-| `password` | VARCHAR(255), simpan hash melalui mekanisme Laravel |
-| `role` | VARCHAR(30); contoh: `superadmin`, `owner`, `manager`, `kasir`, `koki` |
-| `aktif` | BOOLEAN, default true |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                              |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                     |
+| `warung_id`                | BIGINT foreign key, nullable hanya untuk superadmin                    |
+| `nama`                     | VARCHAR(150)                                                           |
+| `username`                 | VARCHAR(100), unique global sesuai rancangan                           |
+| `email`                    | VARCHAR(150), nullable; unique global jika diisi                       |
+| `password`                 | VARCHAR(255), simpan hash melalui mekanisme Laravel                    |
+| `role`                     | VARCHAR(30); contoh: `superadmin`, `owner`, `manager`, `kasir`, `koki` |
+| `aktif`                    | BOOLEAN, default true                                                  |
+| `created_at`, `updated_at` | timestamp                                                              |
 
 Relasi: satu warung memiliki banyak user. Validasi aplikasi harus memastikan user tanpa warung benar-benar ber-role `superadmin` dan user dengan role lain memiliki warung.
 
 ### `kategori_menus`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` mendukung FK tenant |
-| `nama` | VARCHAR(100) |
-| `urutan` | INT, default 0 |
-| `aktif` | BOOLEAN, default true |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                            |
+| -------------------------- | -------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                   |
+| `warung_id`                | BIGINT foreign key; unique key `(warung_id, id)` mendukung FK tenant |
+| `nama`                     | VARCHAR(100)                                                         |
+| `urutan`                   | INT, default 0                                                       |
+| `aktif`                    | BOOLEAN, default true                                                |
+| `created_at`, `updated_at` | timestamp                                                            |
 
 ### `menus`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` mendukung FK tenant |
-| `kategori_menu_id` | BIGINT bagian FK gabungan dengan `warung_id` |
-| `kode` | VARCHAR(30), unique bersama `warung_id`; dibuat otomatis backend saat menu dibuat |
-| `nama` | VARCHAR(150) |
-| `harga` | DECIMAL(15,2) |
-| `harga_modal` | DECIMAL(15,2), nullable |
-| `gambar` | VARCHAR(255), nullable |
-| `deskripsi` | TEXT, nullable |
-| `aktif` | BOOLEAN, default true |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                                |
+| `warung_id`                | BIGINT foreign key; unique key `(warung_id, id)` mendukung FK tenant              |
+| `kategori_menu_id`         | BIGINT bagian FK gabungan dengan `warung_id`                                      |
+| `kode`                     | VARCHAR(30), unique bersama `warung_id`; dibuat otomatis backend saat menu dibuat |
+| `nama`                     | VARCHAR(150)                                                                      |
+| `harga`                    | DECIMAL(15,2)                                                                     |
+| `harga_modal`              | DECIMAL(15,2), nullable                                                           |
+| `gambar`                   | VARCHAR(255), nullable                                                            |
+| `deskripsi`                | TEXT, nullable                                                                    |
+| `aktif`                    | BOOLEAN, default true                                                             |
+| `created_at`, `updated_at` | timestamp                                                                         |
 
 Kategori dan menu harus berasal dari warung yang sama.
 
@@ -121,31 +121,31 @@ Migration maju `2026_10_04_085007_add_tenant_composite_foreign_keys` menambahkan
 
 ### `penjualans`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
-| `user_id` | BIGINT nullable; FK gabungan untuk user pencatat tenant; NULL saat dibuat superadmin |
-| `created_by_superadmin_id` | BIGINT nullable; FK global ke `users.id`, terisi hanya bila pembuat adalah superadmin |
-| `no_transaksi` | VARCHAR(50), prefix `PJ-` + ULID; dibuat backend, unique bersama `warung_id` |
-| `nama_pelanggan` | VARCHAR(150), nullable; teks bebas tanpa tabel pelanggan |
-| `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint penjualan saat terisi |
-| `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
-| `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
-| `tanggal` | DATETIME |
-| `subtotal` | DECIMAL(15,2) |
-| `diskon` | DECIMAL(15,2), default 0 |
-| `total` | DECIMAL(15,2) |
-| `bayar` | DECIMAL(15,2) |
-| `kembalian` | DECIMAL(15,2), default 0 |
-| `metode_pembayaran` | VARCHAR(30); contoh: `cash`, `qris`, `transfer` |
-| `dibayar_pada` | DATETIME nullable; waktu pembayaran UTC dan tanggal pendapatan |
-| `pembayaran_user_id` | BIGINT nullable; user tenant yang mencatat pembayaran |
-| `pembayaran_superadmin_id` | BIGINT nullable; superadmin yang mencatat pembayaran |
-| `status` | VARCHAR(20); `menunggu_pembayaran`, `selesai`, `batal`, `diretur_sebagian`, atau `diretur_penuh` |
-| `status_pembayaran` | VARCHAR(20), default `lunas`; nilai `belum_lunas` atau `lunas` |
-| `catatan` | TEXT, nullable |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                                                                          |
+| `warung_id`                | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant                                                        |
+| `user_id`                  | BIGINT nullable; FK gabungan untuk user pencatat tenant; NULL saat dibuat superadmin                                        |
+| `created_by_superadmin_id` | BIGINT nullable; FK global ke `users.id`, terisi hanya bila pembuat adalah superadmin                                       |
+| `no_transaksi`             | VARCHAR(50), prefix `PJ-` + ULID; dibuat backend, unique bersama `warung_id`                                                |
+| `nama_pelanggan`           | VARCHAR(150), nullable; teks bebas tanpa tabel pelanggan                                                                    |
+| `idempotency_key`          | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint penjualan saat terisi |
+| `payload_hash`             | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal                                       |
+| `idempotency_expires_at`   | DATETIME(6), batas akhir window retry tujuh hari                                                                            |
+| `tanggal`                  | DATETIME                                                                                                                    |
+| `subtotal`                 | DECIMAL(15,2)                                                                                                               |
+| `diskon`                   | DECIMAL(15,2), default 0                                                                                                    |
+| `total`                    | DECIMAL(15,2)                                                                                                               |
+| `bayar`                    | DECIMAL(15,2)                                                                                                               |
+| `kembalian`                | DECIMAL(15,2), default 0                                                                                                    |
+| `metode_pembayaran`        | VARCHAR(30); contoh: `cash`, `qris`, `transfer`                                                                             |
+| `dibayar_pada`             | DATETIME nullable; waktu pembayaran UTC dan tanggal pendapatan                                                              |
+| `pembayaran_user_id`       | BIGINT nullable; user tenant yang mencatat pembayaran                                                                       |
+| `pembayaran_superadmin_id` | BIGINT nullable; superadmin yang mencatat pembayaran                                                                        |
+| `status`                   | VARCHAR(20); `menunggu_pembayaran`, `selesai`, `batal`, `diretur_sebagian`, atau `diretur_penuh`                            |
+| `status_pembayaran`        | VARCHAR(20), default `lunas`; nilai `belum_lunas` atau `lunas`                                                              |
+| `catatan`                  | TEXT, nullable                                                                                                              |
+| `created_at`, `updated_at` | timestamp                                                                                                                   |
 
 Nomor teknis memakai prefix `PJ-` dan ULID. Kolom internal `idempotency_expires_at` menetapkan window 7 hari sejak request pertama. Selama window, payload kanonis yang sama me-replay response awal dan payload berbeda dengan key sama menghasilkan 409. Setelah expiry, key lama tidak lagi me-replay response dan pemakaian ulang key diproses sebagai request baru. Pengosongan metadata lama bersifat lazy dan ikut transaksi request: bila validasi bisnis menolak request lalu transaksi rollback, metadata expired boleh tetap tersimpan secara fisik, tetapi pencarian berikutnya tetap memperlakukannya sebagai expired. Tidak ada job pembersih berkala; row yang key-nya tidak dipakai ulang tetap utuh. Header transaksi, rincian, dan audit tidak dihapus. Metadata expiry diterapkan pada tabel penjualan, pembelian, dan event koreksi agar fakta historis tetap ada.
 
@@ -155,19 +155,19 @@ Migration `2026_10_07_134141_add_unpaid_order_fields_to_penjualans_table` menjag
 
 ### `penjualan_rincis`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id` | BIGINT; bagian FK gabungan ke header penjualan dan menu |
-| `penjualan_id` | BIGINT; bagian FK gabungan ke header penjualan |
-| `menu_id` | BIGINT nullable; FK gabungan ke menu pada warung yang sama saat memakai katalog; NULL menandai item bebas |
-| `nama_menu` | VARCHAR(150), snapshot nama item |
-| `harga` | DECIMAL(15,2), snapshot harga saat transaksi |
-| `qty` | DECIMAL(10,2) |
-| `diskon` | DECIMAL(15,2), default 0 |
-| `subtotal` | DECIMAL(15,2) |
-| `catatan` | TEXT, nullable |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                                                        |
+| `warung_id`                | BIGINT; bagian FK gabungan ke header penjualan dan menu                                                   |
+| `penjualan_id`             | BIGINT; bagian FK gabungan ke header penjualan                                                            |
+| `menu_id`                  | BIGINT nullable; FK gabungan ke menu pada warung yang sama saat memakai katalog; NULL menandai item bebas |
+| `nama_menu`                | VARCHAR(150), snapshot nama item                                                                          |
+| `harga`                    | DECIMAL(15,2), snapshot harga saat transaksi                                                              |
+| `qty`                      | DECIMAL(10,2)                                                                                             |
+| `diskon`                   | DECIMAL(15,2), default 0                                                                                  |
+| `subtotal`                 | DECIMAL(15,2)                                                                                             |
+| `catatan`                  | TEXT, nullable                                                                                            |
+| `created_at`, `updated_at` | timestamp                                                                                                 |
 
 Setiap baris menyimpan snapshot `nama_menu`, `harga`, `qty`, dan `subtotal`. `menu_id` terisi untuk menu katalog dan NULL untuk item bebas yang hanya berlaku pada transaksi tersebut. Baris katalog mengambil nama dan harga dari menu aktif; baris bebas wajib mengirim nama dan harga satuan positif. Keduanya boleh dicampur dalam transaksi, jumlah baris tidak memiliki batas khusus, dan satu baris dapat memiliki qty lebih dari satu. Backend menghitung subtotal/total; item bebas tidak menjadi menu katalog. Perubahan master menu tidak menulis ulang snapshot transaksi.
 
@@ -183,48 +183,48 @@ Kedua tabel audit memakai FK tenant gabungan ke penjualan dan user pencatat. Eve
 
 #### `penjualan_koreksis`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id`, `penjualan_id` | BIGINT; FK gabungan ke header penjualan |
-| `user_id` | BIGINT nullable; FK gabungan ke user tenant yang melakukan koreksi |
-| `superadmin_id` | BIGINT nullable; FK global ke user superadmin pelaku koreksi |
-| `jenis` | VARCHAR(20), `ubah` atau `batalkan` |
-| `alasan` | VARCHAR(1000), wajib |
-| `sebelum`, `sesudah` | JSON snapshot penjualan termasuk detail |
-| `idempotency_key`, `payload_hash`, `idempotency_expires_at` | metadata retry 7 hari; nullable untuk melepas key expired |
-| `created_at`, `updated_at` | timestamp; waktu event audit |
+| Kolom                                                       | Tipe/rule                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| `id`                                                        | BIGINT primary key                                                 |
+| `warung_id`, `penjualan_id`                                 | BIGINT; FK gabungan ke header penjualan                            |
+| `user_id`                                                   | BIGINT nullable; FK gabungan ke user tenant yang melakukan koreksi |
+| `superadmin_id`                                             | BIGINT nullable; FK global ke user superadmin pelaku koreksi       |
+| `jenis`                                                     | VARCHAR(20), `ubah` atau `batalkan`                                |
+| `alasan`                                                    | VARCHAR(1000), wajib                                               |
+| `sebelum`, `sesudah`                                        | JSON snapshot penjualan termasuk detail                            |
+| `idempotency_key`, `payload_hash`, `idempotency_expires_at` | metadata retry 7 hari; nullable untuk melepas key expired          |
+| `created_at`, `updated_at`                                  | timestamp; waktu event audit                                       |
 
 #### `penjualan_returs`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id`, `penjualan_id` | BIGINT; FK gabungan ke header penjualan |
-| `user_id` | BIGINT nullable; FK gabungan ke user tenant yang mencatat retur |
-| `superadmin_id` | BIGINT nullable; FK global ke user superadmin pelaku retur |
-| `nominal` | DECIMAL(15,2), lebih dari nol dan dibatasi sisa nilai yang belum diretur |
-| `alasan` | VARCHAR(1000), wajib |
-| `idempotency_key`, `payload_hash`, `idempotency_expires_at` | metadata retry 7 hari; nullable untuk melepas key expired |
-| `created_at`, `updated_at` | timestamp; `created_at` menentukan periode retur |
+| Kolom                                                       | Tipe/rule                                                                |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `id`                                                        | BIGINT primary key                                                       |
+| `warung_id`, `penjualan_id`                                 | BIGINT; FK gabungan ke header penjualan                                  |
+| `user_id`                                                   | BIGINT nullable; FK gabungan ke user tenant yang mencatat retur          |
+| `superadmin_id`                                             | BIGINT nullable; FK global ke user superadmin pelaku retur               |
+| `nominal`                                                   | DECIMAL(15,2), lebih dari nol dan dibatasi sisa nilai yang belum diretur |
+| `alasan`                                                    | VARCHAR(1000), wajib                                                     |
+| `idempotency_key`, `payload_hash`, `idempotency_expires_at` | metadata retry 7 hari; nullable untuk melepas key expired                |
+| `created_at`, `updated_at`                                  | timestamp; `created_at` menentukan periode retur                         |
 
 ### `pembelians`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id` | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant |
-| `user_id` | BIGINT nullable; FK gabungan user pencatat tenant |
-| `created_by_superadmin_id` | BIGINT nullable; FK global ke `users.id` bila dibuat superadmin |
-| `no_transaksi` | VARCHAR(50), prefix `PB-` + ULID; dibuat backend, unique bersama `warung_id` |
-| `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint pembelian saat terisi |
-| `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal |
-| `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
-| `tanggal` | DATETIME |
-| `total` | DECIMAL(15,2), jumlah seluruh subtotal rincian |
-| `status` | VARCHAR(20), `tercatat` atau `dibatalkan`; default `tercatat` |
-| `catatan` | TEXT, nullable |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                                                                          |
+| `warung_id`                | BIGINT foreign key; unique key `(warung_id, id)` untuk relasi tenant                                                        |
+| `user_id`                  | BIGINT nullable; FK gabungan user pencatat tenant                                                                           |
+| `created_by_superadmin_id` | BIGINT nullable; FK global ke `users.id` bila dibuat superadmin                                                             |
+| `no_transaksi`             | VARCHAR(50), prefix `PB-` + ULID; dibuat backend, unique bersama `warung_id`                                                |
+| `idempotency_key`          | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id)` pada endpoint pembelian saat terisi |
+| `payload_hash`             | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis, internal                                       |
+| `idempotency_expires_at`   | DATETIME(6), batas akhir window retry tujuh hari                                                                            |
+| `tanggal`                  | DATETIME                                                                                                                    |
+| `total`                    | DECIMAL(15,2), jumlah seluruh subtotal rincian                                                                              |
+| `status`                   | VARCHAR(20), `tercatat` atau `dibatalkan`; default `tercatat`                                                               |
+| `catatan`                  | TEXT, nullable                                                                                                              |
+| `created_at`, `updated_at` | timestamp                                                                                                                   |
 
 Nomor teknis memakai prefix `PB-` dan ULID. Pembatalan mengubah status ke `dibatalkan` tanpa menghapus header/rincian. Koreksi mengubah tanggal/catatan dan/atau mengganti seluruh rincian; event audit append-only menyimpan snapshot sebelum/sesudah, alasan, aktor, waktu, dan metadata idempotensi 7 hari pada `pembelian_koreksis` dalam transaksi yang sama. Jika key dipakai lagi setelah expiry, metadata retry event lama dilepas saat transaksi baru commit tanpa mengubah snapshot audit. Bila request baru ditolak aturan status lalu rollback, metadata lama dapat tetap tersimpan namun sudah tidak berlaku untuk replay.
 
@@ -234,35 +234,35 @@ Migration `2026_10_08_090000_allow_superadmin_transaction_writes` menambah FK ac
 
 ### `pembelian_koreksis`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id`, `pembelian_id` | BIGINT; FK gabungan ke header pembelian |
-| `user_id` | BIGINT nullable; FK gabungan ke user tenant yang melakukan koreksi |
-| `superadmin_id` | BIGINT nullable; FK global ke user superadmin pelaku koreksi |
-| `jenis` | VARCHAR(20), `ubah` atau `batalkan` |
-| `alasan` | VARCHAR(1000), wajib |
-| `sebelum`, `sesudah` | JSON snapshot status, tanggal, total, catatan, dan rincian |
-| `idempotency_key` | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id, jenis)` saat terisi |
-| `payload_hash` | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis |
-| `idempotency_expires_at` | DATETIME(6), batas akhir window retry tujuh hari |
-| `created_at`, `updated_at` | timestamp; `created_at` adalah waktu audit |
+| Kolom                       | Tipe/rule                                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `id`                        | BIGINT primary key                                                                                         |
+| `warung_id`, `pembelian_id` | BIGINT; FK gabungan ke header pembelian                                                                    |
+| `user_id`                   | BIGINT nullable; FK gabungan ke user tenant yang melakukan koreksi                                         |
+| `superadmin_id`             | BIGINT nullable; FK global ke user superadmin pelaku koreksi                                               |
+| `jenis`                     | VARCHAR(20), `ubah` atau `batalkan`                                                                        |
+| `alasan`                    | VARCHAR(1000), wajib                                                                                       |
+| `sebelum`, `sesudah`        | JSON snapshot status, tanggal, total, catatan, dan rincian                                                 |
+| `idempotency_key`           | VARCHAR(255), nullable sesudah window retry 7 hari; unik bersama `(warung_id, user_id, jenis)` saat terisi |
+| `payload_hash`              | CHAR(64), nullable bersama key sesudah expiry; hash SHA-256 payload kanonis                                |
+| `idempotency_expires_at`    | DATETIME(6), batas akhir window retry tujuh hari                                                           |
+| `created_at`, `updated_at`  | timestamp; `created_at` adalah waktu audit                                                                 |
 
 Baris koreksi bersifat append-only. FK RESTRICT menjaga agar header atau user pencatat tidak menghapus riwayat. Retry identik selama tujuh hari me-replay event yang sama; key operasi sama dengan payload berbeda menghasilkan 409. Saat key dipakai ulang setelah expiry, metadata retry lama dilepas jika transaksi event baru commit; kedua snapshot audit tetap tersedia. Bila request baru gagal dan rollback, metadata expired boleh tetap tersimpan secara fisik, tetapi tidak dapat me-replay event lama. Laporan hanya menjumlahkan header berstatus `tercatat`.
 
 ### `pembelian_rincis`
 
-| Kolom | Tipe/rule |
-| --- | --- |
-| `id` | BIGINT primary key |
-| `warung_id` | BIGINT; bagian FK gabungan ke header pembelian |
-| `pembelian_id` | BIGINT; bagian FK gabungan ke header pembelian |
-| `nama_item` | VARCHAR(150), nama bahan atau keterangan, misalnya `Belanja di pasar` |
-| `qty` | DECIMAL(10,2), nullable |
-| `satuan` | VARCHAR(30), nullable |
-| `harga_satuan` | DECIMAL(15,2), nullable |
-| `subtotal` | DECIMAL(15,2), nominal rincian yang wajib diisi |
-| `created_at`, `updated_at` | timestamp |
+| Kolom                      | Tipe/rule                                                             |
+| -------------------------- | --------------------------------------------------------------------- |
+| `id`                       | BIGINT primary key                                                    |
+| `warung_id`                | BIGINT; bagian FK gabungan ke header pembelian                        |
+| `pembelian_id`             | BIGINT; bagian FK gabungan ke header pembelian                        |
+| `nama_item`                | VARCHAR(150), nama bahan atau keterangan, misalnya `Belanja di pasar` |
+| `qty`                      | DECIMAL(10,2), nullable                                               |
+| `satuan`                   | VARCHAR(30), nullable                                                 |
+| `harga_satuan`             | DECIMAL(15,2), nullable                                               |
+| `subtotal`                 | DECIMAL(15,2), nominal rincian yang wajib diisi                       |
+| `created_at`, `updated_at` | timestamp                                                             |
 
 Setiap header pembelian harus memiliki minimal satu rincian. Untuk pencatatan lengkap, buat satu baris per bahan dan backend menghitung subtotal dari kuantitas serta harga satuan yang diberikan. Untuk pencatatan ringkas, buat satu baris dengan `nama_item` berisi keterangan umum, misalnya `Belanja di pasar`; `qty`, `satuan`, dan `harga_satuan` boleh `NULL`, sedangkan `subtotal` berisi nominal total. Backend menghitung `pembelians.total` dari seluruh subtotal dalam transaksi database yang sama.
 

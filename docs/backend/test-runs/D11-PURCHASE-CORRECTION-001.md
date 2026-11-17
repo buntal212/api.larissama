@@ -7,12 +7,12 @@
 
 ## Hasil
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Laravel Pint | PASS (`docker compose -f compose.test.yaml run --rm test-runner vendor/bin/pint --dirty --format agent`) |
-| Suite Laravel lengkap | PASS: 490 test, 71.310 assertions, 41.99 detik (`php artisan test --compact`) |
-| OpenAPI 3.1 | PASS (`docs/api/openapi.yaml: OK`, `openapi-spec-validator` 0.9.0) |
-| Cleanup Compose | PASS; service MySQL test dan network disposable dihentikan/dihapus dengan `docker compose -f compose.test.yaml down -v` |
+| Pemeriksaan           | Hasil                                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Laravel Pint          | PASS (`docker compose -f compose.test.yaml run --rm test-runner vendor/bin/pint --dirty --format agent`)                |
+| Suite Laravel lengkap | PASS: 490 test, 71.310 assertions, 41.99 detik (`php artisan test --compact`)                                           |
+| OpenAPI 3.1           | PASS (`docs/api/openapi.yaml: OK`, `openapi-spec-validator` 0.9.0)                                                      |
+| Cleanup Compose       | PASS; service MySQL test dan network disposable dihentikan/dihapus dengan `docker compose -f compose.test.yaml down -v` |
 
 ## Cakupan D11 di suite
 

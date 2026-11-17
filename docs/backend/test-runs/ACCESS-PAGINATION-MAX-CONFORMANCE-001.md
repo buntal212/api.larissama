@@ -22,12 +22,12 @@ docker compose -f compose.test.yaml run --rm test-runner composer test
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Feature test pagination | PASS, 1 test / 817 assertions |
-| Suite `composer test` | PASS, 83 test / 11682 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Pemeriksaan             | Hasil                                                   |
+| ----------------------- | ------------------------------------------------------- |
+| Pint                    | PASS                                                    |
+| Feature test pagination | PASS, 1 test / 817 assertions                           |
+| Suite `composer test`   | PASS, 83 test / 11682 assertions; tanpa warning         |
+| Cleanup Compose test    | PASS, container database dan network disposable dihapus |
 
 ## Bukti batas pagination
 

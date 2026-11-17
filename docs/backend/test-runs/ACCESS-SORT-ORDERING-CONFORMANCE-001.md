@@ -21,12 +21,12 @@ docker compose -f compose.test.yaml run --rm test-runner php artisan test --disp
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Sort ordering conformance | PASS, 14 test / 3492 assertions |
-| Suite penuh | PASS, 167 test / 22010 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Pemeriksaan               | Hasil                                                   |
+| ------------------------- | ------------------------------------------------------- |
+| Pint                      | PASS                                                    |
+| Sort ordering conformance | PASS, 14 test / 3492 assertions                         |
+| Suite penuh               | PASS, 167 test / 22010 assertions; tanpa warning        |
+| Cleanup Compose test      | PASS, container database dan network disposable dihapus |
 
 ## Bukti urutan
 

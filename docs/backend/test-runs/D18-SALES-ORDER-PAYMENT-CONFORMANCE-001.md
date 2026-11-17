@@ -7,13 +7,13 @@
 
 ## Hasil
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Feature/regression fokus | PASS: 78 test, 30.684 assertions, 6.58 detik; sembilan feature test files |
-| Laravel Pint | PASS: 201 files (`docker compose -f compose.test.yaml run --rm test-runner vendor/bin/pint --test`) |
-| OpenAPI 3.1 | PASS (`docker compose -f compose.openapi.yaml run --rm openapi-validator`; `docs/api/openapi.yaml: OK`) |
-| Route/OpenAPI inventory | PASS: 37 operationId dan 25 path cocok dengan route terdaftar |
-| Migration development | Migration D18 tercatat telah diterapkan di database development oleh Artisan |
+| Pemeriksaan              | Hasil                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Feature/regression fokus | PASS: 78 test, 30.684 assertions, 6.58 detik; sembilan feature test files                               |
+| Laravel Pint             | PASS: 201 files (`docker compose -f compose.test.yaml run --rm test-runner vendor/bin/pint --test`)     |
+| OpenAPI 3.1              | PASS (`docker compose -f compose.openapi.yaml run --rm openapi-validator`; `docs/api/openapi.yaml: OK`) |
+| Route/OpenAPI inventory  | PASS: 37 operationId dan 25 path cocok dengan route terdaftar                                           |
+| Migration development    | Migration D18 tercatat telah diterapkan di database development oleh Artisan                            |
 
 Command feature suite:
 

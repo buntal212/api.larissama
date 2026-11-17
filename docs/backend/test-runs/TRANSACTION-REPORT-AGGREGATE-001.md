@@ -26,12 +26,12 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| `PembelianApiTest.php` | PASS, 9 test / 57 assertions; tanpa warning |
-| Suite `composer test` | PASS, 27 test / 213 assertions; tanpa warning |
-| Pembersihan stack | PASS, container DB dan network disposable dihapus |
+| Check                  | Hasil                                             |
+| ---------------------- | ------------------------------------------------- |
+| Pint                   | PASS                                              |
+| `PembelianApiTest.php` | PASS, 9 test / 57 assertions; tanpa warning       |
+| Suite `composer test`  | PASS, 27 test / 213 assertions; tanpa warning     |
+| Pembersihan stack      | PASS, container DB dan network disposable dihapus |
 
 ## Bukti agregasi
 

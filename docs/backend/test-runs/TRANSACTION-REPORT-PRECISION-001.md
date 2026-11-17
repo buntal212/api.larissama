@@ -26,21 +26,21 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Test report terarah | PASS, 5 test / 100 assertions; tanpa warning |
-| Suite `composer test` | PASS, 26 test / 195 assertions; tanpa warning |
-| Pembersihan stack | PASS, container DB dan network disposable dihapus |
+| Check                 | Hasil                                             |
+| --------------------- | ------------------------------------------------- |
+| Pint                  | PASS                                              |
+| Test report terarah   | PASS, 5 test / 100 assertions; tanpa warning      |
+| Suite `composer test` | PASS, 26 test / 195 assertions; tanpa warning     |
+| Pembersihan stack     | PASS, container DB dan network disposable dihapus |
 
 ## Bukti presisi dan batas
 
 Feature test membaca `information_schema.columns` pada database MySQL aktif:
 
-| Tabel | Kolom | `DATETIME_PRECISION` |
-| --- | --- | --- |
-| `penjualans` | `tanggal` | `0` |
-| `pembelians` | `tanggal` | `0` |
+| Tabel        | Kolom     | `DATETIME_PRECISION` |
+| ------------ | --------- | -------------------- |
+| `penjualans` | `tanggal` | `0`                  |
+| `pembelians` | `tanggal` | `0`                  |
 
 Dengan presisi kolom satu detik, `23:59:59` adalah waktu transaksi terakhir yang dapat disimpan pada suatu hari. Fixture Jakarta dan New York memasukkan detik terakhir hari lokal (masing-masing batas UTC yang sudah diuji) dan mengecualikan record tepat pada `00:00:00` UTC hari berikutnya. Kasus New York menguji hari DST 23 jam. Hasil report hanya menjumlahkan record pada batas awal inklusif dan akhir eksklusif.
 

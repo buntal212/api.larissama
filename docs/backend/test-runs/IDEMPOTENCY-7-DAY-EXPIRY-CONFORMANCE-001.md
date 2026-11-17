@@ -19,13 +19,13 @@
 
 ## Verifikasi
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Focused `IdempotencyExpiryTest` + `BusinessSchemaMigrationConformanceTest` | PASS: 8 test / 274 assertions, 2.09 detik |
-| Suite penuh `php artisan test --display-warnings` | PASS: 495 test / 72.426 assertions, 37.74 detik |
-| Laravel Pint (`--dirty`) | PASS |
-| OpenAPI 3.1 validator 0.9.0 | PASS: `docs/api/openapi.yaml: OK` |
-| Compose test stack cleanup | PASS; dijalankan setelah verifikasi |
+| Pemeriksaan                                                                | Hasil                                           |
+| -------------------------------------------------------------------------- | ----------------------------------------------- |
+| Focused `IdempotencyExpiryTest` + `BusinessSchemaMigrationConformanceTest` | PASS: 8 test / 274 assertions, 2.09 detik       |
+| Suite penuh `php artisan test --display-warnings`                          | PASS: 495 test / 72.426 assertions, 37.74 detik |
+| Laravel Pint (`--dirty`)                                                   | PASS                                            |
+| OpenAPI 3.1 validator 0.9.0                                                | PASS: `docs/api/openapi.yaml: OK`               |
+| Compose test stack cleanup                                                 | PASS; dijalankan setelah verifikasi             |
 
 Commands:
 

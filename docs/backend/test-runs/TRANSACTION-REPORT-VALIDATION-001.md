@@ -26,22 +26,22 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Test report terarah | PASS, 4 test / 22 assertions; tanpa warning |
-| Suite `composer test` | PASS, 25 test / 117 assertions; tanpa warning |
-| Pembersihan stack | PASS, container DB dan network disposable dihapus |
+| Check                 | Hasil                                             |
+| --------------------- | ------------------------------------------------- |
+| Pint                  | PASS                                              |
+| Test report terarah   | PASS, 4 test / 22 assertions; tanpa warning       |
+| Suite `composer test` | PASS, 25 test / 117 assertions; tanpa warning     |
+| Pembersihan stack     | PASS, container DB dan network disposable dihapus |
 
 ## Bukti skenario
 
-| Kasus | Harapan | Hasil aktual |
-| --- | --- | --- |
-| `GET /api/v1/laporan/penjualan` periode sah kosong | HTTP 200, `jumlah_transaksi: 0`, `total_pendapatan: "0.00"`, timezone `Asia/Jakarta` | PASS |
-| `GET /api/v1/laporan/pembelian` periode sah kosong | HTTP 200, `jumlah_transaksi: 0`, `total_pembelian: "0.00"`, timezone `Asia/Jakarta` | PASS |
-| Kedua endpoint, tanggal bukan `Y-m-d` | HTTP 422 | PASS, 2 request |
-| Kedua endpoint, `date_to` tidak dikirim | HTTP 422 | PASS, 2 request |
-| Kedua endpoint, `date_from > date_to` | HTTP 422 | PASS, 2 request |
+| Kasus                                              | Harapan                                                                              | Hasil aktual    |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------- |
+| `GET /api/v1/laporan/penjualan` periode sah kosong | HTTP 200, `jumlah_transaksi: 0`, `total_pendapatan: "0.00"`, timezone `Asia/Jakarta` | PASS            |
+| `GET /api/v1/laporan/pembelian` periode sah kosong | HTTP 200, `jumlah_transaksi: 0`, `total_pembelian: "0.00"`, timezone `Asia/Jakarta`  | PASS            |
+| Kedua endpoint, tanggal bukan `Y-m-d`              | HTTP 422                                                                             | PASS, 2 request |
+| Kedua endpoint, `date_to` tidak dikirim            | HTTP 422                                                                             | PASS, 2 request |
+| Kedua endpoint, `date_from > date_to`              | HTTP 422                                                                             | PASS, 2 request |
 
 Input error mengikuti validasi `LaporanPeriodeRequest`; tidak ada write data pada endpoint GET. Periode kosong dibuat tanpa header penjualan maupun pembelian.
 

@@ -26,21 +26,21 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| `AuthApiTest.php` | PASS, 20 test / 2985 assertions; tanpa warning |
-| Suite `composer test` | PASS, 81 test / 5386 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Check                 | Hasil                                                   |
+| --------------------- | ------------------------------------------------------- |
+| Pint                  | PASS                                                    |
+| `AuthApiTest.php`     | PASS, 20 test / 2985 assertions; tanpa warning          |
+| Suite `composer test` | PASS, 81 test / 5386 assertions; tanpa warning          |
+| Cleanup Compose test  | PASS, container database dan network disposable dihapus |
 
 ## Bukti conformance response runtime
 
 Test menggunakan `assertOperationResponseMatchesOpenApi()` di `tests/TestCase.php` untuk membaca operasi/status, schema, dan `$ref` lokal dari `docs/api/openapi.yaml`, kemudian memeriksa response HTTP aktual.
 
-| Operasi | Status yang response-nya dicocokkan |
-| --- | --- |
-| `POST /auth/login` | 200, 401, 403, 422, 429 |
-| `GET /auth/me` | 200, 401, 403 |
+| Operasi             | Status yang response-nya dicocokkan                                            |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `POST /auth/login`  | 200, 401, 403, 422, 429                                                        |
+| `GET /auth/me`      | 200, 401, 403                                                                  |
 | `POST /auth/logout` | 204 tanpa body, karena OpenAPI tidak mendefinisikan `content` untuk status itu |
 
 Pemeriksaan ikut mencakup login empat role, identitas tanpa secret, expiry token, logout yang hanya mencabut bearer aktif, tanggal aktif lokal/NULL, akun atau warung nonaktif, serta limiter per username+IP. Status runtime response di atas cocok dengan schema OpenAPI yang berlaku.

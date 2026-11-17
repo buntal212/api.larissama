@@ -8,4 +8,4 @@ services:
     working_dir: /workspace
     volumes:
       - .:/workspace:ro
-    command: ["docs/api/openapi.yaml"]
+    command: ['docs/api/openapi.yaml']

@@ -22,12 +22,12 @@ docker compose -f compose.test.yaml run --rm test-runner php artisan test --disp
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Pemeriksaan | Hasil |
-| --- | --- |
-| Pint targeted pada file test | PASS |
-| Feature test pagination | PASS, 7 test / 1093 assertions |
-| Suite penuh | PASS, 89 test / 11958 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Pemeriksaan                  | Hasil                                                   |
+| ---------------------------- | ------------------------------------------------------- |
+| Pint targeted pada file test | PASS                                                    |
+| Feature test pagination      | PASS, 7 test / 1093 assertions                          |
+| Suite penuh                  | PASS, 89 test / 11958 assertions; tanpa warning         |
+| Cleanup Compose test         | PASS, container database dan network disposable dihapus |
 
 ## Bukti penolakan overflow
 

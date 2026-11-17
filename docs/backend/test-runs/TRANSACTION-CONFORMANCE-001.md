@@ -24,26 +24,26 @@ docker compose -f compose.test.yaml run --rm test-runner composer test
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Tiga feature test transaksi/laporan | PASS, 22 test / 2591 assertions; tanpa warning |
-| Suite `composer test` | PASS, 81 test / 9069 assertions; tanpa warning |
-| Cleanup Compose test | PASS, container database dan network disposable dihapus |
+| Check                               | Hasil                                                   |
+| ----------------------------------- | ------------------------------------------------------- |
+| Pint                                | PASS                                                    |
+| Tiga feature test transaksi/laporan | PASS, 22 test / 2591 assertions; tanpa warning          |
+| Suite `composer test`               | PASS, 81 test / 9069 assertions; tanpa warning          |
+| Cleanup Compose test                | PASS, container database dan network disposable dihapus |
 
 ## Bukti conformance response runtime
 
 `tests/TestCase.php` membaca operasi, status, schema response, dan `$ref` lokal dari `docs/api/openapi.yaml`. Assertion membandingkan response HTTP aktual yang dipakai feature acceptance dengan schema operasi berikut:
 
-| Operasi | Status yang response-nya dicocokkan |
-| --- | --- |
-| `GET /penjualans` | 200 |
-| `POST /penjualans` | 201, 403, 409, 422 |
-| `GET /penjualans/{id}` | 200, 404 |
-| `GET /pembelians` | 200, 403 |
-| `POST /pembelians` | 201, 403, 409, 422 |
-| `GET /pembelians/{id}` | 200, 404 |
-| `GET /laporan/penjualan` dan `GET /laporan/pembelian` | 200, 422 |
+| Operasi                                               | Status yang response-nya dicocokkan |
+| ----------------------------------------------------- | ----------------------------------- |
+| `GET /penjualans`                                     | 200                                 |
+| `POST /penjualans`                                    | 201, 403, 409, 422                  |
+| `GET /penjualans/{id}`                                | 200, 404                            |
+| `GET /pembelians`                                     | 200, 403                            |
+| `POST /pembelians`                                    | 201, 403, 409, 422                  |
+| `GET /pembelians/{id}`                                | 200, 404                            |
+| `GET /laporan/penjualan` dan `GET /laporan/pembelian` | 200, 422                            |
 
 Detail pembelian 200 memakai header/detail yang sama dengan test create bentuk ringkas. Semua response pada tabel cocok dengan schema draft dan tidak ditemukan mismatch response API.
 

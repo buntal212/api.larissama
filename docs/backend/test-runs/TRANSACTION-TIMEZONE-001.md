@@ -26,21 +26,21 @@ docker compose -f compose.test.yaml run --rm test-runner sh -lc 'composer test'
 docker compose -f compose.test.yaml down --remove-orphans
 ```
 
-| Check | Hasil |
-| --- | --- |
-| Pint | PASS |
-| Test laporan terarah | PASS, 2 test / 8 assertions; tanpa warning |
-| Suite `composer test` | PASS, 23 test / 103 assertions; tanpa warning |
-| Pembersihan stack | PASS, container DB dan network disposable dihapus |
+| Check                 | Hasil                                             |
+| --------------------- | ------------------------------------------------- |
+| Pint                  | PASS                                              |
+| Test laporan terarah  | PASS, 2 test / 8 assertions; tanpa warning        |
+| Suite `composer test` | PASS, 23 test / 103 assertions; tanpa warning     |
+| Pembersihan stack     | PASS, container DB dan network disposable dihapus |
 
 ## Bukti skenario
 
 PHP timezone data pada `America/New_York` menghitung tanggal lokal 2026-03-08 sebagai jendela UTC `[2026-03-08 05:00:00Z, 2026-03-09 04:00:00Z)`, karena pergantian DST membuat hari tersebut berdurasi 23 jam. Masing-masing endpoint mendapat empat header transaksi pada `2026-03-08 04:59:59Z`, `2026-03-08 05:00:00Z`, `2026-03-09 03:59:59Z`, dan `2026-03-09 04:00:00Z`.
 
-| Test | Harapan | Hasil aktual |
-| --- | --- | --- |
-| `GET /api/v1/laporan/penjualan` | Record sebelum awal dan tepat pada akhir eksklusif keluar; dua record dalam periode dihitung; total `5000.00`, count `2`, timezone response `America/New_York` | PASS |
-| `GET /api/v1/laporan/pembelian` | Batas sama; dua header dihitung sekali; total `5000.00`, count `2`, timezone response `America/New_York` | PASS |
+| Test                            | Harapan                                                                                                                                                        | Hasil aktual |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `GET /api/v1/laporan/penjualan` | Record sebelum awal dan tepat pada akhir eksklusif keluar; dua record dalam periode dihitung; total `5000.00`, count `2`, timezone response `America/New_York` | PASS         |
+| `GET /api/v1/laporan/pembelian` | Batas sama; dua header dihitung sekali; total `5000.00`, count `2`, timezone response `America/New_York`                                                       | PASS         |
 
 Fixture ditulis sebagai waktu UTC tanpa offset pada kolom `DATETIME`; koneksi aplikasi/test menggunakan UTC. Test menguji perilaku HTTP laporan yang ada, tanpa mengubah schema atau kontrak.
 
