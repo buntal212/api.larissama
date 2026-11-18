@@ -15,14 +15,16 @@ use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Carbon\CarbonImmutable;
 use Exception;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class SubscriptionSyncSchedulerTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -32,46 +34,6 @@ class SubscriptionSyncSchedulerTest extends TestCase
             'services.udev.base_url' => 'https://apiudev.example.test',
             'services.udev.token' => 'test-integration-token',
         ]);
-
-        if (! Schema::hasTable('warungs')) {
-            Schema::create('warungs', function ($table) {
-                $table->id();
-                $table->string('kode')->nullable();
-                $table->string('nama')->nullable();
-                $table->string('timezone')->default('Asia/Jakarta');
-                $table->date('tanggal_mulai')->nullable();
-                $table->date('tanggal_berakhir')->nullable();
-                $table->boolean('aktif')->default(true);
-                $table->boolean('pendaftaran_disetujui')->default(true);
-                $table->timestamps();
-            });
-        }
-
-        if (! Schema::hasTable('warung_customer_syncs')) {
-            Schema::create('warung_customer_syncs', function ($table) {
-                $table->id();
-                $table->foreignId('warung_id')->nullable();
-                $table->foreignId('owner_user_id')->nullable();
-                $table->string('external_customer_id')->nullable();
-                $table->string('status')->default('synced');
-                $table->string('notice_version')->nullable();
-                $table->timestamp('consented_at')->nullable();
-                $table->timestamps();
-            });
-        }
-
-        if (! Schema::hasTable('users')) {
-            Schema::create('users', function ($table) {
-                $table->id();
-                $table->foreignId('warung_id')->nullable();
-                $table->string('nama')->nullable();
-                $table->string('username')->nullable();
-                $table->string('email')->nullable();
-                $table->string('role')->default('owner');
-                $table->boolean('aktif')->default(true);
-                $table->timestamps();
-            });
-        }
     }
 
     public function test_registry_lifecycle_and_summary(): void
@@ -376,11 +338,23 @@ class SubscriptionSyncSchedulerTest extends TestCase
             'pendaftaran_disetujui' => true,
         ]);
 
+        $owner = User::query()->forceCreate([
+            'id' => 996,
+            'nama' => 'Owner Recovery',
+            'username' => 'owner_recovery_996',
+            'password' => 'secret123',
+            'role' => 'owner',
+            'warung_id' => 996,
+            'aktif' => true,
+        ]);
+
         WarungCustomerSync::query()->forceCreate([
             'id' => 10,
             'warung_id' => 996,
+            'owner_user_id' => $owner->id,
             'external_customer_id' => 'CUST-RECOVER-1',
             'status' => 'synced',
+            'notice_version' => '2026-10-25.v2',
             'consented_at' => CarbonImmutable::now(),
         ]);
 

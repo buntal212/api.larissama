@@ -8,15 +8,17 @@ use App\Models\User;
 use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 use UnexpectedValueException;
 
 class SubscriptionPricingTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected SubscriptionBillingController $controller;
 
     protected function setUp(): void
@@ -28,46 +30,6 @@ class SubscriptionPricingTest extends TestCase
             'services.udev.base_url' => 'https://apiudev.example.test',
             'services.udev.token' => 'test-integration-token',
         ]);
-
-        if (! Schema::hasTable('warungs')) {
-            Schema::create('warungs', function ($table) {
-                $table->id();
-                $table->string('kode')->nullable();
-                $table->string('nama')->nullable();
-                $table->string('timezone')->default('Asia/Jakarta');
-                $table->date('tanggal_mulai')->nullable();
-                $table->date('tanggal_berakhir')->nullable();
-                $table->boolean('aktif')->default(true);
-                $table->boolean('pendaftaran_disetujui')->default(true);
-                $table->timestamps();
-            });
-        }
-
-        if (! Schema::hasTable('warung_customer_syncs')) {
-            Schema::create('warung_customer_syncs', function ($table) {
-                $table->id();
-                $table->foreignId('warung_id')->nullable();
-                $table->foreignId('owner_user_id')->nullable();
-                $table->string('external_customer_id')->nullable();
-                $table->string('status')->default('synced');
-                $table->string('notice_version')->nullable();
-                $table->timestamp('consented_at')->nullable();
-                $table->timestamps();
-            });
-        }
-
-        if (! Schema::hasTable('users')) {
-            Schema::create('users', function ($table) {
-                $table->id();
-                $table->foreignId('warung_id')->nullable();
-                $table->string('nama')->nullable();
-                $table->string('username')->nullable();
-                $table->string('email')->nullable();
-                $table->string('role')->default('owner');
-                $table->boolean('aktif')->default(true);
-                $table->timestamps();
-            });
-        }
 
         $this->controller = new SubscriptionBillingController;
     }
@@ -308,6 +270,8 @@ class SubscriptionPricingTest extends TestCase
         $owner = User::query()->forceCreate([
             'id' => 201,
             'nama' => 'Owner Test Pricing 1',
+            'username' => 'owner_pricing_1',
+            'password' => 'secret123',
             'role' => 'owner',
             'warung_id' => $warung->id,
             'aktif' => true,
@@ -318,6 +282,7 @@ class SubscriptionPricingTest extends TestCase
             'owner_user_id' => $owner->id,
             'external_customer_id' => 'CUST-WRG-PRICING-1',
             'status' => 'synced',
+            'notice_version' => '2026-10-25.v2',
             'consented_at' => CarbonImmutable::now(),
         ]);
 
@@ -377,6 +342,8 @@ class SubscriptionPricingTest extends TestCase
         $owner = User::query()->forceCreate([
             'id' => 202,
             'nama' => 'Owner Test Pricing 2',
+            'username' => 'owner_pricing_2',
+            'password' => 'secret123',
             'role' => 'owner',
             'warung_id' => $warung->id,
             'aktif' => true,
@@ -387,6 +354,7 @@ class SubscriptionPricingTest extends TestCase
             'owner_user_id' => $owner->id,
             'external_customer_id' => 'CUST-WRG-PRICING-2',
             'status' => 'synced',
+            'notice_version' => '2026-10-25.v2',
             'consented_at' => CarbonImmutable::now(),
         ]);
 

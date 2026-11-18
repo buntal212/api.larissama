@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -21,7 +22,9 @@ return new class extends Migration
 
         Schema::table('menus', function (Blueprint $table) {
             $table->unique(['warung_id', 'id'], 'menus_warung_id_id_unique');
-            $table->dropForeign('menus_kategori_menu_id_foreign');
+            if (DB::getDriverName() !== 'sqlite') {
+                $table->dropForeign('menus_kategori_menu_id_foreign');
+            }
 
             $table->foreign(['warung_id', 'kategori_menu_id'], 'menus_warung_kategori_fk')
                 ->references(['warung_id', 'id'])

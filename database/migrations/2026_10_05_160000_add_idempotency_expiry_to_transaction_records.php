@@ -19,9 +19,13 @@ return new class extends Migration
                 $table->dateTime('idempotency_expires_at', 6)->nullable()->after('payload_hash');
             });
 
+            $dateExpr = DB::getDriverName() === 'sqlite'
+                ? "datetime(created_at, '+7 days')"
+                : 'DATE_ADD(created_at, INTERVAL 7 DAY)';
+
             DB::table($tableName)
                 ->whereNotNull('idempotency_key')
-                ->update(['idempotency_expires_at' => DB::raw('DATE_ADD(created_at, INTERVAL 7 DAY)')]);
+                ->update(['idempotency_expires_at' => DB::raw($dateExpr)]);
         }
     }
 
