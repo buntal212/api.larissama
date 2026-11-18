@@ -58,14 +58,16 @@ class UdevBillingClient
         string $idempotencyKey,
         string $paymentMethod = 'qris',
         string $provider = 'dana',
+        ?string $bank = null,
     ): array {
         $payload = [
             'payment_method' => $paymentMethod,
             'provider' => $provider,
         ];
 
-        if (str_starts_with($paymentMethod, 'va_')) {
-            $payload['bank'] = substr($paymentMethod, 3);
+        $effectiveBank = $bank ?: (str_starts_with($paymentMethod, 'va_') ? substr($paymentMethod, 3) : null);
+        if ($effectiveBank !== null) {
+            $payload['bank'] = $effectiveBank;
         }
 
         return $this->data($this->send()->withHeader('Idempotency-Key', $idempotencyKey)
@@ -431,12 +433,19 @@ class UdevBillingClient
     private function data(Response $response): array
     {
         if (! $response->successful()) {
-            $requestId = $response->json('request_id');
+            $json = $response->json();
+            $requestId = is_array($json) ? ($json['request_id'] ?? null) : null;
+            $message = is_array($json) && is_string($json['message'] ?? null) ? $json['message'] : null;
+            $errors = is_array($json) && is_array($json['errors'] ?? null) ? $json['errors'] : null;
+            $errorCode = is_array($json) && is_string($json['error_code'] ?? null) ? $json['error_code'] : null;
 
             throw new UdevBillingRequestException(
                 $response->status(),
                 $response->header('Retry-After'),
                 is_string($requestId) ? $requestId : null,
+                $message,
+                $errors,
+                $errorCode,
             );
         }
 

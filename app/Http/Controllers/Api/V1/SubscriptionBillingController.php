@@ -243,9 +243,10 @@ class SubscriptionBillingController extends Controller
 
         $paymentMethod = $request->validated('payment_method') ?? 'qris';
         $provider = $request->validated('provider') ?? 'dana';
+        $bank = $request->validated('bank');
 
         try {
-            return Cache::lock("udev_checkout_lock:{$invoiceNumber}", self::CHECKOUT_LOCK_TTL_SECONDS)->block(self::CHECKOUT_LOCK_WAIT_SECONDS, function () use ($udev, $sync, $invoiceNumber, $idempotencyKey, $paymentMethod, $provider, $registry): JsonResponse {
+            return Cache::lock("udev_checkout_lock:{$invoiceNumber}", self::CHECKOUT_LOCK_TTL_SECONDS)->block(self::CHECKOUT_LOCK_WAIT_SECONDS, function () use ($udev, $sync, $invoiceNumber, $idempotencyKey, $paymentMethod, $provider, $bank, $registry): JsonResponse {
                 if (! $this->invoiceBelongsToCustomer($udev, $sync, $invoiceNumber)) {
                     return ApiErrorResponse::make('NOT_FOUND', 'Invoice tidak ditemukan.', 404);
                 }
@@ -297,6 +298,7 @@ class SubscriptionBillingController extends Controller
                         $idempotencyKey,
                         $paymentMethod,
                         $provider,
+                        $bank,
                     );
 
                     $this->storeInvoiceCache($invoiceNumber, $checkout);
@@ -765,20 +767,76 @@ class SubscriptionBillingController extends Controller
             Log::warning('UDEV billing request failed', [
                 'upstream_status' => $upstreamStatus,
                 'upstream_request_id' => $exception->upstreamRequestId,
+                'upstream_error_code' => $exception->upstreamErrorCode,
+                'upstream_message' => $exception->upstreamMessage,
             ]);
 
             $status = match (true) {
                 $upstreamStatus === 404 => 404,
+                $upstreamStatus === 409 => 409,
                 $upstreamStatus === 422 => 422,
                 $upstreamStatus === 429, $upstreamStatus === null, $upstreamStatus >= 500 => 503,
                 default => 502,
             };
+
+            $errorCode = match (true) {
+                $upstreamStatus === 404 => 'NOT_FOUND',
+                $upstreamStatus === 409 => 'CONFLICT',
+                $status === 422 => 'UDEV_BILLING_REJECTED',
+                default => 'UDEV_BILLING_UNAVAILABLE',
+            };
+
+            $sanitizedErrors = [];
+            $message = 'Layanan billing UDEV sedang tidak dapat diakses.';
+
+            if ($status === 404) {
+                $message = 'Data billing tidak ditemukan di UDEV.';
+            } elseif ($status === 409) {
+                $rawMsg = (string) ($exception->upstreamMessage ?? '');
+                if (str_contains($rawMsg, 'Idempotency key')) {
+                    $message = 'Idempotency key sudah digunakan untuk checkout dengan parameter berbeda. Gunakan idempotency key baru.';
+                } elseif (str_contains($rawMsg, 'tidak pasti')) {
+                    $message = 'Status pembayaran transaksi sebelumnya masih menunggu konfirmasi gateway DANA. Mohon periksa status beberapa saat lagi.';
+                } else {
+                    $message = 'Terjadi konflik transaksi pada sistem billing UDEV.';
+                }
+            } elseif ($status === 422) {
+                $upstreamErrors = $exception->upstreamErrors ?? [];
+                $rawMsg = (string) ($exception->upstreamMessage ?? '');
+
+                if (isset($upstreamErrors['bank'])) {
+                    $sanitizedErrors['bank'] = ['Bank Virtual Account yang dipilih tidak valid atau belum didukung.'];
+                    $message = 'Bank Virtual Account yang dipilih tidak valid.';
+                } elseif (isset($upstreamErrors['payment_method'])) {
+                    $sanitizedErrors['payment_method'] = ['Metode pembayaran yang dipilih tidak didukung atau belum tersedia.'];
+                    $message = 'Metode pembayaran yang dipilih tidak didukung.';
+                } elseif (isset($upstreamErrors['invoice'])) {
+                    $firstInvoiceErr = (string) ($upstreamErrors['invoice'][0] ?? '');
+                    if (str_contains($firstInvoiceErr, 'kedaluwarsa') || str_contains($rawMsg, 'kedaluwarsa')) {
+                        $sanitizedErrors['invoice'] = ['Invoice langganan sudah kedaluwarsa. Silakan buat invoice baru.'];
+                        $message = 'Invoice langganan sudah kedaluwarsa.';
+                    } elseif (str_contains($firstInvoiceErr, 'Merchant DANA') || str_contains($firstInvoiceErr, 'belum siap')) {
+                        $sanitizedErrors['invoice'] = ['Metode pembayaran DANA belum siap digunakan untuk transaksi ini.'];
+                        $message = 'Metode pembayaran DANA belum siap digunakan.';
+                    } else {
+                        $sanitizedErrors['invoice'] = ['Permintaan invoice tidak dapat diproses oleh sistem billing.'];
+                        $message = 'Status invoice tidak valid untuk checkout.';
+                    }
+                } elseif (str_contains($rawMsg, 'bank')) {
+                    $sanitizedErrors['bank'] = ['Pilihan bank tidak sesuai dengan metode pembayaran yang dipilih.'];
+                    $message = 'Pilihan bank tidak valid.';
+                } elseif (str_contains($rawMsg, 'Idempotency key')) {
+                    $message = 'Idempotency key sudah digunakan dengan parameter berbeda.';
+                } else {
+                    $message = 'UDEV menolak permintaan billing. Periksa data pembayaran atau hubungi admin.';
+                }
+            }
+
             $response = ApiErrorResponse::make(
-                $upstreamStatus === 404 ? 'NOT_FOUND' : ($status === 422 ? 'UDEV_BILLING_REJECTED' : 'UDEV_BILLING_UNAVAILABLE'),
-                $status === 422
-                    ? 'UDEV menolak permintaan billing. Periksa pilihan paket atau hubungi admin.'
-                    : ($status === 404 ? 'Data billing tidak ditemukan di UDEV.' : 'Layanan billing UDEV sedang tidak dapat diakses.'),
+                $errorCode,
+                $message,
                 $status,
+                $sanitizedErrors,
             );
 
             if ($upstreamStatus === 429 && is_string($exception->retryAfter)

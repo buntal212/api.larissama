@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: apilarissama-backend-production
+  cancel-in-progress: false
+
 jobs:
   # ============================================================
   # BACKEND CI
@@ -80,23 +84,23 @@ jobs:
     # Deploy hanya berjalan jika Backend CI berhasil
     needs: test
 
-    # Production hanya deploy ketika push ke branch main
+    # Production hanya deploy ketika push ke branch main atau workflow_dispatch
     # Pull Request hanya menjalankan Backend CI
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
 
     runs-on:
       - self-hosted
       - Linux
       - X64
 
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       # ========================================================
       # CHECKOUT
       # ========================================================
       - name: Checkout production source
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -173,255 +177,454 @@ jobs:
           fi
 
       # ========================================================
-      # INSTALL COMPOSER DEPENDENCIES
+      # DEPLOYMENT GATE: VERIFIKASI RELEASE UDEV TAHAP 2
       # ========================================================
-      - name: Install production Composer dependencies
+      - name: "Deployment Gate: Verify UDEV Tahap 2 Release Active"
+        shell: bash
         run: |
-          composer install \
-            --no-dev \
-            --prefer-dist \
-            --no-interaction \
-            --no-progress \
-            --optimize-autoloader
+          set -Eeuo pipefail
+          echo "=========================================================="
+          echo "DEPLOYMENT GATE: VERIFIKASI RELEASE UDEV INTEGRASI TAHAP 2"
+          echo "=========================================================="
+          UDEV_URL="https://apiudev.udumbara.my.id"
+          UDEV_RELEASE_JSON="$UDEV_URL/release.json"
+          UDEV_LOCAL_RELEASE="/www/wwwroot/apiudev.udumbara.my.id/.current_release"
 
-      # ========================================================
-      # RSYNC DEPLOY
-      # ========================================================
-      - name: Deploy source to production
-        run: |
-          rsync -rlDv --delete \
-            --no-perms \
-            --no-owner \
-            --no-group \
-            --omit-dir-times \
-            --exclude='.git/' \
-            --exclude='.github/' \
-            --exclude='.env' \
-            --exclude='.user.ini' \
-            --exclude='.well-known/' \
-            --exclude='storage/' \
-            --exclude='public/storage' \
-            ./ /www/wwwroot/apilarissama.udumbara.my.id/
+          RELEASE_VERIFIED=0
 
-      # ========================================================
-      # PREPARE LARAVEL DIRECTORIES
-      # ========================================================
-      - name: Prepare Laravel writable directories
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
+          echo "1. Memeriksa manifest release UDEV di $UDEV_RELEASE_JSON..."
+          HTTP_CODE=$(curl --silent --show-error --location --output /tmp/udev_release.json --write-out "%{http_code}" --max-time 15 "$UDEV_RELEASE_JSON" || true)
+          echo "HTTP Status release.json: $HTTP_CODE"
 
-          echo "========================================"
-          echo "CREATE LARAVEL DIRECTORIES"
-          echo "========================================"
+          if [ "$HTTP_CODE" -eq 200 ] && [ -s /tmp/udev_release.json ]; then
+            echo "Manifest UDEV release.json ditemukan:"
+            cat /tmp/udev_release.json
+            echo ""
 
-          mkdir -p storage/app
-          mkdir -p storage/app/public
-          mkdir -p storage/framework
-          mkdir -p storage/framework/cache
-          mkdir -p storage/framework/cache/data
-          mkdir -p storage/framework/sessions
-          mkdir -p storage/framework/views
-          mkdir -p storage/logs
-          mkdir -p bootstrap/cache
+            STAGE=$(grep -o '"integration_stage"[[:space:]]*:[[:space:]]*"[^"]*"' /tmp/udev_release.json | cut -d'"' -f4 || true)
+            STATUS=$(grep -o '"status"[[:space:]]*:[[:space:]]*"[^"]*"' /tmp/udev_release.json | cut -d'"' -f4 || true)
+            COMMIT_SHA=$(grep -o '"commit_sha"[[:space:]]*:[[:space:]]*"[^"]*"' /tmp/udev_release.json | cut -d'"' -f4 || true)
 
-          echo ""
-          echo "========================================"
-          echo "SET OWNERSHIP"
-          echo "========================================"
+            echo "Status terdeteksi: Stage=$STAGE, Status=$STATUS, Commit=$COMMIT_SHA"
 
-          sudo chown -R www:www storage
-          sudo chown -R www:www bootstrap/cache
+            if [ "$STATUS" = "active" ] && [ "$STAGE" = "tahap-2" ]; then
+              echo "Release UDEV Tahap 2 terverifikasi AKTIF secara valid via HTTP manifest."
+              RELEASE_VERIFIED=1
+            else
+              echo "::warning::Manifest UDEV belum berstatus active tahap-2 (Status: '$STATUS', Stage: '$STAGE')."
+            fi
+          else
+            echo "Manifest HTTP $UDEV_RELEASE_JSON tidak mengembalikan 200 (HTTP $HTTP_CODE)."
+          fi
 
-          echo ""
-          echo "========================================"
-          echo "SET DIRECTORY PERMISSIONS"
-          echo "========================================"
+          # Pemeriksaan silang pada filesystem lokal jika runner berada pada host yang sama
+          if [ "$RELEASE_VERIFIED" -ne 1 ] && [ -f "$UDEV_LOCAL_RELEASE" ]; then
+            echo "2. Memeriksa file .current_release lokal di $UDEV_LOCAL_RELEASE..."
+            cat "$UDEV_LOCAL_RELEASE"
+            if grep -q 'INTEGRATION_STAGE=tahap-2' "$UDEV_LOCAL_RELEASE"; then
+              echo "Release UDEV Tahap 2 terverifikasi AKTIF melalui filesystem lokal."
+              RELEASE_VERIFIED=1
+            fi
+          fi
 
-          sudo find storage \
-            -type d \
-            -exec chmod 775 {} \;
-
-          sudo find bootstrap/cache \
-            -type d \
-            -exec chmod 775 {} \;
-
-          echo ""
-          echo "========================================"
-          echo "SET FILE PERMISSIONS"
-          echo "========================================"
-
-          sudo find storage \
-            -type f \
-            -exec chmod 664 {} \;
-
-          sudo find bootstrap/cache \
-            -type f \
-            -exec chmod 664 {} \;
-
-      # ============================================================
-      # LINK PUBLIC STORAGE
-      # ============================================================
-      - name: Link public storage for warung logos
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
-
-          php artisan storage:link --force
-
-          if [ ! -L public/storage ]; then
-            echo "public/storage must be a symbolic link."
+          if [ "$RELEASE_VERIFIED" -ne 1 ]; then
+            echo "::error::DEPLOYMENT GATE DITUTUP: Release UDEV yang memuat integrasi Tahap 2 belum terverifikasi aktif!"
+            echo "::error::Larissama DILARANG deploy sebelum rilis UDEV Centralized Billing Tahap 2 terpasang dan aktif."
             exit 1
           fi
 
-          if [ ! -d storage/app/public ]; then
-            echo "storage/app/public must exist."
-            exit 1
+          echo "=========================================================="
+          echo "DEPLOYMENT GATE TERBUKA: UDEV Tahap 2 terverifikasi aktif."
+          echo "Melanjutkan deployment Larissama..."
+          echo "=========================================================="
+
+      # ========================================================
+      # VALIDASI SINTAKS SKRIP DEPLOYMENT
+      # ========================================================
+      - name: Validasi sintaks skrip deployment
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          awk '
+            $0 == "      - name: Deploy source Laravel" { in_step=1; next }
+            in_step && $0 == "        run: |" { in_run=1; next }
+            in_run && /^      - / { exit }
+            in_run { sub(/^          /, ""); print }
+          ' "$GITHUB_WORKSPACE/.github/workflows/deploy.yml" | bash -n
+
+      # ========================================================
+      # DEPLOY SOURCE LARAVEL
+      # ========================================================
+      - name: Deploy source Laravel
+        shell: bash
+        env:
+          APP_DIR: /www/wwwroot/apilarissama.udumbara.my.id
+        run: |
+          set -Eeuo pipefail
+          umask 027
+
+          DEPLOY_ROOT="$APP_DIR/.deploy"
+          STAGING_ROOT="$DEPLOY_ROOT/staging"
+          BACKUP_ROOT="$DEPLOY_ROOT/backups"
+          RELEASE_ID="${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          STAGING_DIR=""
+          BACKUP_DIR="$BACKUP_ROOT/$RELEASE_ID"
+          LOCK_FILE="$DEPLOY_ROOT/deploy.lock"
+          ACTIVATION_STARTED=0
+          BACKUP_READY=0
+          DEPLOY_OK=0
+          LOCK_HELD=0
+          DEPLOY_ROOT_REAL=""
+          STAGING_ROOT_REAL=""
+          PHP_BIN="$(command -v php)"
+
+          # Persistent files and generated caches never go through rsync.
+          EXCLUDES=(
+            --exclude='/.env'
+            --exclude='/.env.*'
+            --exclude='/storage/'
+            --exclude='/public/storage'
+            --exclude='/bootstrap/cache/'
+            --exclude='/.deploy/'
+            --exclude='/.well-known/'
+            --exclude='/.user.ini'
+            --exclude='/public/.user.ini'
+            --exclude='/.git/'
+            --exclude='/.github/'
+            --exclude='/.current_release'
+          )
+
+          fail() { echo "::error::$*"; exit 1; }
+
+          report_disk() {
+            echo '=== Disk usage ==='
+            df -h "$APP_DIR" || true
+            du -sh "$STAGING_ROOT" "$BACKUP_ROOT" 2>/dev/null || true
+          }
+
+          is_safe_direct_child() {
+            local candidate="$1" parent="$2" parent_real candidate_real
+            [[ -d "$candidate" && ! -L "$candidate" ]] || return 1
+            parent_real="$(realpath -e -- "$parent")" || return 1
+            candidate_real="$(realpath -e -- "$candidate")" || return 1
+            [[ "$(dirname -- "$candidate_real")" == "$parent_real" ]]
+          }
+
+          safe_remove() {
+            local candidate="$1" parent="$2"
+            is_safe_direct_child "$candidate" "$parent" || return 1
+            rm -rf --one-file-system -- "$candidate"
+            [[ ! -e "$candidate" && ! -L "$candidate" ]]
+          }
+
+          staging_in_use() {
+            local candidate="$1" output status
+            command -v lsof >/dev/null 2>&1 || return 2
+            if output="$(lsof -nP +D "$candidate" 2>&1)"; then
+              return 0
+            else
+              status=$?
+            fi
+            [[ "$status" -eq 1 && -z "$output" ]] && return 1
+            return 2
+          }
+
+          cleanup_orphan_staging() {
+            local candidate before_size after_size candidates_file state
+            [[ "$LOCK_HELD" == 1 && -n "$STAGING_ROOT_REAL" ]] || {
+              echo '::warning::Pembersihan staging orphan dilewati: lock deployment eksklusif tidak dipegang'
+              return 0
+            }
+            [[ -d "$STAGING_ROOT" && ! -L "$STAGING_ROOT" ]] || {
+              echo '::warning::Pembersihan staging orphan dilewati: staging root tidak aman'
+              return 0
+            }
+            [[ "$(realpath -e -- "$STAGING_ROOT")" == "$STAGING_ROOT_REAL" ]] || {
+              echo '::warning::Pembersihan staging orphan dilewati: staging root berubah tanpa diduga'
+              return 0
+            }
+            if ! command -v lsof >/dev/null 2>&1; then
+              echo '::warning::Pembersihan staging orphan dilewati: lsof tidak tersedia'
+              return 0
+            fi
+
+            candidates_file="$(mktemp "$DEPLOY_ROOT_REAL/.orphan-staging.XXXXXX")" || {
+              echo '::warning::Pembersihan staging orphan dilewati: daftar kandidat tidak dapat dibuat'
+              return 0
+            }
+            if ! find -P "$STAGING_ROOT_REAL" -xdev -mindepth 1 -maxdepth 1 -type d -mmin +1440 -print0 > "$candidates_file"; then
+              rm -f -- "$candidates_file" || true
+              echo '::warning::Pembersihan staging orphan dilewati: pencarian kandidat gagal'
+              return 0
+            fi
+
+            before_size="$(du -sh -- "$STAGING_ROOT_REAL" 2>/dev/null || echo unknown)"
+            echo "=== Pembersihan staging orphan (sebelum: $before_size) ==="
+            while IFS= read -r -d '' candidate; do
+              if ! is_safe_direct_child "$candidate" "$STAGING_ROOT_REAL"; then
+                echo "::warning::Kandidat staging orphan tidak aman dilewati: $candidate"
+                continue
+              fi
+              if [[ -n "$STAGING_DIR" && "$candidate" == "$STAGING_DIR" ]]; then
+                echo "::notice::Direktori staging saat ini dilewati: $candidate"
+                continue
+              fi
+              if staging_in_use "$candidate"; then
+                echo "::notice::Direktori staging yang sedang digunakan dilewati: $candidate"
+                continue
+              else
+                state=$?
+              fi
+              if [[ "$state" -ne 1 ]]; then
+                echo "::warning::Kandidat staging dilewati karena status pemakaian tidak dapat diverifikasi: $candidate"
+                continue
+              fi
+
+              before_size="$(du -sh -- "$candidate" 2>/dev/null || echo unknown)"
+              echo "::notice::Kandidat staging orphan (>24 jam): $candidate (ukuran: $before_size)"
+              if safe_remove "$candidate" "$STAGING_ROOT_REAL"; then
+                after_size="$(du -sh -- "$STAGING_ROOT_REAL" 2>/dev/null || echo unknown)"
+                echo "::notice::Staging orphan dihapus: $candidate (ukuran sesudah: $after_size)"
+              else
+                echo "::warning::Kandidat staging orphan tidak dapat dihapus: $candidate"
+              fi
+            done < "$candidates_file"
+            rm -f -- "$candidates_file" || true
+            after_size="$(du -sh -- "$STAGING_ROOT_REAL" 2>/dev/null || echo unknown)"
+            echo "=== Pembersihan staging orphan selesai (sesudah: $after_size) ==="
+            return 0
+          }
+
+          ensure_storage_permissions() {
+            local storage_root="$1"
+            mkdir -p "$storage_root/app" \
+                     "$storage_root/app/public" \
+                     "$storage_root/framework" \
+                     "$storage_root/framework/cache" \
+                     "$storage_root/framework/cache/data" \
+                     "$storage_root/framework/sessions" \
+                     "$storage_root/framework/views" \
+                     "$storage_root/logs"
+
+            sudo chown -R www:www "$storage_root" 2>/dev/null || true
+            sudo find "$storage_root" -type d -exec chmod 775 {} \; 2>/dev/null || true
+            sudo find "$storage_root" -type f -exec chmod 664 {} \; 2>/dev/null || true
+          }
+
+          ensure_bootstrap_permissions() {
+            local target="$1"
+            mkdir -p "$target/bootstrap/cache"
+            sudo chown -R www:www "$target/bootstrap/cache" 2>/dev/null || true
+            sudo find "$target/bootstrap/cache" -type d -exec chmod 775 {} \; 2>/dev/null || true
+            sudo find "$target/bootstrap/cache" -type f -exec chmod 664 {} \; 2>/dev/null || true
+          }
+
+          build_cache() {
+            local target="$1"
+            (
+              cd "$target"
+              [[ -d bootstrap/cache && ! -L bootstrap/cache ]] || \
+                { echo '::error::Invalid bootstrap/cache'; exit 1; }
+              "$PHP_BIN" artisan package:discover --no-interaction
+              "$PHP_BIN" artisan config:clear --no-interaction
+              "$PHP_BIN" artisan config:cache --no-interaction
+              "$PHP_BIN" artisan route:clear --no-interaction
+              "$PHP_BIN" artisan route:cache --no-interaction
+            )
+          }
+
+          rollback() {
+            echo "::warning::Mengembalikan rilis aplikasi sebelumnya menggunakan backup terverifikasi Release ID: $RELEASE_ID (Target Commit: $GITHUB_SHA). Bukan HEAD~1."
+            [[ "$BACKUP_READY" == 1 && -d "$BACKUP_DIR" ]] || {
+              echo '::error::No valid rollback backup available'; return 1;
+            }
+            [[ -f "$BACKUP_DIR/artisan" && -f "$BACKUP_DIR/composer.json" && -d "$BACKUP_DIR/vendor" ]] || {
+              echo '::error::Rollback backup integrity check failed'; return 1;
+            }
+            rsync -a --delete "${EXCLUDES[@]}" "$BACKUP_DIR/" "$APP_DIR/" || return 1
+            if ! build_cache "$APP_DIR"; then
+              echo '::error::Rollback files restored but Laravel cache rebuild failed; manual intervention needed'
+              return 1
+            fi
+            ensure_storage_permissions "$APP_DIR/storage"
+            ensure_bootstrap_permissions "$APP_DIR"
+            echo '=== Previous application restored from verified release backup ==='
+          }
+
+          finish() {
+            local status=$?
+            trap - EXIT
+            set +e
+            if [[ "$status" -ne 0 && "$ACTIVATION_STARTED" == 1 ]]; then
+              rollback || echo '::error::Automatic rollback incomplete'
+            fi
+            if [[ -n "$STAGING_DIR" && -d "$STAGING_DIR" ]]; then
+              safe_remove "$STAGING_DIR" "$STAGING_ROOT" || \
+                echo '::warning::Could not remove current staging directory'
+            fi
+            if [[ "$DEPLOY_OK" != 1 && "$BACKUP_READY" != 1 && -d "$BACKUP_DIR" ]]; then
+              safe_remove "$BACKUP_DIR" "$BACKUP_ROOT" || true
+            fi
+            report_disk
+            if [[ "$LOCK_HELD" == 1 ]]; then
+              flock -u 9 || echo '::warning::Lock deployment tidak dapat dilepas secara eksplisit'
+              exec 9>&-
+              LOCK_HELD=0
+            fi
+            exit "$status"
+          }
+          trap finish EXIT
+
+          echo '=== Checking deployment requirements ==='
+          for bin in rsync composer realpath df du find sort mktemp awk flock; do
+            command -v "$bin" >/dev/null 2>&1 || fail "Missing command: $bin"
+          done
+          [[ -x "$PHP_BIN" ]] || fail "PHP executable missing: $PHP_BIN"
+          for file in artisan composer.json composer.lock; do
+            [[ -f "$file" ]] || fail "Source file missing: $file"
+          done
+          [[ -d "$APP_DIR" && ! -L "$APP_DIR" ]] || fail 'Production webroot missing or symlinked'
+          [[ -f "$APP_DIR/.env" ]] || fail 'Production .env missing'
+          [[ -d "$APP_DIR/storage" ]] || fail 'Production storage directory missing'
+
+          ensure_storage_permissions "$APP_DIR/storage"
+          ensure_bootstrap_permissions "$APP_DIR"
+
+          [[ ! -e "$DEPLOY_ROOT" || ( -d "$DEPLOY_ROOT" && ! -L "$DEPLOY_ROOT" ) ]] || \
+            fail "Invalid deployment root: $DEPLOY_ROOT"
+          mkdir -p "$STAGING_ROOT" "$BACKUP_ROOT"
+          for dir in "$DEPLOY_ROOT" "$STAGING_ROOT" "$BACKUP_ROOT"; do
+            [[ ! -L "$dir" ]] || fail "Unexpected deployment symlink: $dir"
+          done
+          DEPLOY_ROOT_REAL="$(realpath -e -- "$DEPLOY_ROOT")" || fail 'Cannot resolve deployment root'
+          [[ "$DEPLOY_ROOT_REAL" == "$(realpath -e -- "$APP_DIR")/.deploy" ]] || \
+            fail 'Deployment root is outside production webroot'
+          STAGING_ROOT_REAL="$(realpath -e -- "$STAGING_ROOT")" || fail 'Cannot resolve staging root'
+          [[ "$(dirname -- "$STAGING_ROOT_REAL")" == "$DEPLOY_ROOT_REAL" ]] || \
+            fail 'Staging root is outside deployment root'
+          [[ ! -e "$LOCK_FILE" || ( -f "$LOCK_FILE" && ! -L "$LOCK_FILE" ) ]] || \
+            fail "Invalid deployment lock file: $LOCK_FILE"
+          exec 9>"$LOCK_FILE"
+          flock -n 9 || fail 'Deployment atau cleanup lain sudah memegang lock server-side'
+          LOCK_HELD=1
+          echo "=== Lock deployment server-side diperoleh: $LOCK_FILE ==="
+          report_disk
+
+          cleanup_orphan_staging || echo '::warning::Pembersihan staging orphan gagal; deployment diteruskan'
+
+          echo '=== Preparing staging ==='
+          STAGING_DIR="$(mktemp -d "$STAGING_ROOT/${RELEASE_ID}.XXXXXX")"
+          rsync -a --exclude='/.git/' --exclude='/.github/' --exclude='/vendor/' \
+            "${EXCLUDES[@]}" ./ "$STAGING_DIR/"
+          cp --preserve=mode,timestamps "$APP_DIR/.env" "$STAGING_DIR/.env"
+          ln -s -- "$APP_DIR/storage" "$STAGING_DIR/storage"
+          mkdir -p "$STAGING_DIR/bootstrap/cache"
+
+          echo '=== Installing Composer dependencies ==='
+          (
+            cd "$STAGING_DIR"
+            "$PHP_BIN" "$(command -v composer)" install \
+              --no-dev --prefer-dist --no-interaction --optimize-autoloader --no-scripts
+          )
+          echo '=== Validating staging ==='
+          build_cache "$STAGING_DIR"
+
+          echo '=== Validasi migration pending di staging (Fail-Closed, Read-Only) ==='
+          (
+            cd "$STAGING_DIR"
+            "$PHP_BIN" artisan migrate:status --no-interaction
+            PENDING_COUNT=$("$PHP_BIN" artisan migrate:status --no-interaction 2>&1 | grep -c 'Pending' || true)
+            if [[ "$PENDING_COUNT" -gt 0 ]]; then
+              echo "::error::FAIL-CLOSED: Ditemukan $PENDING_COUNT migration pending yang belum terpasang."
+              echo "::error::Migration otomatis dinonaktifkan. Seluruh migration wajib disetujui dan dijalankan terpisah sebelum deployment."
+              fail "Deployment Larissama dibatalkan (Fail-Closed): terdapat $PENDING_COUNT migration pending."
+            fi
+            echo '=== Staging migration check: Tidak ada pending migration ==='
+          )
+
+          echo '=== Backing up production (excluding generated cache) ==='
+          rsync -a "${EXCLUDES[@]}" "$APP_DIR/" "$BACKUP_DIR/"
+          [[ -f "$BACKUP_DIR/artisan" && -f "$BACKUP_DIR/composer.json" && -d "$BACKUP_DIR/vendor" ]] || \
+            fail 'Rollback backup is incomplete'
+          printf 'RELEASE_ID=%s\nTARGET_SHA=%s\nBACKUP_TIME=%s\n' \
+            "$RELEASE_ID" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$BACKUP_DIR/.release_meta"
+          BACKUP_READY=1
+
+          echo '=== Activating prepared release ==='
+          ACTIVATION_STARTED=1
+          rsync -a --delete "${EXCLUDES[@]}" "$STAGING_DIR/" "$APP_DIR/"
+          ensure_storage_permissions "$APP_DIR/storage"
+          ensure_bootstrap_permissions "$APP_DIR"
+
+          # Re-link public storage if necessary
+          (
+            cd "$APP_DIR"
+            "$PHP_BIN" artisan storage:link --force
+          )
+
+          build_cache "$APP_DIR"
+
+          echo '=== Pemeriksaan migration pending pada production (Fail-Closed, Read-Only) ==='
+          (
+            cd "$APP_DIR"
+            echo '--- Status migration saat ini ---'
+            "$PHP_BIN" artisan migrate:status --no-interaction
+            PENDING_COUNT=$("$PHP_BIN" artisan migrate:status --no-interaction 2>&1 | grep -c 'Pending' || true)
+            if [[ "$PENDING_COUNT" -gt 0 ]]; then
+              echo "::error::FAIL-CLOSED: Ditemukan $PENDING_COUNT migration berstatus Pending pada production."
+              echo "::error::Eksekusi migration otomatis dinonaktifkan. Rilis digagalkan karena terdapat skema DB yang belum terpasang."
+              exit 1
+            fi
+            echo '=== Semua migration sudah dieksekusi (0 pending) ==='
+          )
+
+          echo '=== Resetting OPcache / PHP bytecache ==='
+          "$PHP_BIN" -r 'if (function_exists("opcache_reset")) { opcache_reset(); }' || true
+          if command -v systemctl >/dev/null 2>&1; then
+            sudo -n systemctl reload php-fpm-83 2>/dev/null || sudo -n systemctl reload php8.3-fpm 2>/dev/null || true
           fi
 
-      # ========================================================
-      # VERIFY WRITABLE DIRECTORIES
-      # ========================================================
-      - name: Verify Laravel permissions
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
+          echo '=== Verifikasi Laravel Production Status ==='
+          (
+            cd "$APP_DIR"
+            "$PHP_BIN" artisan about
+          )
 
-          echo "========================================"
-          echo "STORAGE"
-          echo "========================================"
-
-          ls -ld storage
-          ls -ld storage/logs
-          ls -ld storage/framework
-          ls -ld storage/framework/cache
-          ls -ld storage/framework/sessions
-          ls -ld storage/framework/views
-
-          echo ""
-          echo "========================================"
-          echo "BOOTSTRAP CACHE"
-          echo "========================================"
-
-          ls -ld bootstrap/cache
-
-      # ========================================================
-      # CLEAR OLD LARAVEL CACHE
-      # ========================================================
-      - name: Clear old Laravel cache
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
-
-          echo "========================================"
-          echo "CLEAR OLD CACHE"
-          echo "========================================"
-
-          php artisan optimize:clear
-
-      # ========================================================
-      # DATABASE MIGRATION
-      # ========================================================
-      - name: Run database migrations
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
-
-          echo "========================================"
-          echo "DATABASE MIGRATION"
-          echo "========================================"
-
-          php artisan migrate --force
-
-      # ========================================================
-      # BUILD PRODUCTION CACHE
-      # ========================================================
-      - name: Build Laravel production cache
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
-
-          echo "========================================"
-          echo "CONFIG CACHE"
-          echo "========================================"
-
-          php artisan config:cache
-
-          echo ""
-          echo "========================================"
-          echo "ROUTE CACHE"
-          echo "========================================"
-
-          php artisan route:cache
-
-      # ========================================================
-      # RESTORE WRITABLE PERMISSIONS
-      # ========================================================
-      - name: Restore Laravel writable permissions
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
-
-          echo "========================================"
-          echo "RESTORE OWNERSHIP"
-          echo "========================================"
-
-          sudo chown -R www:www storage
-          sudo chown -R www:www bootstrap/cache
-
-          sudo find storage \
-            -type d \
-            -exec chmod 775 {} \;
-
-          sudo find storage \
-            -type f \
-            -exec chmod 664 {} \;
-
-          sudo find bootstrap/cache \
-            -type d \
-            -exec chmod 775 {} \;
-
-          sudo find bootstrap/cache \
-            -type f \
-            -exec chmod 664 {} \;
-
-      # ========================================================
-      # VERIFY LARAVEL
-      # ========================================================
-      - name: Verify Laravel production
-        run: |
-          cd /www/wwwroot/apilarissama.udumbara.my.id
-
-          echo "========================================"
-          echo "LARAVEL PRODUCTION STATUS"
-          echo "========================================"
-
-          php artisan about
-
-          echo ""
-          echo "========================================"
-          echo "FINAL PERMISSIONS"
-          echo "========================================"
-
-          ls -ld storage
-          ls -ld storage/logs
-          ls -ld bootstrap/cache
-
-      # ========================================================
-      # HTTP HEALTH CHECK
-      # ========================================================
-      - name: Verify production HTTP response
-        run: |
-          echo "========================================"
-          echo "PRODUCTION HTTP CHECK"
-          echo "========================================"
-
+          echo '=== Verifikasi production HTTP response ==='
           HTTP_CODE=$(curl \
             --silent \
             --show-error \
             --location \
             --output /dev/null \
             --write-out "%{http_code}" \
+            --max-time 20 \
             https://apilarissama.udumbara.my.id/)
 
           echo "HTTP Status: ${HTTP_CODE}"
 
           if [ "${HTTP_CODE}" -lt 200 ] || [ "${HTTP_CODE}" -ge 400 ]; then
-            echo "Production health check failed."
+            echo "::error::Production health check failed with HTTP ${HTTP_CODE}."
             exit 1
           fi
 
           echo "Production health check successful."
+
+          printf 'RELEASE_ID=%s\nCOMMIT_SHA=%s\nDEPLOYED_AT=%s\n' \
+            "$RELEASE_ID" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$APP_DIR/.current_release"
+
+          ACTIVATION_STARTED=0
+          DEPLOY_OK=1
+          echo '=== Deployment Larissama successful ==='
+          echo '=== Pipeline Urutan Deployment: Tahap 2 (Larissama Backend) SELESAI. ==='
+
+          echo '=== Cleaning old backups ==='
+          mapfile -t OLD_BACKUPS < <(
+            find -P "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d \
+              -printf '%T@ %p\n' | sort -rn | awk 'NR > 2 { $1=""; sub(/^ /, ""); print }'
+          )
+          for old in "${OLD_BACKUPS[@]}"; do
+            [[ "$old" != "$BACKUP_DIR" ]] || continue
+            safe_remove "$old" "$BACKUP_ROOT" || \
+              echo "::warning::Could not clean old backup: $old"
+          done
+          echo '=== Cleanup complete ==='

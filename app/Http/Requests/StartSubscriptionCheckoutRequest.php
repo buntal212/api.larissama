@@ -24,6 +24,7 @@ class StartSubscriptionCheckoutRequest extends FormRequest
             'provider' => ['sometimes', 'string', 'in:dana'],
             'idempotency_key' => ['nullable', 'prohibited'],
             'payment_method' => ['sometimes', 'string', 'in:qris,dana_wallet,va_bri,va_cimb,va_btpn,va_pani'],
+            'bank' => ['sometimes', 'nullable', 'string', 'in:bri,cimb,btpn,pani'],
             'warung_id' => ['sometimes', 'integer', 'min:1'],
         ];
     }
