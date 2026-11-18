@@ -278,6 +278,16 @@ jobs:
           STAGING_ROOT_REAL=""
           PHP_BIN="$(command -v php)"
 
+          # Bendera rsync aman untuk runner non-root (kentang):
+          # Tidak mengubah kepemilikan/owner/group webroot (menghindari rsync code 23 chgrp EPERM).
+          RSYNC_FLAGS=(
+            -rlD
+            --no-perms
+            --no-owner
+            --no-group
+            --omit-dir-times
+          )
+
           # Persistent files and generated caches never go through rsync.
           EXCLUDES=(
             --exclude='/.env'
@@ -395,28 +405,90 @@ jobs:
             return 0
           }
 
-          ensure_storage_permissions() {
-            local storage_root="$1"
-            mkdir -p "$storage_root/app" \
-                     "$storage_root/app/public" \
-                     "$storage_root/framework" \
-                     "$storage_root/framework/cache" \
-                     "$storage_root/framework/cache/data" \
-                     "$storage_root/framework/sessions" \
-                     "$storage_root/framework/views" \
-                     "$storage_root/logs"
+          ensure_runtime_directories() {
+            local target_dir="$1"
+            local storage_dir="$target_dir/storage"
+            local bootstrap_cache="$target_dir/bootstrap/cache"
 
-            sudo chown -R www:www "$storage_root" 2>/dev/null || true
-            sudo find "$storage_root" -type d -exec chmod 775 {} \; 2>/dev/null || true
-            sudo find "$storage_root" -type f -exec chmod 664 {} \; 2>/dev/null || true
+            echo "=== Memastikan direktori runtime Laravel tersedia di $target_dir ==="
+
+            # 1. Pastikan direktori dasar storage dan app ada (hanya direktori, tanpa menyentuh file di dalamnya)
+            mkdir -p "$storage_dir" \
+                     "$storage_dir/app" \
+                     "$storage_dir/app/public"
+
+            # 2. Definisikan secara spesifik hanya direktori runtime yang diperlukan Laravel & PHP-FPM
+            local runtime_dirs=(
+              "$storage_dir/framework"
+              "$storage_dir/framework/views"
+              "$storage_dir/framework/cache"
+              "$storage_dir/framework/cache/data"
+              "$storage_dir/framework/sessions"
+              "$storage_dir/logs"
+              "$bootstrap_cache"
+            )
+
+            # Buat direktori runtime yang diperlukan
+            for dir in "${runtime_dirs[@]}"; do
+              mkdir -p "$dir"
+            done
+
+            # Pastikan file log utama ada agar PHP-FPM / Laravel dapat menulis
+            touch "$storage_dir/logs/laravel.log" 2>/dev/null || true
+
+            # 3. Batasi kepemilikan www:www HANYA pada direktori runtime yang diperlukan
+            # Hindari chown -R secara luas pada storage_dir agar file upload/user tidak terpengaruh
+            if command -v sudo >/dev/null 2>&1; then
+              sudo -n chown www:www "${runtime_dirs[@]}" "$storage_dir/logs/laravel.log" 2>/dev/null || true
+            fi
+
+            # 4. Set izin aman direktori runtime (775) dan file log (664)
+            # Direktori dasar storage & app/public diset 775 tanpa rekursif (-R) ke isi file
+            chmod 775 "$storage_dir" "$storage_dir/app" "$storage_dir/app/public" 2>/dev/null || true
+            chmod 775 "${runtime_dirs[@]}" 2>/dev/null || true
+            chmod 664 "$storage_dir/logs/laravel.log" 2>/dev/null || true
+
+            # 5. Berikan ACL spesifik untuk user runner (kentang) dan webserver (www) jika setfacl tersedia
+            # Ini memastikan baik runner maupun PHP-FPM memiliki akses baca/tulis tanpa mengubah ownership webroot
+            local current_user
+            current_user="$(whoami)"
+            if command -v setfacl >/dev/null 2>&1; then
+              setfacl -m "u:www:rwx,u:${current_user}:rwx,g:www:rwx,m:rwx" "${runtime_dirs[@]}" 2>/dev/null || true
+              setfacl -d -m "u:www:rwx,u:${current_user}:rwx,g:www:rwx,m:rwx" "${runtime_dirs[@]}" 2>/dev/null || true
+              if [[ -f "$storage_dir/logs/laravel.log" ]]; then
+                setfacl -m "u:www:rw,u:${current_user}:rw,g:www:rw" "$storage_dir/logs/laravel.log" 2>/dev/null || true
+              fi
+            fi
+
+            # 6. Validasi ketat direktori kritikal runtime Laravel
+            local missing_dirs=0
+            for critical_dir in \
+              "$storage_dir/framework/views" \
+              "$storage_dir/framework/cache/data" \
+              "$storage_dir/framework/sessions" \
+              "$storage_dir/logs" \
+              "$bootstrap_cache"; do
+              if [[ ! -d "$critical_dir" ]]; then
+                echo "::error::Direktori runtime kritikal Laravel TIDAK ditemukan: $critical_dir"
+                missing_dirs=$((missing_dirs + 1))
+              fi
+            done
+
+            if [[ "$missing_dirs" -gt 0 ]]; then
+              echo "::error::Terdapat $missing_dirs direktori runtime Laravel yang hilang di $target_dir."
+              return 1
+            fi
+
+            echo "=== Direktori runtime Laravel (views, cache/data, sessions, logs, bootstrap/cache) siap dan terverifikasi ==="
+            return 0
+          }
+
+          ensure_storage_permissions() {
+            ensure_runtime_directories "$(dirname "$1")"
           }
 
           ensure_bootstrap_permissions() {
-            local target="$1"
-            mkdir -p "$target/bootstrap/cache"
-            sudo chown -R www:www "$target/bootstrap/cache" 2>/dev/null || true
-            sudo find "$target/bootstrap/cache" -type d -exec chmod 775 {} \; 2>/dev/null || true
-            sudo find "$target/bootstrap/cache" -type f -exec chmod 664 {} \; 2>/dev/null || true
+            ensure_runtime_directories "$1"
           }
 
           build_cache() {
@@ -433,6 +505,59 @@ jobs:
             )
           }
 
+          verify_http_health() {
+            local context="$1"
+            local base_url="https://apilarissama.udumbara.my.id"
+            local max_attempts=5
+            local delay_seconds=2
+            local attempt=1
+            local http_code=0
+            local up_code=0
+
+            echo "=== Verifikasi Health Check HTTP ($context): $base_url ==="
+
+            while [[ "$attempt" -le "$max_attempts" ]]; do
+              # 1. Periksa endpoint utama / (merender Blade view welcome & memvalidasi storage/framework/views)
+              http_code=$(curl \
+                --silent \
+                --show-error \
+                --location \
+                --output /dev/null \
+                --write-out "%{http_code}" \
+                --max-time 15 \
+                "$base_url/" || echo "000")
+
+              echo "Health Check ($context) percobaan $attempt/$max_attempts: endpoint / -> HTTP $http_code"
+
+              # 2. Endpoint / harus merespons 200..399
+              if [[ "$http_code" =~ ^[0-9]+$ ]] && [[ "$http_code" -ge 200 && "$http_code" -lt 400 ]]; then
+                # Periksa endpoint /up untuk memvalidasi kernel health Laravel 11
+                up_code=$(curl \
+                  --silent \
+                  --show-error \
+                  --location \
+                  --output /dev/null \
+                  --write-out "%{http_code}" \
+                  --max-time 10 \
+                  "$base_url/up" || echo "000")
+
+                echo "Health Check ($context) endpoint /up -> HTTP $up_code"
+
+                if [[ "$up_code" =~ ^[0-9]+$ ]] && [[ "$up_code" -ge 200 && "$up_code" -lt 400 ]]; then
+                  echo "=== Health check ($context) BERHASIL: HTTP $http_code (/) dan HTTP $up_code (/up) ==="
+                  return 0
+                fi
+              fi
+
+              echo "::warning::Health check ($context) status belum sehat (/ -> HTTP $http_code, /up -> HTTP $up_code). Menunggu $delay_seconds detik..."
+              sleep "$delay_seconds"
+              attempt=$((attempt + 1))
+            done
+
+            echo "::error::Health check ($context) GAGAL setelah $max_attempts percobaan (HTTP terakhir: / -> $http_code, /up -> $up_code)."
+            return 1
+          }
+
           rollback() {
             echo "::warning::Mengembalikan rilis aplikasi sebelumnya menggunakan backup terverifikasi Release ID: $RELEASE_ID (Target Commit: $GITHUB_SHA). Bukan HEAD~1."
             [[ "$BACKUP_READY" == 1 && -d "$BACKUP_DIR" ]] || {
@@ -441,14 +566,42 @@ jobs:
             [[ -f "$BACKUP_DIR/artisan" && -f "$BACKUP_DIR/composer.json" && -d "$BACKUP_DIR/vendor" ]] || {
               echo '::error::Rollback backup integrity check failed'; return 1;
             }
-            rsync -a --delete "${EXCLUDES[@]}" "$BACKUP_DIR/" "$APP_DIR/" || return 1
+
+            echo '=== Memulihkan file rilis dari backup release terverifikasi ==='
+            rsync "${RSYNC_FLAGS[@]}" --delete "${EXCLUDES[@]}" "$BACKUP_DIR/" "$APP_DIR/" || {
+              echo '::error::Rsync rollback restore gagal'; return 1;
+            }
+
+            echo '=== Memastikan direktori runtime dan permissions pasca-rollback ==='
+            ensure_runtime_directories "$APP_DIR" || {
+              echo '::error::Gagal memastikan direktori runtime pasca-rollback'; return 1;
+            }
+
+            # Re-link public storage jika diperlukan
+            (
+              cd "$APP_DIR"
+              "$PHP_BIN" artisan storage:link --force 2>/dev/null || true
+            )
+
             if ! build_cache "$APP_DIR"; then
               echo '::error::Rollback files restored but Laravel cache rebuild failed; manual intervention needed'
               return 1
             fi
-            ensure_storage_permissions "$APP_DIR/storage"
-            ensure_bootstrap_permissions "$APP_DIR"
-            echo '=== Previous application restored from verified release backup ==='
+
+            echo '=== Resetting OPcache dan reload PHP-FPM pasca-rollback ==='
+            "$PHP_BIN" -r 'if (function_exists("opcache_reset")) { opcache_reset(); }' || true
+            if command -v systemctl >/dev/null 2>&1; then
+              sudo -n systemctl reload php-fpm-83 2>/dev/null || sudo -n systemctl reload php8.3-fpm 2>/dev/null || true
+            fi
+
+            echo '=== Menjalankan health check pasca-rollback ==='
+            if ! verify_http_health "pasca-rollback"; then
+              echo '::error::ROLLBACK GAGAL: Health check pasca-rollback tidak lolos. Webroot tidak sehat!'
+              return 1
+            fi
+
+            echo '=== Previous application restored from verified release backup and verified healthy ==='
+            return 0
           }
 
           finish() {
@@ -456,7 +609,11 @@ jobs:
             trap - EXIT
             set +e
             if [[ "$status" -ne 0 && "$ACTIVATION_STARTED" == 1 ]]; then
-              rollback || echo '::error::Automatic rollback incomplete'
+              if rollback; then
+                echo '::notice::Rollback otomatis BERHASIL: webroot pulih dan lolos health check (HTTP 200..399).'
+              else
+                echo '::error::Rollback otomatis GAGAL atau health check tidak lolos: intervensi manual diperlukan!'
+              fi
             fi
             if [[ -n "$STAGING_DIR" && -d "$STAGING_DIR" ]]; then
               safe_remove "$STAGING_DIR" "$STAGING_ROOT" || \
@@ -487,8 +644,7 @@ jobs:
           [[ -f "$APP_DIR/.env" ]] || fail 'Production .env missing'
           [[ -d "$APP_DIR/storage" ]] || fail 'Production storage directory missing'
 
-          ensure_storage_permissions "$APP_DIR/storage"
-          ensure_bootstrap_permissions "$APP_DIR"
+          ensure_runtime_directories "$APP_DIR"
 
           [[ ! -e "$DEPLOY_ROOT" || ( -d "$DEPLOY_ROOT" && ! -L "$DEPLOY_ROOT" ) ]] || \
             fail "Invalid deployment root: $DEPLOY_ROOT"
@@ -514,7 +670,7 @@ jobs:
 
           echo '=== Preparing staging ==='
           STAGING_DIR="$(mktemp -d "$STAGING_ROOT/${RELEASE_ID}.XXXXXX")"
-          rsync -a --exclude='/.git/' --exclude='/.github/' --exclude='/vendor/' \
+          rsync "${RSYNC_FLAGS[@]}" --exclude='/.git/' --exclude='/.github/' --exclude='/vendor/' \
             "${EXCLUDES[@]}" ./ "$STAGING_DIR/"
           cp --preserve=mode,timestamps "$APP_DIR/.env" "$STAGING_DIR/.env"
           ln -s -- "$APP_DIR/storage" "$STAGING_DIR/storage"
@@ -543,7 +699,7 @@ jobs:
           )
 
           echo '=== Backing up production (excluding generated cache) ==='
-          rsync -a "${EXCLUDES[@]}" "$APP_DIR/" "$BACKUP_DIR/"
+          rsync "${RSYNC_FLAGS[@]}" "${EXCLUDES[@]}" "$APP_DIR/" "$BACKUP_DIR/"
           [[ -f "$BACKUP_DIR/artisan" && -f "$BACKUP_DIR/composer.json" && -d "$BACKUP_DIR/vendor" ]] || \
             fail 'Rollback backup is incomplete'
           printf 'RELEASE_ID=%s\nTARGET_SHA=%s\nBACKUP_TIME=%s\n' \
@@ -552,9 +708,9 @@ jobs:
 
           echo '=== Activating prepared release ==='
           ACTIVATION_STARTED=1
-          rsync -a --delete "${EXCLUDES[@]}" "$STAGING_DIR/" "$APP_DIR/"
-          ensure_storage_permissions "$APP_DIR/storage"
-          ensure_bootstrap_permissions "$APP_DIR"
+          rsync "${RSYNC_FLAGS[@]}" --delete "${EXCLUDES[@]}" "$STAGING_DIR/" "$APP_DIR/"
+          
+          ensure_runtime_directories "$APP_DIR"
 
           # Re-link public storage if necessary
           (
@@ -591,23 +747,7 @@ jobs:
           )
 
           echo '=== Verifikasi production HTTP response ==='
-          HTTP_CODE=$(curl \
-            --silent \
-            --show-error \
-            --location \
-            --output /dev/null \
-            --write-out "%{http_code}" \
-            --max-time 20 \
-            https://apilarissama.udumbara.my.id/)
-
-          echo "HTTP Status: ${HTTP_CODE}"
-
-          if [ "${HTTP_CODE}" -lt 200 ] || [ "${HTTP_CODE}" -ge 400 ]; then
-            echo "::error::Production health check failed with HTTP ${HTTP_CODE}."
-            exit 1
-          fi
-
-          echo "Production health check successful."
+          verify_http_health "aktivasi" || fail "Production health check aktivasi gagal"
 
           printf 'RELEASE_ID=%s\nCOMMIT_SHA=%s\nDEPLOYED_AT=%s\n' \
             "$RELEASE_ID" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$APP_DIR/.current_release"
