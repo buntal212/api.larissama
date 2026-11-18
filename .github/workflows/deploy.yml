@@ -289,18 +289,28 @@ jobs:
           )
 
           # Persistent files and generated caches never go through rsync.
+          # PENTING: Jangan gunakan trailing slash pada direktori persisten (misal '/storage/')
+          # agar rsync mengecualikan entri tersebut baik berupa direktori MAUPUN symlink,
+          # serta mencegah symlink yang tidak sengaja terbentuk tertransfer ke APP_DIR.
           EXCLUDES=(
             --exclude='/.env'
             --exclude='/.env.*'
-            --exclude='/storage/'
+            --exclude='/storage'
+            --exclude='/storage/**'
             --exclude='/public/storage'
-            --exclude='/bootstrap/cache/'
-            --exclude='/.deploy/'
-            --exclude='/.well-known/'
+            --exclude='/public/storage/**'
+            --exclude='/bootstrap/cache'
+            --exclude='/bootstrap/cache/**'
+            --exclude='/.deploy'
+            --exclude='/.deploy/**'
+            --exclude='/.well-known'
+            --exclude='/.well-known/**'
             --exclude='/.user.ini'
             --exclude='/public/.user.ini'
-            --exclude='/.git/'
-            --exclude='/.github/'
+            --exclude='/.git'
+            --exclude='/.git/**'
+            --exclude='/.github'
+            --exclude='/.github/**'
             --exclude='/.current_release'
           )
 
@@ -405,12 +415,165 @@ jobs:
             return 0
           }
 
+          verify_storage_integrity() {
+            local target_dir="$1"
+            local target_real
+            target_real="$(realpath -e -- "$target_dir")" || {
+              echo "::error::Target webroot tidak dapat di-resolve: $target_dir"
+              return 1
+            }
+            local storage_dir="$target_real/storage"
+
+            echo "=== Memvalidasi integritas direktori storage dan symlink di $target_real ==="
+
+            # 1. Pastikan $storage_dir adalah direktori asli dan BUKAN symlink
+            if [[ -L "$storage_dir" ]]; then
+              echo "::error::KRITIKAL: Direktori storage ($storage_dir) adalah SYMLINK (potensi symlink loop)! Storage harus berupa direktori asli."
+              return 1
+            fi
+            if [[ ! -d "$storage_dir" ]]; then
+              echo "::error::KRITIKAL: Direktori storage ($storage_dir) tidak ditemukan atau bukan direktori!"
+              return 1
+            fi
+
+            # 2. Pastikan realpath storage tidak melempar ELOOP dan tepat berada di dalam target_real
+            local storage_real
+            storage_real="$(realpath -e -- "$storage_dir" 2>/dev/null)" || {
+              echo "::error::KRITIKAL: realpath gagal untuk $storage_dir (Too many levels of symbolic links?)"
+              return 1
+            }
+            if [[ "$storage_real" != "$target_real/storage" ]]; then
+              echo "::error::KRITIKAL: storage me-resolve ke '$storage_real', bukan '$target_real/storage'!"
+              return 1
+            fi
+
+            # 3. Validasi direktori runtime esensial di dalam storage
+            local required_subdirs=(
+              "$storage_dir/framework"
+              "$storage_dir/framework/views"
+              "$storage_dir/framework/cache"
+              "$storage_dir/framework/cache/data"
+              "$storage_dir/framework/sessions"
+              "$storage_dir/logs"
+              "$storage_dir/app"
+              "$storage_dir/app/public"
+            )
+            for subdir in "${required_subdirs[@]}"; do
+              if [[ -L "$subdir" ]]; then
+                echo "::error::KRITIKAL: Subdirektori runtime $subdir adalah symlink!"
+                return 1
+              fi
+              if [[ -e "$subdir" && ! -d "$subdir" ]]; then
+                echo "::error::KRITIKAL: Subdirektori runtime $subdir bukan direktori!"
+                return 1
+              fi
+              if [[ -d "$subdir" ]]; then
+                realpath -e -- "$subdir" >/dev/null 2>&1 || {
+                  echo "::error::KRITIKAL: realpath gagal untuk $subdir (symlink loop terdeteksi)!"
+                  return 1
+                }
+              fi
+            done
+
+            # 4. Validasi symlink public/storage jika ada
+            local public_storage="$target_real/public/storage"
+            if [[ -e "$public_storage" || -L "$public_storage" ]]; then
+              if [[ ! -L "$public_storage" ]]; then
+                echo "::error::KRITIKAL: public/storage ada tetapi bukan symlink!"
+                return 1
+              fi
+              local pub_real
+              pub_real="$(realpath -e -- "$public_storage" 2>/dev/null || true)"
+              if [[ -z "$pub_real" ]]; then
+                echo "::error::KRITIKAL: public/storage adalah symlink rusak atau loop (realpath gagal)!"
+                return 1
+              fi
+              if [[ "$pub_real" != "$storage_real/app/public" ]]; then
+                echo "::error::KRITIKAL: public/storage me-resolve ke '$pub_real', bukan '$storage_real/app/public'!"
+                return 1
+              fi
+            fi
+
+            echo "=== Integritas storage dan symlink di $target_real TERVERIFIKASI AMAN ==="
+            return 0
+          }
+
+          ensure_storage_symlink() {
+            local target_dir="$1"
+            local target_real
+            target_real="$(realpath -e -- "$target_dir")" || return 1
+            local storage_public="$target_real/storage/app/public"
+            local public_dir="$target_real/public"
+            local public_storage="$public_dir/storage"
+
+            echo "=== Memastikan symlink public/storage mengarah ke storage/app/public ==="
+
+            # Pastikan direktori public dan storage/app/public ada
+            mkdir -p "$public_dir" "$storage_public"
+            [[ -d "$storage_public" && ! -L "$storage_public" ]] || {
+              echo "::error::Target storage/app/public bukan direktori valid: $storage_public"
+              return 1
+            }
+
+            # Periksa kondisi public/storage saat ini
+            if [[ -L "$public_storage" ]]; then
+              local current_real
+              current_real="$(realpath -e -- "$public_storage" 2>/dev/null || true)"
+              if [[ "$current_real" == "$storage_public" ]]; then
+                echo "=== public/storage sudah berupa symlink valid ke $storage_public ==="
+                return 0
+              fi
+              echo "::warning::public/storage symlink mengarah ke tempat yang salah atau rusak ($current_real). Memperbarui..."
+              rm -f -- "$public_storage"
+            elif [[ -e "$public_storage" ]]; then
+              echo "::error::public/storage ada sebagai file/direktori biasa, bukan symlink!"
+              return 1
+            fi
+
+            # Jalankan artisan storage:link
+            (
+              cd "$target_real"
+              "$PHP_BIN" artisan storage:link --force >/dev/null 2>&1 || true
+            )
+
+            # Fallback jika artisan storage:link belum membuat symlink
+            if [[ ! -L "$public_storage" ]]; then
+              (
+                cd "$public_dir"
+                ln -s -- "../storage/app/public" "storage"
+              )
+            fi
+
+            # Verifikasi akhir symlink public/storage
+            [[ -L "$public_storage" ]] || {
+              echo "::error::public/storage gagal dibuat sebagai symlink!"
+              return 1
+            }
+            local final_real
+            final_real="$(realpath -e -- "$public_storage" 2>/dev/null || true)"
+            if [[ "$final_real" != "$storage_public" ]]; then
+              echo "::error::public/storage tidak mengarah ke $storage_public (hasil resolve: '$final_real')!"
+              return 1
+            fi
+
+            echo "=== public/storage terverifikasi aman -> $storage_public ==="
+            return 0
+          }
+
           ensure_runtime_directories() {
             local target_dir="$1"
-            local storage_dir="$target_dir/storage"
-            local bootstrap_cache="$target_dir/bootstrap/cache"
+            local target_real
+            target_real="$(realpath -e -- "$target_dir")" || return 1
+            local storage_dir="$target_real/storage"
+            local bootstrap_cache="$target_real/bootstrap/cache"
 
-            echo "=== Memastikan direktori runtime Laravel tersedia di $target_dir ==="
+            echo "=== Memastikan direktori runtime Laravel tersedia di $target_real ==="
+
+            # 0. Verifikasi bahwa target storage bukan symlink sebelum mkdir
+            if [[ -L "$storage_dir" ]]; then
+              echo "::error::KRITIKAL: $storage_dir adalah symlink, tidak dapat membuat runtime direktori!"
+              return 1
+            fi
 
             # 1. Pastikan direktori dasar storage dan app ada (hanya direktori, tanpa menyentuh file di dalamnya)
             mkdir -p "$storage_dir" \
@@ -468,14 +631,14 @@ jobs:
               "$storage_dir/framework/sessions" \
               "$storage_dir/logs" \
               "$bootstrap_cache"; do
-              if [[ ! -d "$critical_dir" ]]; then
-                echo "::error::Direktori runtime kritikal Laravel TIDAK ditemukan: $critical_dir"
+              if [[ ! -d "$critical_dir" || -L "$critical_dir" ]]; then
+                echo "::error::Direktori runtime kritikal Laravel TIDAK valid atau berupa symlink: $critical_dir"
                 missing_dirs=$((missing_dirs + 1))
               fi
             done
 
             if [[ "$missing_dirs" -gt 0 ]]; then
-              echo "::error::Terdapat $missing_dirs direktori runtime Laravel yang hilang di $target_dir."
+              echo "::error::Terdapat $missing_dirs direktori runtime Laravel yang tidak valid di $target_real."
               return 1
             fi
 
@@ -572,16 +735,24 @@ jobs:
               echo '::error::Rsync rollback restore gagal'; return 1;
             }
 
+            echo '=== Memvalidasi integritas storage dan symlink pasca-rollback rsync ==='
+            verify_storage_integrity "$APP_DIR" || {
+              echo '::error::Integritas storage pasca-rollback rsync terkompromi!'; return 1;
+            }
+
             echo '=== Memastikan direktori runtime dan permissions pasca-rollback ==='
             ensure_runtime_directories "$APP_DIR" || {
               echo '::error::Gagal memastikan direktori runtime pasca-rollback'; return 1;
             }
 
-            # Re-link public storage jika diperlukan
-            (
-              cd "$APP_DIR"
-              "$PHP_BIN" artisan storage:link --force 2>/dev/null || true
-            )
+            # Pastikan public/storage symlink valid
+            ensure_storage_symlink "$APP_DIR" || {
+              echo '::error::Gagal memastikan public/storage pasca-rollback'; return 1;
+            }
+
+            verify_storage_integrity "$APP_DIR" || {
+              echo '::error::Validasi akhir storage dan symlink pasca-rollback gagal!'; return 1;
+            }
 
             if ! build_cache "$APP_DIR"; then
               echo '::error::Rollback files restored but Laravel cache rebuild failed; manual intervention needed'
@@ -642,9 +813,12 @@ jobs:
           done
           [[ -d "$APP_DIR" && ! -L "$APP_DIR" ]] || fail 'Production webroot missing or symlinked'
           [[ -f "$APP_DIR/.env" ]] || fail 'Production .env missing'
-          [[ -d "$APP_DIR/storage" ]] || fail 'Production storage directory missing'
+          [[ -d "$APP_DIR/storage" && ! -L "$APP_DIR/storage" ]] || fail 'Production storage directory missing or is symlink'
 
+          verify_storage_integrity "$APP_DIR" || fail 'Pra-pemeriksaan integritas storage gagal'
           ensure_runtime_directories "$APP_DIR"
+          ensure_storage_symlink "$APP_DIR"
+          verify_storage_integrity "$APP_DIR" || fail 'Pra-pemeriksaan akhir storage dan symlink gagal'
 
           [[ ! -e "$DEPLOY_ROOT" || ( -d "$DEPLOY_ROOT" && ! -L "$DEPLOY_ROOT" ) ]] || \
             fail "Invalid deployment root: $DEPLOY_ROOT"
@@ -673,8 +847,14 @@ jobs:
           rsync "${RSYNC_FLAGS[@]}" --exclude='/.git/' --exclude='/.github/' --exclude='/vendor/' \
             "${EXCLUDES[@]}" ./ "$STAGING_DIR/"
           cp --preserve=mode,timestamps "$APP_DIR/.env" "$STAGING_DIR/.env"
-          ln -s -- "$APP_DIR/storage" "$STAGING_DIR/storage"
-          mkdir -p "$STAGING_DIR/bootstrap/cache"
+
+          # Siapkan direktori runtime mandiri untuk staging (JANGAN gunakan symlink ke APP_DIR/storage!)
+          # Symlink ke APP_DIR/storage dapat menyebabkan loop symlink self-referensial saat rsync aktivasi
+          mkdir -p "$STAGING_DIR/storage/framework/views" \
+                   "$STAGING_DIR/storage/framework/cache/data" \
+                   "$STAGING_DIR/storage/framework/sessions" \
+                   "$STAGING_DIR/storage/logs" \
+                   "$STAGING_DIR/bootstrap/cache"
 
           echo '=== Installing Composer dependencies ==='
           (
@@ -708,15 +888,17 @@ jobs:
 
           echo '=== Activating prepared release ==='
           ACTIVATION_STARTED=1
+
+          # Verifikasi integritas storage pra-aktivasi
+          verify_storage_integrity "$APP_DIR" || fail "Integritas storage pra-aktivasi gagal!"
+
           rsync "${RSYNC_FLAGS[@]}" --delete "${EXCLUDES[@]}" "$STAGING_DIR/" "$APP_DIR/"
           
+          # Verifikasi integritas storage segera pasca-aktivasi rsync
+          verify_storage_integrity "$APP_DIR" || fail "Integritas storage pasca-aktivasi rsync terkompromi!"
           ensure_runtime_directories "$APP_DIR"
-
-          # Re-link public storage if necessary
-          (
-            cd "$APP_DIR"
-            "$PHP_BIN" artisan storage:link --force
-          )
+          ensure_storage_symlink "$APP_DIR"
+          verify_storage_integrity "$APP_DIR" || fail "Validasi akhir integritas storage dan symlink gagal!"
 
           build_cache "$APP_DIR"
 
