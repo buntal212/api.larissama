@@ -12,6 +12,8 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -231,7 +233,7 @@ class UdevCustomerSyncTest extends TestCase
 
         $freshSync = $sync->fresh();
         $this->assertSame('pending', $freshSync->status);
-        $this->assertSame('WARUNG-'.$sync->warung_id, $freshSync->external_customer_id);
+        $this->assertSame('larissama-old-ulid', $freshSync->external_customer_id);
         Queue::assertPushed(SyncCustomerJob::class, 1);
 
         // Retry on failed
@@ -240,6 +242,7 @@ class UdevCustomerSyncTest extends TestCase
             ->assertStatus(202);
 
         $this->assertSame('pending', $freshSync->fresh()->status);
+        $this->assertSame('larissama-old-ulid', $freshSync->fresh()->external_customer_id);
         Queue::assertPushed(SyncCustomerJob::class, 2);
     }
 
@@ -274,7 +277,7 @@ class UdevCustomerSyncTest extends TestCase
             'external_customer_id' => 'WARUNG-'.$w1->id,
             'status' => 'pending',
         ]);
-        $this->assertSame('WARUNG-'.$w2->id, $s2->fresh()->external_customer_id);
+        $this->assertSame('larissama-test', $s2->fresh()->external_customer_id);
         $this->assertSame('pending', $s2->fresh()->status);
         Queue::assertPushed(SyncCustomerJob::class, 2);
     }
@@ -386,6 +389,142 @@ class UdevCustomerSyncTest extends TestCase
         $this->assertSame('larissama-legacy-456', $result['sync']->external_customer_id);
         $this->assertSame(101, $result['sync']->udev_customer_id);
         $this->assertSame('pending', $result['sync']->status);
+    }
+
+    public function test_dispatch_safely_prevents_duplicate_database_jobs(): void
+    {
+        config()->set('queue.default', 'database');
+        $sync = WarungCustomerSync::factory()->create(['status' => 'pending']);
+
+        // First dispatch succeeds
+        $first = SyncCustomerJob::dispatchSafely($sync->id);
+        $this->assertTrue($first);
+        $this->assertTrue(SyncCustomerJob::isQueued($sync->id));
+        $this->assertSame(1, DB::table('jobs')->where('queue', 'udev-customers')->count());
+
+        // Second dispatch for same syncId is skipped
+        $second = SyncCustomerJob::dispatchSafely($sync->id);
+        $this->assertFalse($second);
+        $this->assertSame(1, DB::table('jobs')->where('queue', 'udev-customers')->count());
+    }
+
+    public function test_scheduler_does_not_duplicate_already_queued_jobs(): void
+    {
+        config()->set('queue.default', 'database');
+        config()->set('services.udev.base_url', 'https://sandbox.udev.example');
+        config()->set('services.udev.token', 'test-token');
+
+        $sync = WarungCustomerSync::factory()->create([
+            'status' => 'pending',
+            'last_enqueued_at' => now()->subMinutes(10),
+        ]);
+
+        // Manually dispatch initial job
+        SyncCustomerJob::dispatchSafely($sync->id);
+        $this->assertSame(1, DB::table('jobs')->where('queue', 'udev-customers')->count());
+
+        // Running the scheduler should not create duplicate job
+        Artisan::call('udev:dispatch-pending-customers');
+        $this->assertSame(1, DB::table('jobs')->where('queue', 'udev-customers')->count());
+    }
+
+    public function test_audit_queue_command_analyzes_jobs_and_identifies_status(): void
+    {
+        config()->set('queue.default', 'database');
+
+        $s1 = WarungCustomerSync::factory()->create([
+            'status' => 'synced',
+            'udev_customer_id' => 10,
+        ]);
+
+        $s2 = WarungCustomerSync::factory()->create([
+            'status' => 'pending',
+        ]);
+
+        // Dispatch jobs directly to simulate accumulated queue
+        SyncCustomerJob::dispatch($s1->id)->onQueue('udev-customers');
+        SyncCustomerJob::dispatch($s2->id)->onQueue('udev-customers');
+        SyncCustomerJob::dispatch($s2->id)->onQueue('udev-customers');
+
+        $this->assertSame(3, DB::table('jobs')->where('queue', 'udev-customers')->count());
+
+        $exitCode = Artisan::call('udev:audit-queue');
+        $this->assertSame(0, $exitCode);
+
+        $output = Artisan::output();
+        $this->assertStringContainsString('Total Job di Queue: 3', $output);
+        $this->assertStringContainsString('Job Valid Dipertahankan: 1', $output);
+        $this->assertStringContainsString('Job Duplikat/Usang Dapat Dipangkas: 2', $output);
+    }
+
+    public function test_cleanup_queue_command_dry_run_preserves_all_jobs(): void
+    {
+        config()->set('queue.default', 'database');
+
+        $sync = WarungCustomerSync::factory()->create(['status' => 'pending']);
+        SyncCustomerJob::dispatch($sync->id)->onQueue('udev-customers');
+        SyncCustomerJob::dispatch($sync->id)->onQueue('udev-customers');
+
+        $this->assertSame(2, DB::table('jobs')->where('queue', 'udev-customers')->count());
+
+        $exitCode = Artisan::call('udev:cleanup-queue', ['--dry-run' => true]);
+        $this->assertSame(0, $exitCode);
+
+        // All jobs preserved in dry-run
+        $this->assertSame(2, DB::table('jobs')->where('queue', 'udev-customers')->count());
+    }
+
+    public function test_cleanup_queue_command_selectively_prunes_duplicates_and_obsolete_creating_backup(): void
+    {
+        config()->set('queue.default', 'database');
+
+        // Setup 4 synced warungs
+        $syncedIds = [];
+        for ($i = 1; $i <= 4; $i++) {
+            $s = WarungCustomerSync::factory()->create([
+                'status' => 'synced',
+                'udev_customer_id' => 100 + $i,
+            ]);
+            $syncedIds[] = $s->id;
+            // 1 obsolete job each
+            SyncCustomerJob::dispatch($s->id)->onQueue('udev-customers');
+        }
+
+        // Setup 2 pending warungs (WARUNG-3 and WARUNG-6 equivalent)
+        $pending1 = WarungCustomerSync::factory()->create(['status' => 'pending']);
+        $pending2 = WarungCustomerSync::factory()->create(['status' => 'pending']);
+
+        // Dispatch 3 duplicate jobs for pending1 and 3 duplicate jobs for pending2
+        for ($i = 0; $i < 3; $i++) {
+            SyncCustomerJob::dispatch($pending1->id)->onQueue('udev-customers');
+            SyncCustomerJob::dispatch($pending2->id)->onQueue('udev-customers');
+        }
+
+        // Total jobs in queue = 4 (synced) + 6 (pending) = 10
+        $this->assertSame(10, DB::table('jobs')->where('queue', 'udev-customers')->count());
+
+        $customBackupPath = storage_path('app/queue-backups/test_cleanup_backup_'.uniqid().'.json');
+
+        $exitCode = Artisan::call('udev:cleanup-queue', [
+            '--force' => true,
+            '--backup-path' => $customBackupPath,
+        ]);
+        $this->assertSame(0, $exitCode);
+
+        // Verification: Exactly 2 valid jobs preserved (1 for pending1 and 1 for pending2)
+        $remainingJobs = DB::table('jobs')->where('queue', 'udev-customers')->get();
+        $this->assertCount(2, $remainingJobs);
+
+        // Verification: Backup file created with exactly 8 pruned jobs
+        $this->assertFileExists($customBackupPath);
+        $backupData = json_decode(File::get($customBackupPath), true);
+        $this->assertCount(8, $backupData);
+
+        // Clean up backup file
+        @unlink($customBackupPath);
+
+        // Verification: failed_jobs untouched
+        $this->assertSame(0, DB::table('failed_jobs')->count());
     }
 
     private function registrationPayload(): array

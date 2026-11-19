@@ -10,6 +10,9 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class SyncCustomerJob implements ShouldQueue
 {
@@ -18,6 +21,39 @@ class SyncCustomerJob implements ShouldQueue
     public int $tries = 15;
 
     public function __construct(public int $syncId) {}
+
+    public static function isQueued(int $syncId): bool
+    {
+        if (config('queue.default') === 'database' && Schema::hasTable('jobs')) {
+            return DB::table('jobs')
+                ->where('queue', 'udev-customers')
+                ->where(function ($query) use ($syncId) {
+                    $query->where('payload', 'like', '%syncId%;i:'.$syncId.';%')
+                        ->orWhere('payload', 'like', '%"syncId":'.$syncId.'%');
+                })
+                ->exists();
+        }
+
+        return false;
+    }
+
+    public static function dispatchSafely(int $syncId, bool $afterCommit = false): bool
+    {
+        if (static::isQueued($syncId)) {
+            Log::info('Job sinkronisasi UDEV sudah berada dalam antrean, dispatch duplikat dilewati.', [
+                'sync_id' => $syncId,
+            ]);
+
+            return false;
+        }
+
+        $pendingDispatch = static::dispatch($syncId)->onQueue('udev-customers');
+        if ($afterCommit) {
+            $pendingDispatch->afterCommit();
+        }
+
+        return true;
+    }
 
     public function middleware(): array
     {

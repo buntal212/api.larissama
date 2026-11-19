@@ -51,7 +51,7 @@ class AdminWarungCustomerSyncController extends Controller
             abort(409, 'Hanya sinkronisasi pending, gagal, atau terblokir yang dapat di-retry.');
         }
 
-        if ((empty($sync->external_customer_id) || str_starts_with($sync->external_customer_id, 'larissama-')) && $sync->udev_customer_id === null) {
+        if (empty($sync->external_customer_id)) {
             $sync->external_customer_id = WarungCustomerSync::generateExternalCustomerId($sync->warung_id);
         }
 
@@ -70,8 +70,10 @@ class AdminWarungCustomerSyncController extends Controller
         ]);
 
         try {
-            SyncCustomerJob::dispatch($sync->id)->onQueue('udev-customers');
-            $sync->forceFill(['last_enqueued_at' => now()])->save();
+            $dispatched = SyncCustomerJob::dispatchSafely($sync->id);
+            if ($dispatched) {
+                $sync->forceFill(['last_enqueued_at' => now()])->save();
+            }
         } catch (\Throwable $exception) {
             Log::warning('UDEV customer queue dispatch failed', ['sync_id' => $sync->id]);
         }

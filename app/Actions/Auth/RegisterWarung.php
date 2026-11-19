@@ -65,8 +65,10 @@ class RegisterWarung
         });
 
         try {
-            SyncCustomerJob::dispatch($result['sync']->id)->onQueue('udev-customers')->afterCommit();
-            $result['sync']->forceFill(['last_enqueued_at' => now()])->save();
+            $dispatched = SyncCustomerJob::dispatchSafely($result['sync']->id, afterCommit: true);
+            if ($dispatched) {
+                $result['sync']->forceFill(['last_enqueued_at' => now()])->save();
+            }
         } catch (\Throwable $exception) {
             Log::warning('UDEV customer queue dispatch failed', ['sync_id' => $result['sync']->id]);
         }

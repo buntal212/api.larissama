@@ -60,7 +60,7 @@ class DispatchPendingUdevCustomers extends Command
                 }
 
                 try {
-                    SyncCustomerJob::dispatch($sync->id)->onQueue('udev-customers');
+                    SyncCustomerJob::dispatchSafely($sync->id);
                     $sync->forceFill(['last_enqueued_at' => now()])->save();
                 } catch (\Throwable $exception) {
                     Log::warning('UDEV customer queue dispatch failed', ['sync_id' => $sync->id]);

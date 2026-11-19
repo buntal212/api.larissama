@@ -37,7 +37,7 @@ class InitiateLegacyUdevCustomerSync
                         'next_attempt_at' => null,
                         'last_error_code' => null,
                     ];
-                    if ($existingSync->udev_customer_id === null) {
+                    if (empty($existingSync->external_customer_id)) {
                         $updates['external_customer_id'] = WarungCustomerSync::generateExternalCustomerId($lockedWarung->id);
                     }
                     $existingSync->forceFill($updates)->save();
@@ -72,8 +72,10 @@ class InitiateLegacyUdevCustomerSync
 
         if ($result['created']) {
             try {
-                SyncCustomerJob::dispatch($result['sync']->id)->onQueue('udev-customers')->afterCommit();
-                $result['sync']->forceFill(['last_enqueued_at' => now()])->save();
+                $dispatched = SyncCustomerJob::dispatchSafely($result['sync']->id, afterCommit: true);
+                if ($dispatched) {
+                    $result['sync']->forceFill(['last_enqueued_at' => now()])->save();
+                }
             } catch (\Throwable $exception) {
                 Log::warning('UDEV customer queue dispatch failed', ['sync_id' => $result['sync']->id]);
             }

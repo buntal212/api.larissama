@@ -63,13 +63,14 @@ class EnsureWarungCustomerSync
                 return ['sync' => $existingSync, 'enqueued' => false];
             }
 
-            // Jika sedang aktif diproses oleh antrean/worker, jangan ditimpa
-            if ($existingSync->isActivelyProcessing()) {
+            // Jika sedang aktif diproses oleh antrean/worker atau sudah ada di antrean saat pending, jangan ditimpa
+            if ($existingSync->isActivelyProcessing() || ($existingSync->status === 'pending' && SyncCustomerJob::isQueued($existingSync->id))) {
                 return ['sync' => $existingSync, 'enqueued' => false];
             }
 
             // Untuk warung yang belum tersinkron (pending/failed/blocked/retry_wait atau stale processing),
-            // pastikan ID eksternal menggunakan mapping deterministic warung ID jika belum terpetakan di UDEV
+            // pertahankan external_customer_id yang sudah ada (termasuk format lama larissama-*).
+            // Format deterministic WARUNG-{id} hanya diberikan jika external_customer_id belum ada.
             $needsUpdate = false;
             $updates = [];
 
@@ -78,7 +79,7 @@ class EnsureWarungCustomerSync
                 $needsUpdate = true;
             }
 
-            if ((empty($existingSync->external_customer_id) || str_starts_with($existingSync->external_customer_id, 'larissama-')) && $existingSync->udev_customer_id === null) {
+            if (empty($existingSync->external_customer_id)) {
                 $updates['external_customer_id'] = $deterministicExternalId;
                 $needsUpdate = true;
             }
@@ -105,8 +106,10 @@ class EnsureWarungCustomerSync
 
         if ($result['enqueued'] && $result['sync'] instanceof WarungCustomerSync) {
             try {
-                SyncCustomerJob::dispatch($result['sync']->id)->onQueue('udev-customers')->afterCommit();
-                $result['sync']->forceFill(['last_enqueued_at' => now()])->save();
+                $dispatched = SyncCustomerJob::dispatchSafely($result['sync']->id, afterCommit: true);
+                if ($dispatched) {
+                    $result['sync']->forceFill(['last_enqueued_at' => now()])->save();
+                }
             } catch (\Throwable $exception) {
                 Log::warning('UDEV customer queue dispatch failed', ['sync_id' => $result['sync']->id]);
             }
