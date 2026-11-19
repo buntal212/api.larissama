@@ -31,13 +31,30 @@ class InitiateLegacyUdevCustomerSync
                 ->first();
 
             if ($existingSync !== null) {
+                if ($existingSync->status !== 'synced') {
+                    $existingSync->forceFill([
+                        'external_customer_id' => WarungCustomerSync::generateExternalCustomerId($lockedWarung->id),
+                        'status' => 'pending',
+                        'attempt_count' => 0,
+                        'next_attempt_at' => null,
+                        'last_error_code' => null,
+                    ])->save();
+                    $existingSync->events()->create([
+                        'actor_user_id' => $actor->id,
+                        'event' => 'admin_requeued_sync',
+                        'created_at' => now(),
+                    ]);
+
+                    return ['sync' => $existingSync, 'created' => true];
+                }
+
                 return ['sync' => $existingSync, 'created' => false];
             }
 
             $sync = WarungCustomerSync::query()->create([
                 'warung_id' => $lockedWarung->id,
                 'owner_user_id' => $owner->id,
-                'external_customer_id' => 'larissama-'.Str::ulid(),
+                'external_customer_id' => WarungCustomerSync::generateExternalCustomerId($lockedWarung->id),
                 'status' => 'pending',
                 'notice_version' => UdevCustomerConsentNotice::VERSION,
                 'consented_at' => now(),

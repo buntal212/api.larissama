@@ -163,6 +163,120 @@ class UdevCustomerSyncTest extends TestCase
         $this->assertSame(2, $sync->fresh()->attempt_count);
     }
 
+    public function test_admin_provisioning_warung_automatically_registers_deterministic_udev_sync(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->superadmin()->create();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+
+        $response = $this->withToken($adminToken)->postJson('/api/v1/admin/warungs', [
+            'nama' => 'Warung Baru Admin',
+            'timezone' => 'Asia/Jakarta',
+            'telepon' => '081122334455',
+            'alamat' => 'Jl. Sudirman No. 1',
+            'owner' => [
+                'nama' => 'Owner Admin',
+                'username' => 'owner_admin_123',
+                'email' => 'owner_admin@example.com',
+                'password' => 'password-aman-123',
+            ],
+        ])->assertCreated();
+
+        $warungId = $response->json('data.warung.id');
+        $sync = WarungCustomerSync::query()->where('warung_id', $warungId)->first();
+        $this->assertNotNull($sync);
+        $this->assertSame('pending', $sync->status);
+        $this->assertSame('WARUNG-'.$warungId, $sync->external_customer_id);
+        Queue::assertPushed(SyncCustomerJob::class, 1);
+    }
+
+    public function test_admin_approving_warung_ensures_deterministic_udev_sync(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->superadmin()->create();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+        $warung = \App\Models\Warung::factory()->create([
+            'aktif' => false,
+            'pendaftaran_disetujui' => false,
+            'tanggal_mulai' => null,
+            'tanggal_berakhir' => null,
+        ]);
+        $owner = User::factory()->create(['warung_id' => $warung->id, 'role' => 'owner']);
+
+        $this->withToken($adminToken)->postJson("/api/v1/admin/warungs/{$warung->id}/persetujuan")->assertOk();
+
+        $sync = WarungCustomerSync::query()->where('warung_id', $warung->id)->first();
+        $this->assertNotNull($sync);
+        $this->assertSame('pending', $sync->status);
+        $this->assertSame('WARUNG-'.$warung->id, $sync->external_customer_id);
+        $this->assertSame($owner->id, $sync->owner_user_id);
+        Queue::assertPushed(SyncCustomerJob::class, 1);
+    }
+
+    public function test_manual_retry_allowed_for_both_pending_and_failed(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->superadmin()->create();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+        $sync = WarungCustomerSync::factory()->create([
+            'status' => 'pending',
+            'external_customer_id' => 'larissama-old-ulid',
+        ]);
+
+        // Retry on pending
+        $this->withToken($adminToken)->postJson("/api/v1/admin/warungs/{$sync->warung_id}/udev-customer-sync/retry")
+            ->assertStatus(202);
+
+        $freshSync = $sync->fresh();
+        $this->assertSame('pending', $freshSync->status);
+        $this->assertSame('WARUNG-'.$sync->warung_id, $freshSync->external_customer_id);
+        Queue::assertPushed(SyncCustomerJob::class, 1);
+
+        // Retry on failed
+        $freshSync->forceFill(['status' => 'failed', 'last_error_code' => 'network_error'])->save();
+        $this->withToken($adminToken)->postJson("/api/v1/admin/warungs/{$sync->warung_id}/udev-customer-sync/retry")
+            ->assertStatus(202);
+
+        $this->assertSame('pending', $freshSync->fresh()->status);
+        Queue::assertPushed(SyncCustomerJob::class, 2);
+    }
+
+    public function test_bulk_resync_all_reprocesses_unsynced_and_failed_warungs(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->superadmin()->create();
+        $adminToken = $admin->createToken('admin')->plainTextToken;
+
+        // Warung 1: unsynced (no sync record)
+        $w1 = \App\Models\Warung::factory()->create();
+        User::factory()->create(['warung_id' => $w1->id, 'role' => 'owner']);
+
+        // Warung 2: failed sync
+        $w2 = \App\Models\Warung::factory()->create();
+        $u2 = User::factory()->create(['warung_id' => $w2->id, 'role' => 'owner']);
+        $s2 = WarungCustomerSync::query()->create([
+            'warung_id' => $w2->id,
+            'owner_user_id' => $u2->id,
+            'status' => 'failed',
+            'external_customer_id' => 'larissama-test',
+            'notice_version' => '2026-10-25.v2',
+            'consented_at' => now(),
+        ]);
+
+        $response = $this->withToken($adminToken)->postJson('/api/v1/admin/warungs/udev-customer-sync/resync-all')
+            ->assertOk();
+
+        $this->assertSame(2, $response->json('data.enqueued_count'));
+        $this->assertDatabaseHas('warung_customer_syncs', [
+            'warung_id' => $w1->id,
+            'external_customer_id' => 'WARUNG-'.$w1->id,
+            'status' => 'pending',
+        ]);
+        $this->assertSame('WARUNG-'.$w2->id, $s2->fresh()->external_customer_id);
+        $this->assertSame('pending', $s2->fresh()->status);
+        Queue::assertPushed(SyncCustomerJob::class, 2);
+    }
+
     private function registrationPayload(): array
     {
         return [

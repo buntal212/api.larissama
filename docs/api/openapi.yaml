@@ -742,6 +742,47 @@ paths:
           $ref: '#/components/responses/Error404'
         '409':
           $ref: '#/components/responses/Error409'
+  /admin/warungs/udev-customer-sync/resync-all:
+    post:
+      operationId: resyncAllWarungUdevCustomerSync
+      tags:
+        - Admin
+      summary: Pemrosesan ulang warung belum tersinkron ke UDEV
+      description: Hanya superadmin. Memproses seluruh warung yang belum memiliki catatan sinkronisasi atau berstatus gagal/pending/retry_wait untuk didaftarkan ke UDEV.
+      x-contract-status: DRAFT
+      x-implementation-status: DONE
+      x-candidate-roles:
+        - superadmin
+      responses:
+        '200':
+          description: Permintaan resync massal berhasil diproses.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - message
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - total_warungs
+                      - enqueued_count
+                    properties:
+                      total_warungs:
+                        type: integer
+                        example: 5
+                      enqueued_count:
+                        type: integer
+                        example: 5
+                  message:
+                    type: string
+                    example: Berhasil memproses 5 warung untuk sinkronisasi UDEV.
+        '401':
+          $ref: '#/components/responses/Error401'
+        '403':
+          $ref: '#/components/responses/Error403'
   /subscription-plans:
     get:
       operationId: listUdevSubscriptionPlans

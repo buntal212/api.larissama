@@ -48,12 +48,14 @@ class SyncCustomerJob implements ShouldQueue
         }
 
         $sync->forceFill([
+            'status' => 'processing',
             'attempt_count' => $sync->attempt_count + 1,
             'last_attempt_at' => now(),
             'last_http_status' => null,
             'last_request_id' => null,
             'next_attempt_at' => null,
         ])->save();
+        $sync->events()->create(['event' => 'processing', 'created_at' => now()]);
 
         try {
             $response = $client->upsert($sync);

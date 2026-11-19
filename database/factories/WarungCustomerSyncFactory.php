@@ -26,7 +26,7 @@ class WarungCustomerSyncFactory extends Factory
         return [
             'warung_id' => $warung->id,
             'owner_user_id' => $owner->id,
-            'external_customer_id' => 'larissama-'.Str::ulid(),
+            'external_customer_id' => WarungCustomerSync::generateExternalCustomerId($warung->id),
             'status' => 'pending',
             'notice_version' => '2026-10-25.v2',
             'consented_at' => now(),

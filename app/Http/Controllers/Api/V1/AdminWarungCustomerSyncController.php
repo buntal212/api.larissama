@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Udev\EnsureWarungCustomerSync;
 use App\Actions\Udev\InitiateLegacyUdevCustomerSync;
 use App\Actions\Udev\SyncCustomerJob;
 use App\Http\Controllers\Controller;
@@ -9,6 +10,7 @@ use App\Http\Requests\Api\V1\AdminInitiateUdevCustomerSyncRequest;
 use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
@@ -45,8 +47,12 @@ class AdminWarungCustomerSyncController extends Controller
         Gate::authorize('update', $warung);
         $sync = WarungCustomerSync::query()->where('warung_id', $warung->id)->firstOrFail();
 
-        if (! in_array($sync->status, ['failed', 'blocked', 'retry_wait'], true)) {
-            abort(409);
+        if (! in_array($sync->status, ['failed', 'blocked', 'retry_wait', 'pending'], true)) {
+            abort(409, 'Hanya sinkronisasi pending, gagal, atau terblokir yang dapat di-retry.');
+        }
+
+        if (empty($sync->external_customer_id) || str_starts_with($sync->external_customer_id, 'larissama-')) {
+            $sync->external_customer_id = WarungCustomerSync::generateExternalCustomerId($sync->warung_id);
         }
 
         $sync->forceFill([
@@ -71,6 +77,36 @@ class AdminWarungCustomerSyncController extends Controller
         }
 
         return response()->json(['data' => $this->data($sync->fresh())], 202);
+    }
+
+    public function resyncAll(Request $request, EnsureWarungCustomerSync $ensureSync): JsonResponse
+    {
+        Gate::authorize('viewAny', Warung::class);
+
+        $warungs = Warung::query()
+            ->where(function ($query): void {
+                $query->whereDoesntHave('customerSync')
+                    ->orWhereHas('customerSync', function ($syncQuery): void {
+                        $syncQuery->whereIn('status', ['pending', 'failed', 'blocked', 'retry_wait', 'processing']);
+                    });
+            })
+            ->get();
+
+        $enqueuedCount = 0;
+        foreach ($warungs as $warung) {
+            $res = $ensureSync->execute($warung, $request->user());
+            if ($res['enqueued']) {
+                $enqueuedCount++;
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'total_warungs' => $warungs->count(),
+                'enqueued_count' => $enqueuedCount,
+            ],
+            'message' => "Berhasil memproses {$enqueuedCount} warung untuk sinkronisasi UDEV.",
+        ], 200);
     }
 
     private function data(WarungCustomerSync $sync): array

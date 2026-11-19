@@ -33,6 +33,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::prefix('admin/warungs')->name('admin.warungs.')->group(function (): void {
             Route::get('/', [AdminWarungController::class, 'index'])->name('index');
             Route::post('/', [AdminWarungController::class, 'store'])->name('store');
+            Route::post('udev-customer-sync/resync-all', [AdminWarungCustomerSyncController::class, 'resyncAll'])->name('udev-customer-sync.resync-all');
             Route::get('{id}', [AdminWarungController::class, 'show'])->where('id', '[1-9][0-9]*')->name('show');
             Route::patch('{id}', [AdminWarungController::class, 'update'])->where('id', '[1-9][0-9]*')->name('update');
             Route::post('{id}/persetujuan', [AdminWarungController::class, 'approve'])->where('id', '[1-9][0-9]*')->name('approve');

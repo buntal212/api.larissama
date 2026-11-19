@@ -2,6 +2,7 @@
 
 namespace App\Actions\Admin;
 
+use App\Actions\Udev\EnsureWarungCustomerSync;
 use App\Models\Warung;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -9,9 +10,13 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class ApproveWarung
 {
+    public function __construct(
+        private readonly EnsureWarungCustomerSync $ensureSync = new EnsureWarungCustomerSync(),
+    ) {}
+
     public function execute(Warung $warung): Warung
     {
-        return DB::transaction(function () use ($warung): Warung {
+        $updatedWarung = DB::transaction(function () use ($warung): Warung {
             $lockedWarung = Warung::query()->lockForUpdate()->findOrFail($warung->getKey());
 
             if ($lockedWarung->pendaftaran_disetujui || $lockedWarung->tanggal_mulai !== null || $lockedWarung->tanggal_berakhir !== null) {
@@ -28,5 +33,9 @@ class ApproveWarung
 
             return $lockedWarung;
         });
+
+        $this->ensureSync->execute($updatedWarung, auth()->user());
+
+        return $updatedWarung;
     }
 }

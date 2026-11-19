@@ -40,10 +40,10 @@ class UdevCustomerClient
             ->post('/api/v1/integrations/customers', [
                 'external_customer_id' => $sync->external_customer_id,
                 'name' => $sync->warung->nama,
-                'owner_name' => $sync->owner->nama,
-                'email' => $sync->owner->email,
-                'phone' => $sync->warung->telepon,
-                'status' => 'active',
+                'owner_name' => $sync->owner?->nama ?? $sync->warung->nama,
+                'email' => $sync->owner?->email ?: null,
+                'phone' => $sync->warung->telepon ?: null,
+                'status' => $sync->warung->aktif ? 'active' : 'inactive',
             ]);
     }
 }

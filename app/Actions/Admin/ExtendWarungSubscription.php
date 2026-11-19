@@ -2,6 +2,7 @@
 
 namespace App\Actions\Admin;
 
+use App\Actions\Udev\EnsureWarungCustomerSync;
 use App\Models\Warung;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -9,9 +10,13 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class ExtendWarungSubscription
 {
+    public function __construct(
+        private readonly EnsureWarungCustomerSync $ensureSync = new EnsureWarungCustomerSync(),
+    ) {}
+
     public function execute(Warung $warung): Warung
     {
-        return DB::transaction(function () use ($warung): Warung {
+        $updatedWarung = DB::transaction(function () use ($warung): Warung {
             $lockedWarung = Warung::query()->lockForUpdate()->findOrFail($warung->getKey());
             $today = CarbonImmutable::now('UTC')->setTimezone($lockedWarung->timezone)->startOfDay();
             $endDate = $lockedWarung->tanggal_berakhir?->toDateString();
@@ -37,5 +42,9 @@ class ExtendWarungSubscription
 
             return $lockedWarung;
         });
+
+        $this->ensureSync->execute($updatedWarung, auth()->user());
+
+        return $updatedWarung;
     }
 }

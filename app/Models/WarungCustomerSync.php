@@ -15,6 +15,11 @@ class WarungCustomerSync extends Model
     /** @use HasFactory<WarungCustomerSyncFactory> */
     use HasFactory;
 
+    public static function generateExternalCustomerId(int|string $warungId): string
+    {
+        return 'WARUNG-'.$warungId;
+    }
+
     public function warung(): BelongsTo
     {
         return $this->belongsTo(Warung::class);

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Admin;
 
+use App\Actions\Udev\EnsureWarungCustomerSync;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Support\Facades\DB;
@@ -9,6 +10,10 @@ use Illuminate\Support\Str;
 
 class ProvisionWarung
 {
+    public function __construct(
+        private readonly EnsureWarungCustomerSync $ensureSync = new EnsureWarungCustomerSync(),
+    ) {}
+
     /**
      * @param  array{
      *     nama:string,
@@ -21,7 +26,7 @@ class ProvisionWarung
      */
     public function execute(array $attributes): array
     {
-        return DB::transaction(function () use ($attributes): array {
+        $result = DB::transaction(function () use ($attributes): array {
             $ownerAttributes = $attributes['owner'];
             unset($attributes['owner']);
 
@@ -41,5 +46,9 @@ class ProvisionWarung
                 'owner' => $owner,
             ];
         });
+
+        $this->ensureSync->execute($result['warung'], auth()->user());
+
+        return $result;
     }
 }

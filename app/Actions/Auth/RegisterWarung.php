@@ -51,7 +51,7 @@ class RegisterWarung
             $sync = WarungCustomerSync::query()->create([
                 'warung_id' => $warung->id,
                 'owner_user_id' => $owner->id,
-                'external_customer_id' => 'larissama-'.Str::ulid(),
+                'external_customer_id' => WarungCustomerSync::generateExternalCustomerId($warung->id),
                 'status' => 'pending',
                 'notice_version' => $noticeVersion,
                 'consented_at' => now(),

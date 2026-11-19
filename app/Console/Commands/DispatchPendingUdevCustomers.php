@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Udev\EnsureWarungCustomerSync;
 use App\Actions\Udev\SyncCustomerJob;
 use App\Actions\Udev\UdevCustomerClient;
+use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -11,15 +13,26 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 #[Signature('udev:dispatch-pending-customers')]
-#[Description('Queue pending Larissama customer registrations for UDEV')]
+#[Description('Queue pending Larissama customer registrations for UDEV and discover unsynced warungs')]
 class DispatchPendingUdevCustomers extends Command
 {
-    public function handle(UdevCustomerClient $client): int
+    public function handle(UdevCustomerClient $client, EnsureWarungCustomerSync $ensureSync): int
     {
         if (! $client->isConfigured()) {
             return self::SUCCESS;
         }
 
+        // Temukan dan daftarkan warung yang belum memiliki catatan sinkronisasi
+        Warung::query()
+            ->whereDoesntHave('customerSync')
+            ->orderBy('id')
+            ->limit(50)
+            ->get()
+            ->each(function (Warung $warung) use ($ensureSync): void {
+                $ensureSync->execute($warung);
+            });
+
+        // Antrekan warung yang pending/blocked/retry_wait
         WarungCustomerSync::query()
             ->where(function ($query): void {
                 $query->where('status', 'pending')
