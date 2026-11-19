@@ -35,6 +35,19 @@ class WarungCustomerSync extends Model
         return $this->hasMany(WarungCustomerSyncEvent::class);
     }
 
+    public function isStaleProcessing(int $thresholdMinutes = 2): bool
+    {
+        return $this->status === 'processing'
+            && ($this->last_attempt_at === null || $this->last_attempt_at->lessThan(now()->subMinutes($thresholdMinutes)));
+    }
+
+    public function isActivelyProcessing(int $thresholdMinutes = 2): bool
+    {
+        return $this->status === 'processing'
+            && $this->last_attempt_at !== null
+            && $this->last_attempt_at->greaterThanOrEqualTo(now()->subMinutes($thresholdMinutes));
+    }
+
     protected function casts(): array
     {
         return [

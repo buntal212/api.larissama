@@ -47,11 +47,11 @@ class AdminWarungCustomerSyncController extends Controller
         Gate::authorize('update', $warung);
         $sync = WarungCustomerSync::query()->where('warung_id', $warung->id)->firstOrFail();
 
-        if (! in_array($sync->status, ['failed', 'blocked', 'retry_wait', 'pending'], true)) {
+        if (! in_array($sync->status, ['failed', 'blocked', 'retry_wait', 'pending'], true) && ! $sync->isStaleProcessing()) {
             abort(409, 'Hanya sinkronisasi pending, gagal, atau terblokir yang dapat di-retry.');
         }
 
-        if (empty($sync->external_customer_id) || str_starts_with($sync->external_customer_id, 'larissama-')) {
+        if ((empty($sync->external_customer_id) || str_starts_with($sync->external_customer_id, 'larissama-')) && $sync->udev_customer_id === null) {
             $sync->external_customer_id = WarungCustomerSync::generateExternalCustomerId($sync->warung_id);
         }
 

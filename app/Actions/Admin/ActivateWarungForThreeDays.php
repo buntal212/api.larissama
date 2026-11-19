@@ -11,7 +11,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class ActivateWarungForThreeDays
 {
     public function __construct(
-        private readonly EnsureWarungCustomerSync $ensureSync = new EnsureWarungCustomerSync(),
+        private readonly EnsureWarungCustomerSync $ensureSync = new EnsureWarungCustomerSync,
     ) {}
 
     public function execute(Warung $warung): Warung

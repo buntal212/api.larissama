@@ -58,13 +58,18 @@ class EnsureWarungCustomerSync
                 return ['sync' => $sync, 'enqueued' => true];
             }
 
-            // Jika sync sudah tersinkron, kita pertahankan kecuali external_id belum mengikuti standar
+            // Jika sync sudah tersinkron, kita pertahankan
             if ($existingSync->status === 'synced') {
                 return ['sync' => $existingSync, 'enqueued' => false];
             }
 
-            // Untuk warung yang belum tersinkron (pending/failed/blocked/retry_wait),
-            // pastikan ID eksternal menggunakan mapping deterministic warung ID
+            // Jika sedang aktif diproses oleh antrean/worker, jangan ditimpa
+            if ($existingSync->isActivelyProcessing()) {
+                return ['sync' => $existingSync, 'enqueued' => false];
+            }
+
+            // Untuk warung yang belum tersinkron (pending/failed/blocked/retry_wait atau stale processing),
+            // pastikan ID eksternal menggunakan mapping deterministic warung ID jika belum terpetakan di UDEV
             $needsUpdate = false;
             $updates = [];
 
@@ -73,12 +78,12 @@ class EnsureWarungCustomerSync
                 $needsUpdate = true;
             }
 
-            if (empty($existingSync->external_customer_id) || str_starts_with($existingSync->external_customer_id, 'larissama-')) {
+            if ((empty($existingSync->external_customer_id) || str_starts_with($existingSync->external_customer_id, 'larissama-')) && $existingSync->udev_customer_id === null) {
                 $updates['external_customer_id'] = $deterministicExternalId;
                 $needsUpdate = true;
             }
 
-            if (in_array($existingSync->status, ['failed', 'blocked', 'retry_wait'], true)) {
+            if (in_array($existingSync->status, ['failed', 'blocked', 'retry_wait'], true) || $existingSync->isStaleProcessing()) {
                 $updates['status'] = 'pending';
                 $updates['attempt_count'] = 0;
                 $updates['next_attempt_at'] = null;

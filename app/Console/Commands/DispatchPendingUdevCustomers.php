@@ -32,13 +32,20 @@ class DispatchPendingUdevCustomers extends Command
                 $ensureSync->execute($warung);
             });
 
-        // Antrekan warung yang pending/blocked/retry_wait
+        // Antrekan warung yang pending/blocked/retry_wait atau stale processing
         WarungCustomerSync::query()
             ->where(function ($query): void {
                 $query->where('status', 'pending')
                     ->orWhere('status', 'blocked')
                     ->orWhere(function ($retry): void {
                         $retry->where('status', 'retry_wait')->where('next_attempt_at', '<=', now());
+                    })
+                    ->orWhere(function ($proc): void {
+                        $proc->where('status', 'processing')
+                            ->where(function ($stale): void {
+                                $stale->whereNull('last_attempt_at')
+                                    ->orWhere('last_attempt_at', '<=', now()->subMinutes(2));
+                            });
                     });
             })
             ->where(function ($query): void {
@@ -48,7 +55,7 @@ class DispatchPendingUdevCustomers extends Command
             ->limit(50)
             ->get()
             ->each(function (WarungCustomerSync $sync): void {
-                if ($sync->status === 'blocked') {
+                if ($sync->status === 'blocked' || $sync->status === 'processing') {
                     $sync->forceFill(['status' => 'pending', 'last_error_code' => null])->save();
                 }
 

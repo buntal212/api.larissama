@@ -7,7 +7,6 @@ use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class InitiateLegacyUdevCustomerSync
 {
@@ -32,13 +31,16 @@ class InitiateLegacyUdevCustomerSync
 
             if ($existingSync !== null) {
                 if ($existingSync->status !== 'synced') {
-                    $existingSync->forceFill([
-                        'external_customer_id' => WarungCustomerSync::generateExternalCustomerId($lockedWarung->id),
+                    $updates = [
                         'status' => 'pending',
                         'attempt_count' => 0,
                         'next_attempt_at' => null,
                         'last_error_code' => null,
-                    ])->save();
+                    ];
+                    if ($existingSync->udev_customer_id === null) {
+                        $updates['external_customer_id'] = WarungCustomerSync::generateExternalCustomerId($lockedWarung->id);
+                    }
+                    $existingSync->forceFill($updates)->save();
                     $existingSync->events()->create([
                         'actor_user_id' => $actor->id,
                         'event' => 'admin_requeued_sync',

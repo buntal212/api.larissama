@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 class ProvisionWarung
 {
     public function __construct(
-        private readonly EnsureWarungCustomerSync $ensureSync = new EnsureWarungCustomerSync(),
+        private readonly EnsureWarungCustomerSync $ensureSync = new EnsureWarungCustomerSync,
     ) {}
 
     /**

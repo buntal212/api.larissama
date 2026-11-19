@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Warung;
 use App\Models\WarungCustomerSync;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends Factory<WarungCustomerSync>

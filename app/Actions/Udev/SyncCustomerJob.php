@@ -64,6 +64,11 @@ class SyncCustomerJob implements ShouldQueue
             $this->retryIfAllowed($sync, 60);
 
             return;
+        } catch (\Throwable $exception) {
+            $this->record($sync, 'retry_wait', 'transport_error');
+            $this->retryIfAllowed($sync, 60);
+
+            return;
         }
 
         $sync->forceFill([
